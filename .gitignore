@@ -1,0 +1,13 @@
+# Ignore environment variables and credentials
+.env
+creds_file.json
+
+# Ignore compiled Python files
+*.pyc
+
+# Ignore any log files
+*.log
+
+# Optional: Ignore other files that are not necessary for your project to run
+__pycache__/
+.DS_Store  # If using macOS
