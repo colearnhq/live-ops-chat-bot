@@ -76,7 +76,7 @@ def handle_message_events(body, say, client):
                     f"{response} <@{event['user']}>, Ops are ready to help :confused_dog:"
                 )
                 say(
-                    f"Please type your issue with the following pattern: `/hiops [isi pertanyaan/masalahmu]`"
+                    f"Please type your issue with the following pattern: `/hiops [write your issue/inquiry]`"
                 )
         elif match_thank_you:
             thank_you = match_thank_you.group(1)
@@ -86,7 +86,7 @@ def handle_message_events(body, say, client):
         else:
             say(f"Hi <@{event['user']}>, Ops are ready to help :confused_dog:")
             say(
-                f"Please type your issue with this following pattern: `/hiops [isi pertanyaan/masalahmu]`"
+                f"Please type your issue with this following pattern: `/hiops [write your issue/inquiry]`"
             )
         sheet_manager.log_ticket(
             chat_timestamp, timestamp, user_id, full_name, email, phone_number, text
@@ -128,7 +128,7 @@ def handle_hiops_command(ack, body, client, say):
                         {"type": "mrkdwn", "text": f"*Reported at:*\n{timestamp}"},
                         {
                             "type": "mrkdwn",
-                            "text": f"*Problem:*\n{user_input}",
+                            "text": f"*Problem:*\n`{user_input}`",
                         },
                     ],
                 },
@@ -171,7 +171,7 @@ def handle_hiops_command(ack, body, client, say):
                             },
                             {
                                 "type": "mrkdwn",
-                                "text": f"*Problem:*\n{user_input}",
+                                "text": f"*Problem:*\n`{user_input}`",
                             },
                         ],
                     },
@@ -260,6 +260,8 @@ def handle_user_selection(ack, body, client):
     ack()
     selected_user_data = body["actions"][0]["selected_option"]["value"].split(',')
     selected_user = selected_user_data[0]
+    user_info = client.users_info(user=selected_user)
+    selected_user_name = user_info["user"]["real_name"]
     user_who_requested = selected_user_data[1]
     response_ts = selected_user_data[2]
     channel_id = body["channel"]["id"]
@@ -272,7 +274,7 @@ def handle_user_selection(ack, body, client):
     )
     sheet_manager.update_ticket(
         f"live-ops.{thread_ts}",
-        {"handled_by": selected_user, "handled_at": timestamp},
+        {"handled_by": selected_user_name, "handled_at": timestamp},
     )
     if response["ok"]:
         client.chat_postMessage(
@@ -290,7 +292,6 @@ def handle_user_selection(ack, body, client):
 def handle_category_selection(ack, body, client):
     ack()
     selected_category = body['actions'][0]['selected_option']['value'].split(',')
-    print("ini kateogry", selected_category)
     selected_category_name = selected_category[0]
     thread_ts = body["container"]["message_ts"]
     sheet_manager.update_ticket(
@@ -303,6 +304,8 @@ def handle_category_selection(ack, body, client):
 def handle_resolve_button(ack, body, client):
     ack()
     user_id = body["user"]["id"]
+    user_info = client.users_info(user=user_id)
+    user_name = user_info["user"]["real_name"]
     channel_id = body["channel"]["id"]
     thread_ts = body["container"]["message_ts"]
     elements = body["message"]["blocks"][7]["elements"]
@@ -319,14 +322,10 @@ def handle_resolve_button(ack, body, client):
     )
     sheet_manager.update_ticket(
         f"live-ops.{thread_ts}",
-        {"resolved_by": body["user"]["name"], "resolved_at": timestamp},
+        {"resolved_by": user_name, "resolved_at": timestamp},
     )
+
     if response["ok"]:
-        client.chat_postMessage(
-            channel=user_who_requested_ticket_id,
-            thread_ts=user_message_ts,
-            text=f"<@{user_who_requested_ticket_id}> your issue has been resolved at `{timestamp}`. Thank you :blob-bear-dance:",
-        )
         client.chat_update(
             channel=channel_id,
             ts=thread_ts,
@@ -352,7 +351,7 @@ def handle_resolve_button(ack, body, client):
                         },
                         {
                             "type": "mrkdwn",
-                            "text": f"*Problem:*\n{user_input}",
+                            "text": f"*Problem:*\n`{user_input}`",
                         },
                     ],
                 },
@@ -366,8 +365,16 @@ def handle_resolve_button(ack, body, client):
                 },
             ],
         )
+
+        client.chat_postMessage(
+            channel=user_who_requested_ticket_id,
+            thread_ts=user_message_ts,
+            text=f"<@{user_who_requested_ticket_id}> your issue has been resolved at `{timestamp}`. Thank you :blob-bear-dance:",
+        )
+
     else:
         logging.error(f"Failed to post message: {response['error']}")
+    
 
 
 @app.action("reject_button")
@@ -376,16 +383,14 @@ def handle_reject_button(ack, body, client):
     trigger_id = body["trigger_id"]
     message_ts = body["container"]["message_ts"]
     channel_id = body["channel"]["id"]
+    user_info = client.users_info(user=body["user"]["id"])
+    user_name = user_info["user"]["real_name"]
     elements = body["message"]["blocks"][7]["elements"]
-    reject_button_value = elements[0]["value"].split(",")
-    user_who_requested_ticket_id = reject_button_value[0]
-    user_message_ts = reject_button_value[1]
-    user_input = reject_button_value[2]
-    ticket_reported_at = reject_button_value[3]
+    reject_button_value = elements[0]["value"]
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     sheet_manager.update_ticket(
                 f"live-ops.{message_ts}",
-                {"rejected_by": body["user"]["name"], "rejected_at": timestamp},
+                {"rejected_by": user_name, "rejected_at": timestamp},
             )
     modal = {
         "type": "modal",
@@ -405,7 +410,7 @@ def handle_reject_button(ack, body, client):
                 },
             }
         ],
-        "private_metadata": f"{channel_id},{message_ts},{user_who_requested_ticket_id},{user_message_ts},{user_input},{ticket_reported_at} ",
+        "private_metadata": f"{channel_id},{message_ts},{reject_button_value} ",
     }
 
     try:
@@ -434,11 +439,6 @@ def handle_modal_submission(ack, body, client, view, logger):
                 text=f"<@{user_id}> has rejected the issue at `{timestamp}` due to: `{reason}`.",
             )
         if response["ok"]:
-                client.chat_postMessage(
-                    channel=user_requested_id,
-                    thread_ts=user_message_ts,
-                    text=f"We are sorry :smiling_face_with_tear: your issue was rejected due to `{reason}`. Let's put another question.",
-                )
                 client.chat_update(
                     channel=channel_id,
                     ts=message_ts,
@@ -464,7 +464,7 @@ def handle_modal_submission(ack, body, client, view, logger):
                                 },
                                 {
                                     "type": "mrkdwn",
-                                    "text": f"*Problem:*\n{user_input}",
+                                    "text": f"*Problem:*\n`{user_input}`",
                                 },
                             ],
                         },
@@ -478,6 +478,13 @@ def handle_modal_submission(ack, body, client, view, logger):
                         },
                     ],
                 )
+
+                client.chat_postMessage(
+                    channel=user_requested_id,
+                    thread_ts=user_message_ts,
+                    text=f"We are sorry :smiling_face_with_tear: your issue was rejected due to `{reason}`. Let's put another question.",
+                )
+        
         else:
             logger.error("No value information available for this channel.")
     except Exception as e:
