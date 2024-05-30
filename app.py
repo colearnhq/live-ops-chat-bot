@@ -136,11 +136,11 @@ def handle_hiops_command(ack, body, client, say):
         
 
         response_for_user = client.chat_postMessage(channel=user_id, blocks=ticket)
-        ticket_key_for_user = f"{user_id},{response_for_user["ts"]},{user_input},{timestamp}"
+        ticket_key_for_user = f"{user_id},{response_for_user['ts']},{user_input},{timestamp}"
         members_result = client.conversations_members(channel=channel_id)
         members = members_result["members"] if members_result["ok"] else []
         user_options = [
-            {"text": {"type": "plain_text", "text": f"<@{member}>"}, "value": f"{member},{user_id},{response_for_user["ts"]}"}
+            {"text": {"type": "plain_text", "text": f"<@{member}>"}, "value": f"{member},{user_id},{response_for_user['ts']}"}
             for member in members
         ]
         category_options = [
