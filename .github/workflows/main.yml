@@ -13,6 +13,10 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
+    - name: Zip the repo
+      run: |
+        ls -l; zip live-ops-chat-bot.zip live-ops-chat-bot/*
+       
     - name: copy file via ssh key
       uses: appleboy/scp-action@v0.1.7
       with:
@@ -20,7 +24,7 @@ jobs:
         username: ${{ secrets.SSH_USERNAME }}
         port: ${{ secrets.SSH_PORT }}
         key: ${{ secrets.SSH_KEY }}
-        source: "./*"
+        source: "live-ops-chat-bot.zip"
         target: /tmp/.
 
     - name: Deploy to remote server
@@ -38,6 +42,8 @@ jobs:
           cd /tmp
           echo $SLACK_BOT_TOKEN
           echo $SLACK_APP_TOKEN
+          unzip live-ops-chat-bot.zip
+          cd live-ops-chat-bot/
           python install -r requirements.txt
           python app.py
           
