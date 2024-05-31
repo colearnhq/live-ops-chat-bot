@@ -15,7 +15,7 @@ jobs:
 
     - name: Zip the repo
       run: |
-        ls -l; zip live-ops-chat-bot.zip live-ops-chat-bot/*
+        ls -l; zip live-ops-chat-bot.zip ../live-ops-chat-bot/*
        
     - name: copy file via ssh key
       uses: appleboy/scp-action@v0.1.7
