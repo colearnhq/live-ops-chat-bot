@@ -1,0 +1,41 @@
+name: Deploy to Remote Server
+
+on:
+  push:
+    branches:
+      - main  # Trigger deployment on push to main branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: copy file via ssh key
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        port: ${{ secrets.PORT }}
+        key: ${{ secrets.KEY }}
+        source: "./*"
+        target: /tmp/.
+
+    - name: Deploy to remote server
+      uses: appleboy/ssh-action@master
+      env:
+        SLACK_BOT_TOKEN: ${{secrets.SLACK_BOT_TOKEN}}
+        SLACK_APP_TOKEN: ${{secrets.SLACK_APP_TOKEN}}
+      with:
+        host: ${{ secrets.SSH_HOST }}
+        username: ${{ secrets.SSH_USERNAME }}
+        key: ${{ secrets.SSH_KEY }}
+        port: ${{ secrets.SSH_PORT }}
+        envs: SLACK_BOT_TOKEN, SLACK_APP_TOKEN
+        script: |
+          cd /tmp
+          python install -r requirements.txt
+          python app.py
+          
