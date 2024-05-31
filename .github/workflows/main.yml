@@ -16,10 +16,10 @@ jobs:
     - name: copy file via ssh key
       uses: appleboy/scp-action@v0.1.7
       with:
-        host: ${{ secrets.HOST }}
-        username: ${{ secrets.USERNAME }}
-        port: ${{ secrets.PORT }}
-        key: ${{ secrets.KEY }}
+        host: ${{ secrets.SSH_HOST }}
+        username: ${{ secrets.SSH_USERNAME }}
+        port: ${{ secrets.SSH_PORT }}
+        key: ${{ secrets.SSH_KEY }}
         source: "./*"
         target: /tmp/.
 
@@ -36,6 +36,8 @@ jobs:
         envs: SLACK_BOT_TOKEN, SLACK_APP_TOKEN
         script: |
           cd /tmp
+          echo $SLACK_BOT_TOKEN
+          echo $SLACK_APP_TOKEN
           python install -r requirements.txt
           python app.py
           
