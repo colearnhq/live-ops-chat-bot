@@ -285,7 +285,7 @@ def handle_user_selection(ack, body, client):
     user_who_requested = selected_user_data[1]
     response_ts = selected_user_data[2]
     user_input = selected_user_data[3]
-    reflected_cn = "C0719R3NQ91"
+    reflected_cn = "C05Q52ZTQ3X"
     channel_id = body["channel"]["id"]
     thread_ts = body["container"]["message_ts"]
     timestamp_utc = datetime.utcnow()
@@ -325,6 +325,15 @@ def handle_user_selection(ack, body, client):
                         },
                     ],
                 },
+                {"type": "divider"},
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "please pay attention, if this issue related to you :point_up_2:",
+                    },
+                },
+                
             ]
         
         client.chat_postMessage(
