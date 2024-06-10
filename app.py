@@ -10,9 +10,23 @@ from database import SheetManager
 
 load_dotenv(".env")
 
+creds_dict = {
+  "type": os.getenv("GOOGLE_CREDENTIALS_TYPE"),
+  "project_id": os.getenv("GOOGLE_PROJECT_ID"),
+  "private_key_id": os.getenv("GOOGLE_PRIVATE_KEY_ID"),
+  "private_key": os.getenv("GOOGLE_PRIVATE_KEY").replace('\\n', '\n'),
+  "client_email": os.getenv("GOOGLE_CLIENT_EMAIL"),
+  "client_id": os.getenv("GOOGLE_CLIENT_ID"),
+  "auth_uri": os.getenv("GOOGLE_AUTH_URI"),
+  "token_uri": os.getenv("GOOGLE_TOKEN_URI"),
+  "auth_provider_x509_cert_url": os.getenv("GOOGLE_AUTH_PROVIDER_CERT_URL"),
+  "client_x509_cert_url": os.getenv("GOOGLE_CLIENT_CERT_URL"),
+  "universe_domain": os.getenv("GOOGLE_UNIVERSE_DOMAIN")
+}
+
 app = App(token=os.environ.get("SLACK_BOT_TOKEN"))
 sheet_manager = SheetManager(
-    "creds_file.json", "1dPXiGBN2dDyyQ9TnO6Hi8cQtmbkFBU4O7sI5ztbXT90"
+    creds_dict, "1dPXiGBN2dDyyQ9TnO6Hi8cQtmbkFBU4O7sI5ztbXT90"
 )
 
 greetings_response = {
