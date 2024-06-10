@@ -69,7 +69,8 @@ thank_you_pattern = re.compile(
 def convert_utc_to_jakarta(time):
     utc_time = time.replace(tzinfo=pytz.utc)
     jakarta_tz = pytz.timezone("Asia/Jakarta")
-    return utc_time.astimezone(jakarta_tz)
+    changed_timezone = utc_time.astimezone(jakarta_tz)
+    return changed_timezone.strftime('%Y-%m-%d %H:%M:%S')
 
 @app.event("message")
 def handle_message_events(body, say, client):
