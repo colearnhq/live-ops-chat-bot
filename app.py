@@ -161,7 +161,7 @@ def handle_hiops_command(ack, body, client, say):
         members_result = client.conversations_members(channel=channel_id)
         members = members_result["members"] if members_result["ok"] else []
         user_options = [
-            {"text": {"type": "plain_text", "text": f"<@{member}>"}, "value": f"{member},{user_id},{response_for_user['ts']}"}
+            {"text": {"type": "plain_text", "text": f"<@{member}>"}, "value": f"{member},{user_id},{response_for_user['ts']},{user_input}"}
             for member in members
         ]
         category_options = [
@@ -284,6 +284,8 @@ def handle_user_selection(ack, body, client):
     selected_user_name = user_info["user"]["real_name"]
     user_who_requested = selected_user_data[1]
     response_ts = selected_user_data[2]
+    user_input = selected_user_data[3]
+    reflected_cn = 'C05Q52ZTQ3X'
     channel_id = body["channel"]["id"]
     thread_ts = body["container"]["message_ts"]
     timestamp_utc = datetime.utcnow()
@@ -298,10 +300,41 @@ def handle_user_selection(ack, body, client):
         {"handled_by": selected_user_name, "handled_at": timestamp_jakarta},
     )
     if response["ok"]:
+        blocks = [
+                {
+                    "type": "section",
+                    "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"We just received an issue from <@{user_who_requested}> at `{timestamp_jakarta}`",
+                    },
+                },
+                {
+                    "type": "section",
+                    "fields": [
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Ticket Number:*\nlive-ops.{thread_ts}",
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Problem:*\n`{user_input}`",
+                        },
+                    ],
+                },
+            ]
+        
         client.chat_postMessage(
             channel=user_who_requested,
             thread_ts=response_ts,
             text=f"<@{user_who_requested}> your issue will be handled by <@{selected_user}>. We will check and text you asap. Please wait ya.",
+        )
+        client.chat_postMessage(
+            channel=reflected_cn,
+            blocks=blocks
         )
     else:
         logging.error(f"Failed to post message: {response['error']}")
