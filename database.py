@@ -5,7 +5,7 @@ from datetime import datetime
 
 
 class SheetManager:
-    def __init__(self, creds_file, sheet_key):
+    def __init__(self, creds_dict, sheet_key):
         try:
             scope = [
                 "https://spreadsheets.google.com/feeds",
@@ -13,7 +13,7 @@ class SheetManager:
                 "https://www.googleapis.com/auth/drive.file",
                 "https://www.googleapis.com/auth/drive",
             ]
-            creds = ServiceAccountCredentials.from_json_keyfile_name(creds_file, scope)
+            creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
             client = gspread.authorize(creds)
             self.chat_sheet = client.open_by_key(sheet_key).worksheet("chit_chat")
             self.ticket_sheet = client.open_by_key(sheet_key).worksheet("ticket")
