@@ -66,12 +66,18 @@ thank_you_pattern = re.compile(
     re.IGNORECASE
 )
 
+def convert_utc_to_jakarta(time):
+    utc_time = time.replace(tzinfo=pytz.utc)
+    jakarta_tz = pytz.timezone("Asia/Jakarta")
+    return utc_time.astimezone(jakarta_tz)
+
 @app.event("message")
 def handle_message_events(body, say, client):
     event = body.get("event", {})
     user_id = event.get("user")
     chat_timestamp = event["ts"]
     timestamp_utc = datetime.utcnow()
+    timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
 
     try:
         user_info = client.users_info(user=user_id)
@@ -103,7 +109,7 @@ def handle_message_events(body, say, client):
                 f"Please type your issue with this following pattern: `/hiops [write your issue/inquiry]`"
             )
         sheet_manager.log_ticket(
-            chat_timestamp, timestamp_utc, user_id, full_name, email, phone_number, text
+            chat_timestamp, timestamp_jakarta, user_id, full_name, email, phone_number, text
         )
     except Exception as e:
         logging.error(f"Error handling message: {str(e)}")
@@ -116,6 +122,7 @@ def handle_hiops_command(ack, body, client, say):
     user_id = body["user_id"]
     channel_id = "C0719R3NQ91"
     timestamp_utc = datetime.utcnow()
+    timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
     categories = ['Data', 'Ajar', 'Guru Piket', 'Recording Video']
     categories.sort()
 
@@ -139,7 +146,7 @@ def handle_hiops_command(ack, body, client, say):
                         "type": "mrkdwn",
                         "text": f"*Your Name:*\n{body['user_name']}",
                     },
-                    {"type": "mrkdwn", "text": f"*Reported at:*\n{timestamp_utc}"},
+                    {"type": "mrkdwn", "text": f"*Reported at:*\n{timestamp_jakarta}"},
                     {
                         "type": "mrkdwn",
                         "text": f"*Problem:*\n`{user_input}`",
@@ -149,7 +156,7 @@ def handle_hiops_command(ack, body, client, say):
         ]
 
         response_for_user = client.chat_postMessage(channel=user_id, blocks=ticket)
-        ticket_key_for_user = f"{user_id},{response_for_user['ts']},{user_input},{timestamp_utc}"
+        ticket_key_for_user = f"{user_id},{response_for_user['ts']},{user_input},{timestamp_jakarta}"
         members_result = client.conversations_members(channel=channel_id)
         members = members_result["members"] if members_result["ok"] else []
         user_options = [
@@ -172,7 +179,7 @@ def handle_hiops_command(ack, body, client, say):
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"We just received a ticket from <@{user_id}> at `{timestamp_utc}`",
+                        "text": f"We just received a ticket from <@{user_id}> at `{timestamp_jakarta}`",
                     },
                 },
                 {
@@ -259,7 +266,7 @@ def handle_hiops_command(ack, body, client, say):
             user_id,
             body["user_name"],
             user_input,
-            timestamp_utc,
+            timestamp_jakarta,
         )
         if not result["ok"]:
             say("Failed to post message")
@@ -279,14 +286,15 @@ def handle_user_selection(ack, body, client):
     channel_id = body["channel"]["id"]
     thread_ts = body["container"]["message_ts"]
     timestamp_utc = datetime.utcnow()
+    timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
     response = client.chat_postMessage(
         channel=channel_id,
         thread_ts=thread_ts,
-        text=f"<@{selected_user}> is going to resolve this issue, starting from `{timestamp_utc}`.",
+        text=f"<@{selected_user}> is going to resolve this issue, starting from `{timestamp_jakarta}`.",
     )
     sheet_manager.update_ticket(
         f"live-ops.{thread_ts}",
-        {"handled_by": selected_user_name, "handled_at": timestamp_utc},
+        {"handled_by": selected_user_name, "handled_at": timestamp_jakarta},
     )
     if response["ok"]:
         client.chat_postMessage(
@@ -327,14 +335,15 @@ def handle_resolve_button(ack, body, client):
     user_input = resolve_button_value[2]
     ticket_reported_at = resolve_button_value[3]
     timestamp_utc = datetime.utcnow()
+    timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
     response = client.chat_postMessage(
         channel=channel_id,
         thread_ts=thread_ts,
-        text=f"<@{user_id}> has resolved the issue at `{timestamp_utc}`.",
+        text=f"<@{user_id}> has resolved the issue at `{timestamp_jakarta}`.",
     )
     sheet_manager.update_ticket(
         f"live-ops.{thread_ts}",
-        {"resolved_by": user_name, "resolved_at": timestamp_utc},
+        {"resolved_by": user_name, "resolved_at": timestamp_jakarta},
     )
 
     if response["ok"]:
@@ -381,7 +390,7 @@ def handle_resolve_button(ack, body, client):
         client.chat_postMessage(
             channel=user_who_requested_ticket_id,
             thread_ts=user_message_ts,
-            text=f"<@{user_who_requested_ticket_id}> your issue has been resolved at `{timestamp_utc}`. Thank you :blob-bear-dance:",
+            text=f"<@{user_who_requested_ticket_id}> your issue has been resolved at `{timestamp_jakarta}`. Thank you :blob-bear-dance:",
         )
 
     else:
@@ -400,9 +409,10 @@ def handle_reject_button(ack, body, client):
     elements = body["message"]["blocks"][7]["elements"]
     reject_button_value = elements[0]["value"]
     timestamp_utc = datetime.utcnow()
+    timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
     sheet_manager.update_ticket(
         f"live-ops.{message_ts}",
-        {"rejected_by": user_name, "rejected_at": timestamp_utc},
+        {"rejected_by": user_name, "rejected_at": timestamp_jakarta},
     )
     modal = {
         "type": "modal",
@@ -444,11 +454,12 @@ def handle_modal_submission(ack, body, client, view, logger):
         ticket_reported_at = private_metadata[5]
         reason = view["state"]["values"]["reject_reason"]["reason_input"]["value"]
         timestamp_utc = datetime.utcnow()
+        timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
 
         response = client.chat_postMessage(
             channel=channel_id,
             thread_ts=message_ts,
-            text=f"<@{user_id}> has rejected the issue at `{timestamp_utc}` due to: `{reason}`.",
+            text=f"<@{user_id}> has rejected the issue at `{timestamp_jakarta}` due to: `{reason}`.",
         )
         if response["ok"]:
             client.chat_update(
