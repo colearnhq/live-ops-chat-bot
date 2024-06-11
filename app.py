@@ -439,6 +439,7 @@ def handle_category_selection(ack, body, client):
                 }
             ],
             "private_metadata": f"{thread_ts}",
+            "submit": {"type": "plain_text", "text": "Submit"},
         }
         client.views_open(trigger_id=trigger_id, view=modal_view)
     else:
