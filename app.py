@@ -30,6 +30,8 @@ sheet_manager = SheetManager(
     creds_dict, "1dPXiGBN2dDyyQ9TnO6Hi8cQtmbkFBU4O7sI5ztbXT90"
 )
 
+reflected_cn = "C05Q52ZTQ3X"
+
 greetings_response = {
     "morning": "Good Morning",
     "hello": "Hello",
@@ -66,11 +68,31 @@ thank_you_pattern = re.compile(
     re.IGNORECASE
 )
 
+
 def convert_utc_to_jakarta(time):
     utc_time = time.replace(tzinfo=pytz.utc)
     jakarta_tz = pytz.timezone("Asia/Jakarta")
     changed_timezone = utc_time.astimezone(jakarta_tz)
     return changed_timezone.strftime('%Y-%m-%d %H:%M:%S')
+
+
+class TicketManager:
+    def __init__(self):
+        self.reflected_timestamps = {}
+
+    def store_reflected_ts(self, thread_ts, reflected_ts):
+        self.reflected_timestamps[thread_ts] = reflected_ts
+
+    def get_reflected_ts(self, thread_ts):
+        return self.reflected_timestamps.get(thread_ts)
+
+    def clear_reflected_ts(self, thread_ts):
+        if thread_ts in self.reflected_timestamps:
+            del self.reflected_timestamps[thread_ts]
+
+
+ticket_manager = TicketManager()
+
 
 @app.event("message")
 def handle_message_events(body, say, client):
@@ -94,7 +116,8 @@ def handle_message_events(body, say, client):
             if greeting in greetings_response:
                 response = greetings_response[greeting]
                 say(
-                    f"{response} <@{event['user']}>, Ops are ready to help :confused_dog:"
+                    f"{response} <@{event['user']
+                                    }>, Ops are ready to help :confused_dog:"
                 )
                 say(
                     f"Please type your issue with the following pattern: `/hiops [write your issue/inquiry]`"
@@ -156,16 +179,20 @@ def handle_hiops_command(ack, body, client, say):
             },
         ]
 
-        response_for_user = client.chat_postMessage(channel=user_id, blocks=ticket)
-        ticket_key_for_user = f"{user_id},{response_for_user['ts']},{user_input},{timestamp_jakarta}"
+        response_for_user = client.chat_postMessage(
+            channel=user_id, blocks=ticket)
+        ticket_key_for_user = f"{user_id},{response_for_user['ts']},{
+            user_input},{timestamp_jakarta}"
         members_result = client.conversations_members(channel=channel_id)
         members = members_result["members"] if members_result["ok"] else []
         user_options = [
-            {"text": {"type": "plain_text", "text": f"<@{member}>"}, "value": f"{member},{user_id},{response_for_user['ts']},{user_input}"}
+            {"text": {"type": "plain_text", "text": f"<@{member}>"},
+                "value": f"{member},{user_id},{response_for_user['ts']},{user_input}"}
             for member in members
         ]
         category_options = [
-            {"text": {"type": "plain_text", "text": category}, "value": f"{category},{ticket_key_for_user}"}
+            {"text": {"type": "plain_text", "text": category},
+                "value": f"{category},{ticket_key_for_user}"}
             for category in categories
         ]
 
@@ -278,14 +305,14 @@ def handle_hiops_command(ack, body, client, say):
 @app.action("user_select_action")
 def handle_user_selection(ack, body, client):
     ack()
-    selected_user_data = body["actions"][0]["selected_option"]["value"].split(',')
+    selected_user_data = body["actions"][0]["selected_option"]["value"].split(
+        ',')
     selected_user = selected_user_data[0]
     user_info = client.users_info(user=selected_user)
     selected_user_name = user_info["user"]["real_name"]
     user_who_requested = selected_user_data[1]
     response_ts = selected_user_data[2]
     user_input = selected_user_data[3]
-    reflected_cn = "C05Q52ZTQ3X"
     channel_id = body["channel"]["id"]
     thread_ts = body["container"]["message_ts"]
     timestamp_utc = datetime.utcnow()
@@ -301,60 +328,75 @@ def handle_user_selection(ack, body, client):
     )
     if response["ok"]:
         reflected_msg = [
-                {
-                    "type": "section",
-                    "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
-                },
-                {
-                    "type": "section",
-                    "text": {
+            {
+                "type": "section",
+                "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
+            },
+            {
+                "type": "section",
+                "text": {
                         "type": "mrkdwn",
                         "text": f"We just received an issue from <@{user_who_requested}> at `{timestamp_jakarta}`",
-                    },
                 },
-                {
-                    "type": "section",
-                    "fields": [
+            },
+            {
+                "type": "section",
+                "fields": [
                         {
                             "type": "mrkdwn",
                             "text": f"*Ticket Number:*\nlive-ops.{thread_ts}",
                         },
-                        {
+                    {
                             "type": "mrkdwn",
                             "text": f"*Problem:*\n`{user_input}`",
                         },
-                    ],
-                },
-                {"type": "divider"},
-                {
-                    "type": "section",
-                    "text": {
+                    {
+                            "type": "mrkdwn",
+                            "text": f"*Current Progress:*\nhandled by <@{selected_user}>"
+                        }
+                ],
+            },
+            {"type": "divider"},
+            {
+                "type": "section",
+                "text": {
                         "type": "mrkdwn",
                         "text": "please pay attention, if this issue related to you :point_up_2:",
-                    },
                 },
-                
-            ]
-        
+            },
+
+        ]
+
         client.chat_postMessage(
             channel=user_who_requested,
             thread_ts=response_ts,
-            text=f"<@{user_who_requested}> your issue will be handled by <@{selected_user}>. We will check and text you asap. Please wait ya.",
+            text=f"<@{user_who_requested}> your issue will be handled by <@{
+                selected_user}>. We will check and text you asap. Please wait ya.",
         )
-        client.chat_postMessage(
+        reflected_post = client.chat_postMessage(
             channel=reflected_cn,
             blocks=reflected_msg
         )
+
+        if reflected_post["ok"]:
+            reflected_ts = reflected_post["ts"]
+            ticket_manager.store_reflected_ts(thread_ts, reflected_ts)
+        else:
+            logging.error(f"Failed to post reflected message: {
+                          reflected_post['error']}")
+
     else:
         logging.error(f"Failed to post message: {response['error']}")
 
     if not response["ok"]:
         logging.error(f"Failed to post message: {response['error']}")
 
+
 @app.action("category_select_action")
 def handle_category_selection(ack, body, client):
     ack()
-    selected_category = body['actions'][0]['selected_option']['value'].split(',')
+    selected_category = body['actions'][0]['selected_option']['value'].split(
+        ',')
     selected_category_name = selected_category[0]
     thread_ts = body["container"]["message_ts"]
     sheet_manager.update_ticket(
@@ -371,6 +413,7 @@ def handle_resolve_button(ack, body, client):
     user_name = user_info["user"]["real_name"]
     channel_id = body["channel"]["id"]
     thread_ts = body["container"]["message_ts"]
+    reflected_ts = ticket_manager.get_reflected_ts(thread_ts)
     elements = body["message"]["blocks"][7]["elements"]
     resolve_button_value = elements[0]["value"].split(",")
     user_who_requested_ticket_id = resolve_button_value[0]
@@ -430,15 +473,58 @@ def handle_resolve_button(ack, body, client):
             ],
         )
 
+        reflected_msg = [
+            {
+                "type": "section",
+                "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"We just received an issue from <@{user_who_requested_ticket_id}> at `{timestamp_jakarta}`",
+                },
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Ticket Number:*\nlive-ops.{thread_ts}",
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Problem:*\n`{user_input}`",
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Current Progress:*\nresolved by <@{user_id}>"
+                    }
+                ],
+            },
+            {"type": "divider"},
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "please pay attention, if this issue related to you :point_up_2:",
+                },
+            },
+
+        ]
+
+        client.chat_update(channel=reflected_cn,
+                           ts=reflected_ts, blocks=reflected_msg)
+
         client.chat_postMessage(
             channel=user_who_requested_ticket_id,
             thread_ts=user_message_ts,
-            text=f"<@{user_who_requested_ticket_id}> your issue has been resolved at `{timestamp_jakarta}`. Thank you :blob-bear-dance:",
+            text=f"<@{user_who_requested_ticket_id}> your issue has been resolved at `{
+                timestamp_jakarta}`. Thank you :blob-bear-dance:",
         )
 
     else:
         logging.error(f"Failed to post message: {response['error']}")
-    
 
 
 @app.action("reject_button")
@@ -483,6 +569,7 @@ def handle_reject_button(ack, body, client):
     except SlackApiError as e:
         logging.error(f"Error opening modal: {str(e)}")
 
+
 @app.view("modal_reject")
 def handle_modal_submission(ack, body, client, view, logger):
     ack()
@@ -502,7 +589,8 @@ def handle_modal_submission(ack, body, client, view, logger):
         response = client.chat_postMessage(
             channel=channel_id,
             thread_ts=message_ts,
-            text=f"<@{user_id}> has rejected the issue at `{timestamp_jakarta}` due to: `{reason}`.",
+            text=f"<@{user_id}> has rejected the issue at `{
+                timestamp_jakarta}` due to: `{reason}`.",
         )
         if response["ok"]:
             client.chat_update(
@@ -548,7 +636,8 @@ def handle_modal_submission(ack, body, client, view, logger):
             client.chat_postMessage(
                 channel=user_requested_id,
                 thread_ts=user_message_ts,
-                text=f"We are sorry :smiling_face_with_tear: your issue was rejected due to `{reason}`. Let's put another question.",
+                text=f"We are sorry :smiling_face_with_tear: your issue was rejected due to `{
+                    reason}`. Let's put another question.",
             )
 
         else:
