@@ -358,7 +358,7 @@ def handle_user_selection(ack, body, client):
                     },
                     {
                         "type": "mrkdwn",
-                        "text": f"*Current Progress:*\nhandled by <@{selected_user}>",
+                        "text": f"*Current Progress:*\n:pray: on checking",
                     },
                 ],
             },
@@ -384,6 +384,11 @@ def handle_user_selection(ack, body, client):
         if reflected_post["ok"]:
             reflected_ts = reflected_post["ts"]
             ticket_manager.store_reflected_ts(thread_ts, reflected_ts)
+            client.chat_postMessage(
+                channel=reflected_cn,
+                thread_ts=reflected_ts,
+                text=f"this issue will be handled by <@{selected_user}, starting from `{timestamp_jakarta}`",
+            )
         else:
             logging.error(
                 f"Failed to post reflected message: {reflected_post['error']}"
@@ -501,7 +506,7 @@ def handle_resolve_button(ack, body, client):
                     },
                     {
                         "type": "mrkdwn",
-                        "text": f"*Current Progress:*\n:white_check_mark: resolved by <@{user_id}> at `{timestamp_jakarta}`",
+                        "text": f"*Current Progress:*\n:white_check_mark: resolved",
                     },
                 ],
             },
@@ -516,6 +521,12 @@ def handle_resolve_button(ack, body, client):
         ]
 
         client.chat_update(channel=reflected_cn, ts=reflected_ts, blocks=reflected_msg)
+
+        client.chat_postMessage(
+            channel=reflected_cn,
+            thread_ts=reflected_ts,
+            text=f"this issue has been resolved at `{timestamp_jakarta}` by <@{user_id}",
+        )
 
         client.chat_postMessage(
             channel=user_who_requested_ticket_id,
