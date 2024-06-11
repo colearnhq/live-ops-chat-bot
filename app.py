@@ -358,10 +358,18 @@ def handle_user_selection(ack, body, client):
 
     # Retrieve metadata from the hidden action button's value
     metadata_block = next(
-        block
-        for block in body["message"]["blocks"]
-        if block["accessory"]["action_id"] == "hidden_metadata_action"
+        (
+            block
+            for block in body["message"]["blocks"]
+            if block.get("accessory", {}).get("action_id") == "hidden_metadata_action"
+        ),
+        None,
     )
+
+    if not metadata_block:
+        logging.error("Metadata block not found")
+        return
+
     metadata = json.loads(metadata_block["accessory"]["value"])
     category_options = metadata["category_options"]
     ticket_key_for_user = metadata["ticket_key_for_user"]
