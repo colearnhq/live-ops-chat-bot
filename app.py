@@ -130,7 +130,7 @@ def handle_message_events(body, say, client):
             )
         sheet_manager.log_ticket(
             chat_timestamp,
-            timestamp_jakarta,
+            timestamp_utc,
             user_id,
             full_name,
             email,
@@ -309,7 +309,7 @@ def handle_hiops_command(ack, body, client, say):
             user_id,
             body["user_name"],
             user_input,
-            timestamp_jakarta,
+            timestamp_utc,
         )
         if not result["ok"]:
             say("Failed to post message")
@@ -339,7 +339,7 @@ def handle_user_selection(ack, body, client):
     )
     sheet_manager.update_ticket(
         f"live-ops.{thread_ts}",
-        {"handled_by": selected_user_name, "handled_at": timestamp_jakarta},
+        {"handled_by": selected_user_name, "handled_at": timestamp_utc},
     )
     if response["ok"]:
 
@@ -447,7 +447,7 @@ def handle_resolve_button(ack, body, client):
     )
     sheet_manager.update_ticket(
         f"live-ops.{thread_ts}",
-        {"resolved_by": user_name, "resolved_at": timestamp_jakarta},
+        {"resolved_by": user_name, "resolved_at": timestamp_utc},
     )
 
     if response["ok"]:
@@ -559,10 +559,9 @@ def handle_reject_button(ack, body, client):
     elements = body["message"]["blocks"][7]["elements"]
     reject_button_value = elements[0]["value"]
     timestamp_utc = datetime.utcnow()
-    timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
     sheet_manager.update_ticket(
         f"live-ops.{message_ts}",
-        {"rejected_by": user_name, "rejected_at": timestamp_jakarta},
+        {"rejected_by": user_name, "rejected_at": timestamp_utc},
     )
     modal = {
         "type": "modal",
