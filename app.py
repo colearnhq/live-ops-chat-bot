@@ -259,7 +259,7 @@ def handle_hiops_command(ack, body, client, say):
                 {
                     "type": "section",
                     "text": {
-                        "type": "plain_text",
+                        "type": "mrkdwn",
                         "text": "Please select the category of the issue:",
                     },
                     "accessory": {
@@ -305,22 +305,7 @@ def handle_hiops_command(ack, body, client, say):
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": "_metadata_",  # Hidden metadata section
-                    },
-                    "accessory": {
-                        "type": "button",
-                        "text": {
-                            "type": "plain_text",
-                            "text": "hidden metadata",
-                            "emoji": True,
-                        },
-                        "value": json.dumps(
-                            {
-                                "category_options": category_options,
-                                "ticket_key_for_user": ticket_key_for_user,
-                            }
-                        ),
-                        "action_id": "hidden_metadata_action",
+                        "text": f"`{json.dumps({'category_options': category_options, 'ticket_key_for_user': ticket_key_for_user})}`",
                     },
                 },
             ]
@@ -356,12 +341,14 @@ def handle_user_selection(ack, body, client):
     timestamp_utc = datetime.utcnow()
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
 
-    # Retrieve metadata from the hidden action button's value
+    # Retrieve metadata from the hidden section block's text
     metadata_block = next(
         (
             block
             for block in body["message"]["blocks"]
-            if block.get("accessory", {}).get("action_id") == "hidden_metadata_action"
+            if block["type"] == "section"
+            and block["text"]["type"] == "mrkdwn"
+            and block["text"]["text"].startswith("`{")
         ),
         None,
     )
@@ -370,7 +357,7 @@ def handle_user_selection(ack, body, client):
         logging.error("Metadata block not found")
         return
 
-    metadata = json.loads(metadata_block["accessory"]["value"])
+    metadata = json.loads(metadata_block["text"]["text"].strip("`"))
     category_options = metadata["category_options"]
     ticket_key_for_user = metadata["ticket_key_for_user"]
 
