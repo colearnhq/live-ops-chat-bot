@@ -15,20 +15,18 @@ creds_dict = {
     "type": os.getenv("GOOGLE_CREDENTIALS_TYPE"),
     "project_id": os.getenv("GOOGLE_PROJECT_ID"),
     "private_key_id": os.getenv("GOOGLE_PRIVATE_KEY_ID"),
-    "private_key": os.getenv("GOOGLE_PRIVATE_KEY").replace('\\n', '\n'),
+    "private_key": os.getenv("GOOGLE_PRIVATE_KEY").replace("\\n", "\n"),
     "client_email": os.getenv("GOOGLE_CLIENT_EMAIL"),
     "client_id": os.getenv("GOOGLE_CLIENT_ID"),
     "auth_uri": os.getenv("GOOGLE_AUTH_URI"),
     "token_uri": os.getenv("GOOGLE_TOKEN_URI"),
     "auth_provider_x509_cert_url": os.getenv("GOOGLE_AUTH_PROVIDER_CERT_URL"),
     "client_x509_cert_url": os.getenv("GOOGLE_CLIENT_CERT_URL"),
-    "universe_domain": os.getenv("GOOGLE_UNIVERSE_DOMAIN")
+    "universe_domain": os.getenv("GOOGLE_UNIVERSE_DOMAIN"),
 }
 
 app = App(token=os.getenv("SLACK_BOT_TOKEN"))
-sheet_manager = SheetManager(
-    creds_dict, "1dPXiGBN2dDyyQ9TnO6Hi8cQtmbkFBU4O7sI5ztbXT90"
-)
+sheet_manager = SheetManager(creds_dict, "1dPXiGBN2dDyyQ9TnO6Hi8cQtmbkFBU4O7sI5ztbXT90")
 
 reflected_cn = "C05Q52ZTQ3X"
 
@@ -46,7 +44,7 @@ greetings_response = {
     "shalom": "Shalom",
     "pagi": "Selamat Pagi",
     "siang": "Selamat Siang",
-    "malam": "Selamat Malam"
+    "malam": "Selamat Malam",
 }
 
 thank_you_response = {
@@ -55,7 +53,7 @@ thank_you_response = {
     "thx": "yuhu, you're welcome",
     "maaci": "hihi iaa, maaciw juga :wink:",
     "suwun": "enggeh, sami sami :pray:",
-    "nuhun": "muhun, sami sami :pray:"
+    "nuhun": "muhun, sami sami :pray:",
 }
 
 greeting_pattern = re.compile(
@@ -64,8 +62,7 @@ greeting_pattern = re.compile(
 )
 
 thank_you_pattern = re.compile(
-    r".*(makasih|thank|thx|maaci|suwun|nuhun).*",
-    re.IGNORECASE
+    r".*(makasih|thank|thx|maaci|suwun|nuhun).*", re.IGNORECASE
 )
 
 
@@ -73,7 +70,7 @@ def convert_utc_to_jakarta(time):
     utc_time = time.replace(tzinfo=pytz.utc)
     jakarta_tz = pytz.timezone("Asia/Jakarta")
     changed_timezone = utc_time.astimezone(jakarta_tz)
-    return changed_timezone.strftime('%Y-%m-%d %H:%M:%S')
+    return changed_timezone.strftime("%Y-%m-%d %H:%M:%S")
 
 
 class TicketManager:
@@ -132,7 +129,13 @@ def handle_message_events(body, say, client):
                 f"Please type your issue with this following pattern: `/hiops [write your issue/inquiry]`"
             )
         sheet_manager.log_ticket(
-            chat_timestamp, timestamp_jakarta, user_id, full_name, email, phone_number, text
+            chat_timestamp,
+            timestamp_jakarta,
+            user_id,
+            full_name,
+            email,
+            phone_number,
+            text,
         )
     except Exception as e:
         logging.error(f"Error handling message: {str(e)}")
@@ -146,7 +149,7 @@ def handle_hiops_command(ack, body, client, say):
     channel_id = "C0719R3NQ91"
     timestamp_utc = datetime.utcnow()
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
-    categories = ['Data', 'Ajar', 'Guru Piket', 'Recording Video']
+    categories = ["Data", "Ajar", "Guru Piket", "Recording Video"]
     categories.sort()
 
     try:
@@ -178,20 +181,24 @@ def handle_hiops_command(ack, body, client, say):
             },
         ]
 
-        response_for_user = client.chat_postMessage(
-            channel=user_id, blocks=ticket)
-        ticket_key_for_user = f"{user_id},{response_for_user['ts']},{
-            user_input},{timestamp_jakarta}"
+        response_for_user = client.chat_postMessage(channel=user_id, blocks=ticket)
+        ticket_key_for_user = (
+            f"{user_id},{response_for_user['ts']},{user_input},{timestamp_jakarta}"
+        )
         members_result = client.conversations_members(channel=channel_id)
         members = members_result["members"] if members_result["ok"] else []
         user_options = [
-            {"text": {"type": "plain_text", "text": f"<@{member}>"},
-                "value": f"{member},{user_id},{response_for_user['ts']},{user_input}"}
+            {
+                "text": {"type": "plain_text", "text": f"<@{member}>"},
+                "value": f"{member},{user_id},{response_for_user['ts']},{user_input}",
+            }
             for member in members
         ]
         category_options = [
-            {"text": {"type": "plain_text", "text": category},
-                "value": f"{category},{ticket_key_for_user}"}
+            {
+                "text": {"type": "plain_text", "text": category},
+                "value": f"{category},{ticket_key_for_user}",
+            }
             for category in categories
         ]
 
@@ -304,8 +311,7 @@ def handle_hiops_command(ack, body, client, say):
 @app.action("user_select_action")
 def handle_user_selection(ack, body, client):
     ack()
-    selected_user_data = body["actions"][0]["selected_option"]["value"].split(
-        ',')
+    selected_user_data = body["actions"][0]["selected_option"]["value"].split(",")
     selected_user = selected_user_data[0]
     user_info = client.users_info(user=selected_user)
     selected_user_name = user_info["user"]["real_name"]
@@ -334,36 +340,35 @@ def handle_user_selection(ack, body, client):
             {
                 "type": "section",
                 "text": {
-                        "type": "mrkdwn",
-                        "text": f"We just received an issue from <@{user_who_requested}> at `{timestamp_jakarta}`",
+                    "type": "mrkdwn",
+                    "text": f"We just received an issue from <@{user_who_requested}> at `{timestamp_jakarta}`",
                 },
             },
             {
                 "type": "section",
                 "fields": [
-                        {
-                            "type": "mrkdwn",
-                            "text": f"*Ticket Number:*\nlive-ops.{thread_ts}",
-                        },
                     {
-                            "type": "mrkdwn",
-                            "text": f"*Problem:*\n`{user_input}`",
-                            },
+                        "type": "mrkdwn",
+                        "text": f"*Ticket Number:*\nlive-ops.{thread_ts}",
+                    },
                     {
-                            "type": "mrkdwn",
-                            "text": f"*Current Progress:*\nhandled by <@{selected_user}>"
-                            }
+                        "type": "mrkdwn",
+                        "text": f"*Problem:*\n`{user_input}`",
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Current Progress:*\nhandled by <@{selected_user}>",
+                    },
                 ],
             },
             {"type": "divider"},
             {
                 "type": "section",
                 "text": {
-                        "type": "mrkdwn",
-                        "text": "please pay attention, if this issue related to you :point_up_2:",
+                    "type": "mrkdwn",
+                    "text": "please pay attention, if this issue related to you :point_up_2:",
                 },
             },
-
         ]
 
         client.chat_postMessage(
@@ -372,15 +377,16 @@ def handle_user_selection(ack, body, client):
             text=f"<@{user_who_requested}> your issue will be handled by <@{selected_user}>. We will check and text you asap. Please wait ya.",
         )
         reflected_post = client.chat_postMessage(
-            channel=reflected_cn,
-            blocks=reflected_msg
+            channel=reflected_cn, blocks=reflected_msg
         )
 
         if reflected_post["ok"]:
             reflected_ts = reflected_post["ts"]
             ticket_manager.store_reflected_ts(thread_ts, reflected_ts)
         else:
-            logging.error(f"Failed to post reflected message: {reflected_post['error']}")
+            logging.error(
+                f"Failed to post reflected message: {reflected_post['error']}"
+            )
 
     else:
         logging.error(f"Failed to post message: {response['error']}")
@@ -392,8 +398,7 @@ def handle_user_selection(ack, body, client):
 @app.action("category_select_action")
 def handle_category_selection(ack, body, client):
     ack()
-    selected_category = body['actions'][0]['selected_option']['value'].split(
-        ',')
+    selected_category = body["actions"][0]["selected_option"]["value"].split(",")
     selected_category_name = selected_category[0]
     thread_ts = body["container"]["message_ts"]
     sheet_manager.update_ticket(
@@ -495,8 +500,8 @@ def handle_resolve_button(ack, body, client):
                     },
                     {
                         "type": "mrkdwn",
-                        "text": f"*Current Progress:*\nresolved by <@{user_id}>"
-                    }
+                        "text": f"*Current Progress:*\nresolved by <@{user_id}>",
+                    },
                 ],
             },
             {"type": "divider"},
@@ -507,11 +512,9 @@ def handle_resolve_button(ack, body, client):
                     "text": "please pay attention, if this issue related to you :point_up_2:",
                 },
             },
-
         ]
 
-        client.chat_update(channel=reflected_cn,
-                           ts=reflected_ts, blocks=reflected_msg)
+        client.chat_update(channel=reflected_cn, ts=reflected_ts, blocks=reflected_msg)
 
         client.chat_postMessage(
             channel=user_who_requested_ticket_id,
