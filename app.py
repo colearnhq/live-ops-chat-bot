@@ -97,7 +97,6 @@ def handle_message_events(body, say, client):
     user_id = event.get("user")
     chat_timestamp = event["ts"]
     timestamp_utc = datetime.utcnow()
-    timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
 
     try:
         user_info = client.users_info(user=user_id)
@@ -416,12 +415,64 @@ def handle_category_selection(ack, body, client):
     ack()
     selected_category = body["actions"][0]["selected_option"]["value"].split(",")
     selected_category_name = selected_category[0]
-    print(selected_category_name)
     thread_ts = body["container"]["message_ts"]
-    sheet_manager.update_ticket(
-        f"live-ops.{thread_ts}",
-        {"category_issue": selected_category_name},
-    )
+
+    if selected_category_name.lower() == "others":
+        # Open a modal to collect the custom category
+        trigger_id = body["trigger_id"]
+        modal_view = {
+            "type": "modal",
+            "callback_id": "custom_category_modal",
+            "title": {"type": "plain_text", "text": "Custom Category"},
+            "blocks": [
+                {
+                    "type": "input",
+                    "block_id": "custom_category_block",
+                    "label": {
+                        "type": "plain_text",
+                        "text": "Please specify your category",
+                    },
+                    "element": {
+                        "type": "plain_text_input",
+                        "action_id": "custom_category_input",
+                    },
+                }
+            ],
+            "private_metadata": f"{thread_ts}",
+        }
+        client.views_open(trigger_id=trigger_id, view=modal_view)
+    else:
+        sheet_manager.update_ticket(
+            f"live-ops.{thread_ts}",
+            {"category_issue": selected_category_name},
+        )
+
+
+@app.view("custom_category_modal")
+def handle_custom_category_modal_submission(ack, body, client, view, logger):
+    ack()
+    user_id = body["user"]["id"]
+    custom_category = view["state"]["values"]["custom_category_block"][
+        "custom_category_input"
+    ]["value"]
+    thread_ts = view["private_metadata"]
+
+    # Update the ticket with the custom category
+    try:
+        sheet_manager.update_ticket(
+            f"live-ops.{thread_ts}",
+            {"category_issue": custom_category},
+        )
+        client.chat_postMessage(
+            channel=user_id,
+            text=f"Thank you! The custom category '{custom_category}' has been recorded.",
+        )
+    except Exception as e:
+        logger.error(f"Failed to update ticket with custom category: {str(e)}")
+        client.chat_postMessage(
+            channel=user_id,
+            text="Failed to record the custom category. Please try again.",
+        )
 
 
 @app.action("resolve_button")
