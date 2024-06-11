@@ -149,8 +149,17 @@ def handle_hiops_command(ack, body, client, say):
     channel_id = "C0719R3NQ91"
     timestamp_utc = datetime.utcnow()
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
-    categories = ["Data", "Ajar", "Guru Piket", "Recording Video"]
-    categories.sort()
+    categories = [
+        "Ajar",
+        "Cuti",
+        "Data related",
+        "Observasi",
+        "Piket",
+        "Polling",
+        "Recording Video",
+        "Zoom",
+        "Others",
+    ]
 
     try:
         init_result = client.chat_postMessage(
@@ -333,6 +342,7 @@ def handle_user_selection(ack, body, client):
         {"handled_by": selected_user_name, "handled_at": timestamp_jakarta},
     )
     if response["ok"]:
+
         reflected_msg = [
             {
                 "type": "section",
