@@ -116,8 +116,7 @@ def handle_message_events(body, say, client):
             if greeting in greetings_response:
                 response = greetings_response[greeting]
                 say(
-                    f"{response} <@{event['user']
-                                    }>, Ops are ready to help :confused_dog:"
+                    f"{response} <@{event['user']}>, Ops are ready to help :confused_dog:"
                 )
                 say(
                     f"Please type your issue with the following pattern: `/hiops [write your issue/inquiry]`"
@@ -349,11 +348,11 @@ def handle_user_selection(ack, body, client):
                     {
                             "type": "mrkdwn",
                             "text": f"*Problem:*\n`{user_input}`",
-                        },
+                            },
                     {
                             "type": "mrkdwn",
                             "text": f"*Current Progress:*\nhandled by <@{selected_user}>"
-                        }
+                            }
                 ],
             },
             {"type": "divider"},
@@ -370,8 +369,7 @@ def handle_user_selection(ack, body, client):
         client.chat_postMessage(
             channel=user_who_requested,
             thread_ts=response_ts,
-            text=f"<@{user_who_requested}> your issue will be handled by <@{
-                selected_user}>. We will check and text you asap. Please wait ya.",
+            text=f"<@{user_who_requested}> your issue will be handled by <@{selected_user}>. We will check and text you asap. Please wait ya.",
         )
         reflected_post = client.chat_postMessage(
             channel=reflected_cn,
@@ -382,8 +380,7 @@ def handle_user_selection(ack, body, client):
             reflected_ts = reflected_post["ts"]
             ticket_manager.store_reflected_ts(thread_ts, reflected_ts)
         else:
-            logging.error(f"Failed to post reflected message: {
-                          reflected_post['error']}")
+            logging.error(f"Failed to post reflected message: {reflected_post['error']}")
 
     else:
         logging.error(f"Failed to post message: {response['error']}")
@@ -519,8 +516,7 @@ def handle_resolve_button(ack, body, client):
         client.chat_postMessage(
             channel=user_who_requested_ticket_id,
             thread_ts=user_message_ts,
-            text=f"<@{user_who_requested_ticket_id}> your issue has been resolved at `{
-                timestamp_jakarta}`. Thank you :blob-bear-dance:",
+            text=f"<@{user_who_requested_ticket_id}> your issue has been resolved at `{timestamp_jakarta}`. Thank you :blob-bear-dance:",
         )
 
     else:
@@ -589,8 +585,7 @@ def handle_modal_submission(ack, body, client, view, logger):
         response = client.chat_postMessage(
             channel=channel_id,
             thread_ts=message_ts,
-            text=f"<@{user_id}> has rejected the issue at `{
-                timestamp_jakarta}` due to: `{reason}`.",
+            text=f"<@{user_id}> has rejected the issue at `{timestamp_jakarta}` due to: `{reason}`.",
         )
         if response["ok"]:
             client.chat_update(
@@ -636,8 +631,7 @@ def handle_modal_submission(ack, body, client, view, logger):
             client.chat_postMessage(
                 channel=user_requested_id,
                 thread_ts=user_message_ts,
-                text=f"We are sorry :smiling_face_with_tear: your issue was rejected due to `{
-                    reason}`. Let's put another question.",
+                text=f"We are sorry :smiling_face_with_tear: your issue was rejected due to `{reason}`. Let's put another question.",
             )
 
         else:
