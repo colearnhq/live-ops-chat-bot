@@ -1,6 +1,5 @@
 import os
 import re
-import json
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from dotenv import load_dotenv
@@ -301,26 +300,18 @@ def handle_hiops_command(ack, body, client, say):
                         },
                     ],
                 },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": f"`{json.dumps({'category_options': category_options, 'ticket_key_for_user': ticket_key_for_user})}`",
-                    },
-                },
             ]
 
-            result = client.chat_update(channel=channel_id, ts=ts, blocks=blocks)
-
-            sheet_manager.init_ticket_row(
-                f"live-ops.{result['ts']}",
-                user_id,
-                body["user_name"],
-                user_input,
-                timestamp_utc,
-            )
-            if not result["ok"]:
-                say("Failed to post message")
+        result = client.chat_update(channel=channel_id, ts=ts, blocks=blocks)
+        sheet_manager.init_ticket_row(
+            f"live-ops.{result['ts']}",
+            user_id,
+            body["user_name"],
+            user_input,
+            timestamp_utc,
+        )
+        if not result["ok"]:
+            say("Failed to post message")
     except Exception as e:
         logging.error(f"An error occurred: {str(e)}")
 
@@ -340,27 +331,6 @@ def handle_user_selection(ack, body, client):
     thread_ts = body["container"]["message_ts"]
     timestamp_utc = datetime.utcnow()
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
-
-    # Retrieve metadata from the hidden section block's text
-    metadata_block = next(
-        (
-            block
-            for block in body["message"]["blocks"]
-            if block["type"] == "section"
-            and block["text"]["type"] == "mrkdwn"
-            and block["text"]["text"].startswith("`{")
-        ),
-        None,
-    )
-
-    if not metadata_block:
-        logging.error("Metadata block not found")
-        return
-
-    metadata = json.loads(metadata_block["text"]["text"].strip("`"))
-    category_options = metadata["category_options"]
-    ticket_key_for_user = metadata["ticket_key_for_user"]
-
     response = client.chat_postMessage(
         channel=channel_id,
         thread_ts=thread_ts,
@@ -566,6 +536,10 @@ def handle_custom_category_modal_submission(ack, body, client, view, logger):
         sheet_manager.update_ticket(
             f"live-ops.{thread_ts}",
             {"category_issue": custom_category},
+        )
+        client.chat_postMessage(
+            channel=user_id,
+            text=f"Thank you! The custom category '{custom_category}' has been recorded.",
         )
     except Exception as e:
         logger.error(f"Failed to update ticket with custom category: {str(e)}")
