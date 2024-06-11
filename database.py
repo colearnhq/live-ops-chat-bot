@@ -79,7 +79,7 @@ class SheetManager:
             if row:
                 for key, value in updates.items():
                     col = self.column_mappings[key]
-                    if "at" in key:
+                    if "at" in key and isinstance(value, datetime):
                         value = self.convert_to_local_time(value)
                     self.ticket_sheet.update_cell(row, col, value)
         except Exception as e:
