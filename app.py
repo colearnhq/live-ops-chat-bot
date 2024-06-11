@@ -416,6 +416,7 @@ def handle_category_selection(ack, body, client):
     ack()
     selected_category = body["actions"][0]["selected_option"]["value"].split(",")
     selected_category_name = selected_category[0]
+    print(selected_category_name)
     thread_ts = body["container"]["message_ts"]
     sheet_manager.update_ticket(
         f"live-ops.{thread_ts}",
