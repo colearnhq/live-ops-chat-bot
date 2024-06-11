@@ -303,26 +303,27 @@ def handle_hiops_command(ack, body, client, say):
                 },
             ]
 
-        private_metadata = {
-            "category_options": category_options,
-            "ticket_key_for_user": ticket_key_for_user,
-        }
+            private_metadata = {
+                "category_options": category_options,
+                "ticket_key_for_user": ticket_key_for_user,
+            }
 
-        result = client.chat_update(
-            channel=channel_id,
-            ts=ts,
-            blocks=blocks,
-            metadata={"private_metadata": json.dumps(private_metadata)},
-        )
-        sheet_manager.init_ticket_row(
-            f"live-ops.{result['ts']}",
-            user_id,
-            body["user_name"],
-            user_input,
-            timestamp_utc,
-        )
-        if not result["ok"]:
-            say("Failed to post message")
+            result = client.chat_update(
+                channel=channel_id,
+                ts=ts,
+                blocks=blocks,
+                metadata={"private_metadata": json.dumps(private_metadata)},
+            )
+
+            sheet_manager.init_ticket_row(
+                f"live-ops.{result['ts']}",
+                user_id,
+                body["user_name"],
+                user_input,
+                timestamp_utc,
+            )
+            if not result["ok"]:
+                say("Failed to post message")
     except Exception as e:
         logging.error(f"An error occurred: {str(e)}")
 
@@ -342,9 +343,11 @@ def handle_user_selection(ack, body, client):
     thread_ts = body["container"]["message_ts"]
     timestamp_utc = datetime.utcnow()
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
+
     private_metadata = json.loads(body["message"]["metadata"]["private_metadata"])
     category_options = private_metadata["category_options"]
     ticket_key_for_user = private_metadata["ticket_key_for_user"]
+
     response = client.chat_postMessage(
         channel=channel_id,
         thread_ts=thread_ts,
