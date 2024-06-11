@@ -1,5 +1,6 @@
 import os
 import re
+import json
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from dotenv import load_dotenv
@@ -302,7 +303,17 @@ def handle_hiops_command(ack, body, client, say):
                 },
             ]
 
-        result = client.chat_update(channel=channel_id, ts=ts, blocks=blocks)
+        private_metadata = {
+            "category_options": category_options,
+            "ticket_key_for_user": ticket_key_for_user,
+        }
+
+        result = client.chat_update(
+            channel=channel_id,
+            ts=ts,
+            blocks=blocks,
+            metadata={"private_metadata": json.dumps(private_metadata)},
+        )
         sheet_manager.init_ticket_row(
             f"live-ops.{result['ts']}",
             user_id,
@@ -331,6 +342,9 @@ def handle_user_selection(ack, body, client):
     thread_ts = body["container"]["message_ts"]
     timestamp_utc = datetime.utcnow()
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
+    private_metadata = json.loads(body["message"]["metadata"]["private_metadata"])
+    category_options = private_metadata["category_options"]
+    ticket_key_for_user = private_metadata["ticket_key_for_user"]
     response = client.chat_postMessage(
         channel=channel_id,
         thread_ts=thread_ts,
@@ -341,6 +355,80 @@ def handle_user_selection(ack, body, client):
         {"handled_by": selected_user_name, "handled_at": timestamp_utc},
     )
     if response["ok"]:
+
+        main_blocks = [
+            {
+                "type": "section",
+                "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"We just received a ticket from <@{user_who_requested}> at `{reported_at}`",
+                },
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Ticket Number:*\nlive-ops.{thread_ts}",
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Problem:*\n`{user_input}`",
+                    },
+                    {"type": "mrkdwn", "text": f"*Picked up by:*\n<@{selected_user}>"},
+                ],
+            },
+            {"type": "divider"},
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "Please select the category of the issue:",
+                },
+                "accessory": {
+                    "type": "static_select",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Select category...",
+                        "emoji": True,
+                    },
+                    "options": category_options,
+                    "action_id": "category_select_action",
+                },
+            },
+            {"type": "divider"},
+            {
+                "type": "actions",
+                "elements": [
+                    {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "emoji": True,
+                            "text": "Resolve",
+                        },
+                        "style": "primary",
+                        "value": ticket_key_for_user,
+                        "action_id": "resolve_button",
+                    },
+                    {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "emoji": True,
+                            "text": "Reject",
+                        },
+                        "style": "danger",
+                        "value": ticket_key_for_user,
+                        "action_id": "reject_button",
+                    },
+                ],
+            },
+        ]
 
         reflected_msg = [
             {
@@ -418,7 +506,6 @@ def handle_category_selection(ack, body, client):
     thread_ts = body["container"]["message_ts"]
 
     if selected_category_name.lower() == "others":
-        # Open a modal to collect the custom category
         trigger_id = body["trigger_id"]
         modal_view = {
             "type": "modal",
@@ -463,10 +550,6 @@ def handle_custom_category_modal_submission(ack, body, client, view, logger):
         sheet_manager.update_ticket(
             f"live-ops.{thread_ts}",
             {"category_issue": custom_category},
-        )
-        client.chat_postMessage(
-            channel=user_id,
-            text=f"Thank you! The custom category '{custom_category}' has been recorded.",
         )
     except Exception as e:
         logger.error(f"Failed to update ticket with custom category: {str(e)}")
