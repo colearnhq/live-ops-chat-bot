@@ -4,6 +4,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 import pytz
 
+
 class SheetManager:
     def __init__(self, creds_dict, sheet_key):
         try:
@@ -22,13 +23,20 @@ class SheetManager:
 
     def convert_to_local_time(self, timestamp_utc):
         utc = pytz.utc
-        local_tz = pytz.timezone('Asia/Jakarta')  # GMT+7
+        local_tz = pytz.timezone("Asia/Jakarta")  # GMT+7
         timestamp_utc = utc.localize(timestamp_utc)
         timestamp_local = timestamp_utc.astimezone(local_tz)
-        return timestamp_local.strftime('%Y-%m-%d %H:%M:%S')
+        return timestamp_local.strftime("%Y-%m-%d %H:%M:%S")
 
     def log_ticket(
-        self, chat_timestamp, timestamp_utc, user_id, user_name, email, phone_number, text
+        self,
+        chat_timestamp,
+        timestamp_utc,
+        user_id,
+        user_name,
+        email,
+        phone_number,
+        text,
     ):
         try:
             timestamp_local = self.convert_to_local_time(timestamp_utc)
@@ -71,7 +79,7 @@ class SheetManager:
             if row:
                 for key, value in updates.items():
                     col = self.column_mappings[key]
-                    if 'at' in key:
+                    if "at" in key:
                         value = self.convert_to_local_time(value)
                     self.ticket_sheet.update_cell(row, col, value)
         except Exception as e:
