@@ -358,7 +358,7 @@ def handle_user_selection(ack, body, client):
                     },
                     {
                         "type": "mrkdwn",
-                        "text": f"*Current Progress:*\n:pray: on checking",
+                        "text": f"*Current Progress:*\n:pray: On checking",
                     },
                 ],
             },
@@ -387,7 +387,7 @@ def handle_user_selection(ack, body, client):
             client.chat_postMessage(
                 channel=reflected_cn,
                 thread_ts=reflected_ts,
-                text=f"this issue will be handled by <@{selected_user}, starting from `{timestamp_jakarta}`",
+                text=f"this issue will be handled by <@{selected_user}>, starting from `{timestamp_jakarta}`",
             )
         else:
             logging.error(
@@ -506,7 +506,7 @@ def handle_resolve_button(ack, body, client):
                     },
                     {
                         "type": "mrkdwn",
-                        "text": f"*Current Progress:*\n:white_check_mark: resolved",
+                        "text": f"*Current Progress:*\n:white_check_mark: Resolved",
                     },
                 ],
             },
@@ -525,7 +525,7 @@ def handle_resolve_button(ack, body, client):
         client.chat_postMessage(
             channel=reflected_cn,
             thread_ts=reflected_ts,
-            text=f"this issue has been resolved at `{timestamp_jakarta}` by <@{user_id}",
+            text=f"this issue has been resolved at `{timestamp_jakarta}` by <@{user_id}>",
         )
 
         client.chat_postMessage(
