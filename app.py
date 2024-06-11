@@ -190,7 +190,7 @@ def handle_hiops_command(ack, body, client, say):
         user_options = [
             {
                 "text": {"type": "plain_text", "text": f"<@{member}>"},
-                "value": f"{member},{user_id},{response_for_user['ts']},{user_input}",
+                "value": f"{member},{user_id},{response_for_user['ts']},{user_input},{timestamp_jakarta}",
             }
             for member in members
         ]
@@ -318,6 +318,7 @@ def handle_user_selection(ack, body, client):
     user_who_requested = selected_user_data[1]
     response_ts = selected_user_data[2]
     user_input = selected_user_data[3]
+    reported_at = selected_user_data[4]
     channel_id = body["channel"]["id"]
     thread_ts = body["container"]["message_ts"]
     timestamp_utc = datetime.utcnow()
@@ -341,7 +342,7 @@ def handle_user_selection(ack, body, client):
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"We just received an issue from <@{user_who_requested}> at `{timestamp_jakarta}`",
+                    "text": f"We just received an issue from <@{user_who_requested}> at `{reported_at}`",
                 },
             },
             {
@@ -484,7 +485,7 @@ def handle_resolve_button(ack, body, client):
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"We just received an issue from <@{user_who_requested_ticket_id}> at `{timestamp_jakarta}`",
+                    "text": f"We just received an issue from <@{user_who_requested_ticket_id}> at `{ticket_reported_at}`",
                 },
             },
             {
@@ -500,7 +501,7 @@ def handle_resolve_button(ack, body, client):
                     },
                     {
                         "type": "mrkdwn",
-                        "text": f"*Current Progress:*\nresolved by <@{user_id}>",
+                        "text": f"*Current Progress:*\n:white_check_mark: resolved by <@{user_id}> at `{timestamp_jakarta}`",
                     },
                 ],
             },
