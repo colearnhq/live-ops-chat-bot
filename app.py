@@ -367,7 +367,7 @@ def handle_user_selection(ack, body, client):
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": "please pay attention, if this issue related to you :point_up_2:",
+                    "text": "Please pay attention, if this issue related to you :point_up_2:",
                 },
             },
         ]
@@ -387,7 +387,7 @@ def handle_user_selection(ack, body, client):
             client.chat_postMessage(
                 channel=reflected_cn,
                 thread_ts=reflected_ts,
-                text=f"this issue will be handled by <@{selected_user}>, starting from `{timestamp_jakarta}`",
+                text=f"This issue will be handled by <@{selected_user}>, starting from `{timestamp_jakarta}`",
             )
         else:
             logging.error(
@@ -515,7 +515,7 @@ def handle_resolve_button(ack, body, client):
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": "please pay attention, if this issue related to you :point_up_2:",
+                    "text": "Please pay attention, if this issue related to you :point_up_2:",
                 },
             },
         ]
@@ -525,7 +525,7 @@ def handle_resolve_button(ack, body, client):
         client.chat_postMessage(
             channel=reflected_cn,
             thread_ts=reflected_ts,
-            text=f"this issue has been resolved at `{timestamp_jakarta}` by <@{user_id}>",
+            text=f"This issue has been resolved at `{timestamp_jakarta}` by <@{user_id}>",
         )
 
         client.chat_postMessage(
