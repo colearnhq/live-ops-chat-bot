@@ -198,7 +198,7 @@ def handle_hiops_command(ack, body, client, say):
         user_options = [
             {
                 "text": {"type": "plain_text", "text": f"<@{member}>"},
-                "value": f"{member},{user_id},{response_for_user['ts']},{user_input},{timestamp_jakarta},{channel_id},{init_result['ts']},{ticket_key_for_user},{','.join([f'{cat},{ticket_key_for_user}' for cat in categories])}",
+                "value": f"{member}|{user_id}|{response_for_user['ts']}|{user_input[:30]}|{timestamp_jakarta}|{channel_id}|{init_result['ts']}|{ticket_key_for_user[:30]}",
             }
             for member in members
         ]
@@ -329,19 +329,30 @@ def handle_user_selection(ack, body, client):
     user_input = selected_user_data[3]
     reported_at = selected_user_data[4]
     ticket_key_for_user = selected_user_data[7]
-    category_options = [
-        {
-            "text": {"type": "plain_text", "text": category.split(",")[0]},
-            "value": category,
-        }
-        for category in selected_user_data[8:]
-    ]
     channel_id = body["channel"]["id"]
     thread_ts = body["container"]["message_ts"]
     timestamp_utc = datetime.utcnow()
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
 
-    # Update the blocks
+    categories = [
+        "Ajar",
+        "Cuti",
+        "Data related",
+        "Observasi",
+        "Piket",
+        "Polling",
+        "Recording Video",
+        "Zoom",
+        "Others",
+    ]
+    category_options = [
+        {
+            "text": {"type": "plain_text", "text": category},
+            "value": f"{category}|{ticket_key_for_user[:30]}",
+        }
+        for category in categories
+    ]
+
     updated_blocks = [
         {
             "type": "section",
@@ -367,7 +378,7 @@ def handle_user_selection(ack, body, client):
                 },
                 {
                     "type": "mrkdwn",
-                    "text": f"*Picked up by:*\n<@{selected_user}>",
+                    "text": f"*Picked up by:*\n`{selected_user_name}`",
                 },
             ],
         },
@@ -401,7 +412,7 @@ def handle_user_selection(ack, body, client):
                         "text": "Resolve",
                     },
                     "style": "primary",
-                    "value": ticket_key_for_user,
+                    "value": ticket_key_for_user[:30],
                     "action_id": "resolve_button",
                 },
                 {
@@ -412,7 +423,7 @@ def handle_user_selection(ack, body, client):
                         "text": "Reject",
                     },
                     "style": "danger",
-                    "value": ticket_key_for_user,
+                    "value": ticket_key_for_user[:30],
                     "action_id": "reject_button",
                 },
             ],
