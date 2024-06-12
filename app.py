@@ -316,7 +316,9 @@ def handle_user_selection(ack, body, client):
 
     channel_id = body["channel"]["id"]
     thread_ts = body["container"]["message_ts"]
-    ticket_key_for_user = f"{user_who_requested},{response_ts},{user_input},{reported_at},{selected_user},'category_selected'"
+    ticket_key_for_user = (
+        f"{user_who_requested},{response_ts},{user_input},{reported_at},{selected_user}"
+    )
 
     category_options = [
         {
@@ -494,9 +496,7 @@ def handle_category_selection(ack, body, client):
     reported_at = selected_category[4]
     selected_user = selected_category[5]
     thread_ts = body["container"]["message_ts"]
-    ticket_key_for_user = (
-        f"{user_who_requested},{response_ts},{user_input},{reported_at},{selected_user}"
-    )
+    ticket_key_for_user = f"{user_who_requested},{response_ts},{user_input},{reported_at},{selected_user},'category_selected'"
 
     if selected_category_name.lower() == "others":
         trigger_id = body["trigger_id"]
