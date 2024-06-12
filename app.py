@@ -600,7 +600,6 @@ def handle_custom_category_modal_submission(ack, body, client, view, logger):
     ticket_key_for_user = (
         f"{user_who_requested},{response_ts},{user_input},{reported_at},{selected_user}"
     )
-    keys = body["message"]["blocks"][4]["elements"][0]["value"]
 
     try:
         updated_blocks = [
