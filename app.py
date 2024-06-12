@@ -586,10 +586,12 @@ def handle_category_selection(ack, body, client):
 def handle_custom_category_modal_submission(ack, body, client, view, logger):
     ack()
     user_id = body["user"]["id"]
+    print("ini body di custom cat", body)
     custom_category = view["state"]["values"]["custom_category_block"][
         "custom_category_input"
     ]["value"]
     values = view["private_metadata"].split(",")
+    print("ini values di custom cat", values)
     thread_ts = values[0]
     user_who_requested = values[1]
     reported_at = values[2]
@@ -597,6 +599,7 @@ def handle_custom_category_modal_submission(ack, body, client, view, logger):
     selected_user = values[4]
     channel_id = values[5]
     keys = body["message"]["blocks"][4]["elements"][0]["value"]
+    print("ini keys", keys)
 
     try:
         updated_blocks = [
