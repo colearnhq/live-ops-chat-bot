@@ -520,7 +520,7 @@ def handle_category_selection(ack, body, client):
                     },
                 }
             ],
-            "private_metadata": f"{thread_ts},{user_who_requested},{reported_at},{user_input},{selected_user},{channel_id}",
+            "private_metadata": f"{thread_ts},{user_who_requested},{reported_at},{user_input},{selected_user},{channel_id},{response_ts}",
             "submit": {"type": "plain_text", "text": "Submit"},
         }
         client.views_open(trigger_id=trigger_id, view=modal_view)
@@ -586,20 +586,21 @@ def handle_category_selection(ack, body, client):
 def handle_custom_category_modal_submission(ack, body, client, view, logger):
     ack()
     user_id = body["user"]["id"]
-    print("ini view di custom cat", view)
     custom_category = view["state"]["values"]["custom_category_block"][
         "custom_category_input"
     ]["value"]
     values = view["private_metadata"].split(",")
-    print("ini values di custom cat", values)
     thread_ts = values[0]
     user_who_requested = values[1]
     reported_at = values[2]
     user_input = values[3]
     selected_user = values[4]
     channel_id = values[5]
+    response_ts = values[6]
+    ticket_key_for_user = (
+        f"{user_who_requested},{response_ts},{user_input},{reported_at},{selected_user}"
+    )
     keys = body["message"]["blocks"][4]["elements"][0]["value"]
-    print("ini keys", keys)
 
     try:
         updated_blocks = [
@@ -644,7 +645,7 @@ def handle_custom_category_modal_submission(ack, body, client, view, logger):
                             "text": "Resolve",
                         },
                         "style": "primary",
-                        "value": keys,
+                        "value": truncate_value(ticket_key_for_user),
                         "action_id": "resolve_button",
                     },
                 ],
