@@ -586,7 +586,7 @@ def handle_category_selection(ack, body, client):
 def handle_custom_category_modal_submission(ack, body, client, view, logger):
     ack()
     user_id = body["user"]["id"]
-    print("ini body di custom cat", body)
+    print("ini view di custom cat", view)
     custom_category = view["state"]["values"]["custom_category_block"][
         "custom_category_input"
     ]["value"]
