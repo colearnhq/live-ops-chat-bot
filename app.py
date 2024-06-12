@@ -572,42 +572,6 @@ def handle_category_selection(ack, body, client):
             },
         ]
 
-        user_ticket = [
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"Your ticket number: *live-ops.{thread_ts}*",
-                },
-            },
-            {
-                "type": "section",
-                "fields": [
-                    {
-                        "type": "mrkdwn",
-                        "text": f"*Your Name:*\n<@{user_who_requested}>",
-                    },
-                    {"type": "mrkdwn", "text": f"*Reported at:*\n{reported_at}"},
-                    {
-                        "type": "mrkdwn",
-                        "text": f"*Problem:*\n`{user_input}`",
-                    },
-                    {
-                        "type": "mrkdwn",
-                        "text": f"*Issue Category:*\n{selected_category_name}",
-                    },
-                    {
-                        "type": "mrkdwn",
-                        "text": "*Current Status:*\nWe're working on :fire_parrot:",
-                    },
-                ],
-            },
-        ]
-
-        client.chat_update(
-            channel=user_who_requested, ts=response_ts, blocks=user_ticket
-        )
-
         client.chat_update(channel=channel_id, ts=thread_ts, blocks=updated_blocks)
 
         sheet_manager.update_ticket(
@@ -682,42 +646,6 @@ def handle_custom_category_modal_submission(ack, body, client, view, logger):
                 ],
             },
         ]
-
-        user_ticket = [
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"Your ticket number: *live-ops.{thread_ts}*",
-                },
-            },
-            {
-                "type": "section",
-                "fields": [
-                    {
-                        "type": "mrkdwn",
-                        "text": f"*Your Name:*\n<@{user_who_requested}>",
-                    },
-                    {"type": "mrkdwn", "text": f"*Reported at:*\n{reported_at}"},
-                    {
-                        "type": "mrkdwn",
-                        "text": f"*Problem:*\n`{user_input}`",
-                    },
-                    {
-                        "type": "mrkdwn",
-                        "text": f"*Issue Category:*\n{custom_category}",
-                    },
-                    {
-                        "type": "mrkdwn",
-                        "text": "*Current Status:*\nWe're working on :fire_parrot:",
-                    },
-                ],
-            },
-        ]
-
-        client.chat_update(
-            channel=user_who_requested, ts=response_ts, blocks=user_ticket
-        )
 
         client.chat_update(channel=channel_id, ts=thread_ts, blocks=updated_blocks)
         sheet_manager.update_ticket(
