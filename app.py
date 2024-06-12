@@ -673,7 +673,7 @@ def handle_resolve_button(ack, body, client):
     user_message_ts = resolve_button_value[1]
     user_input = resolve_button_value[2]
     ticket_reported_at = resolve_button_value[3]
-    print("ini element di resolve", elements)
+    print("ini element di resolve", resolve_button_value)
     timestamp_utc = datetime.utcnow()
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
     response = client.chat_postMessage(
