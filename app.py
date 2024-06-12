@@ -328,18 +328,25 @@ def handle_user_selection(ack, body, client):
     ack()
     selected_user_data = body["actions"][0]["selected_option"]["value"].split(",")
     selected_user = selected_user_data[0]
-    user_info = client.users_info(user=selected_user)
-    selected_user_name = user_info["user"]["real_name"]
     user_who_requested = selected_user_data[1]
     response_ts = selected_user_data[2]
     user_input = selected_user_data[3]
     reported_at = selected_user_data[4]
     categories = selected_user_data[5]
+
+    # Recalculate the timestamps
+    timestamp_utc = datetime.utcnow()
+    timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
+
+    user_info = client.users_info(user=selected_user)
+    selected_user_name = user_info["user"]["real_name"]
+
     channel_id = body["channel"]["id"]
     thread_ts = body["container"]["message_ts"]
     ticket_key_for_user = (
         f"{user_who_requested},{response_ts},{user_input},{timestamp_jakarta}"
     )
+
     category_options = [
         {
             "text": {"type": "plain_text", "text": category},
@@ -347,17 +354,18 @@ def handle_user_selection(ack, body, client):
         }
         for category in categories
     ]
-    timestamp_utc = datetime.utcnow()
-    timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
+
     response = client.chat_postMessage(
         channel=channel_id,
         thread_ts=thread_ts,
         text=f"<@{selected_user}> is going to resolve this issue, starting from `{timestamp_jakarta}`.",
     )
+
     sheet_manager.update_ticket(
         f"live-ops.{thread_ts}",
         {"handled_by": selected_user_name, "handled_at": timestamp_utc},
     )
+
     if response["ok"]:
         updated_blocks = [
             {
