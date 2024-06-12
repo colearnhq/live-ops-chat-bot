@@ -572,6 +572,42 @@ def handle_category_selection(ack, body, client):
             },
         ]
 
+        user_ticket = [
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"Your ticket number: *live-ops.{thread_ts}*",
+                },
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Your Name:*\n<@{user_who_requested}>",
+                    },
+                    {"type": "mrkdwn", "text": f"*Reported at:*\n{reported_at}"},
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Problem:*\n`{user_input}`",
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Issue Category:*\n{selected_category_name}",
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": "*Current Status:*\nWe're working on :fire_parrot:",
+                    },
+                ],
+            },
+        ]
+
+        client.chat_update(
+            channel=user_who_requested, ts=response_ts, blocks=user_ticket
+        )
+
         client.chat_update(channel=channel_id, ts=thread_ts, blocks=updated_blocks)
 
         sheet_manager.update_ticket(
@@ -647,6 +683,42 @@ def handle_custom_category_modal_submission(ack, body, client, view, logger):
             },
         ]
 
+        user_ticket = [
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"Your ticket number: *live-ops.{thread_ts}*",
+                },
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Your Name:*\n<@{user_who_requested}>",
+                    },
+                    {"type": "mrkdwn", "text": f"*Reported at:*\n{reported_at}"},
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Problem:*\n`{user_input}`",
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Issue Category:*\n{custom_category}",
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": "*Current Status:*\nWe're working on :fire_parrot:",
+                    },
+                ],
+            },
+        ]
+
+        client.chat_update(
+            channel=user_who_requested, ts=response_ts, blocks=user_ticket
+        )
+
         client.chat_update(channel=channel_id, ts=thread_ts, blocks=updated_blocks)
         sheet_manager.update_ticket(
             f"live-ops.{thread_ts}",
@@ -676,7 +748,7 @@ def handle_resolve_button(ack, body, client):
     user_input = resolve_button_value[2]
     ticket_reported_at = resolve_button_value[3]
     selected_user = resolve_button_value[4]
-    selected_category = resolve_button_value[4]
+    selected_category = resolve_button_value[5]
     timestamp_utc = datetime.utcnow()
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
     response = client.chat_postMessage(
@@ -765,6 +837,10 @@ def handle_resolve_button(ack, body, client):
                         "type": "mrkdwn",
                         "text": f"*Current Progress:*\n:white_check_mark: Resolved",
                     },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Issue Category:*\n{selected_category}",
+                    },
                 ],
             },
             {"type": "divider"},
@@ -776,6 +852,42 @@ def handle_resolve_button(ack, body, client):
                 },
             },
         ]
+
+        user_ticket = [
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"Your ticket number: *live-ops.{thread_ts}*",
+                },
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Your Name:*\n<@{user_who_requested_ticket_id}>",
+                    },
+                    {"type": "mrkdwn", "text": f"*Reported at:*\n{ticket_reported_at}"},
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Problem:*\n`{user_input}`",
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Issue Category:*\n{selected_category}",
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": "*Current Status:*\n:white_check_mark: Resolved",
+                    },
+                ],
+            },
+        ]
+
+        client.chat_update(
+            channel=user_who_requested_ticket_id, ts=user_message_ts, blocks=user_ticket
+        )
 
         client.chat_update(channel=reflected_cn, ts=reflected_ts, blocks=reflected_msg)
 
@@ -897,6 +1009,41 @@ def handle_modal_submission(ack, body, client, view, logger):
                         },
                     },
                 ],
+            )
+
+            user_ticket = [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"Your ticket number: *live-ops.{message_ts}*",
+                    },
+                },
+                {
+                    "type": "section",
+                    "fields": [
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Your Name:*\n<@{user_requested_id}>",
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Reported at:*\n{ticket_reported_at}",
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Problem:*\n`{user_input}`",
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": "*Current Status:*\n:x: This issue was rejected",
+                        },
+                    ],
+                },
+            ]
+
+            client.chat_update(
+                channel=user_requested_id, ts=user_message_ts, blocks=user_ticket
             )
 
             client.chat_postMessage(
