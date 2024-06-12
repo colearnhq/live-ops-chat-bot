@@ -335,9 +335,18 @@ def handle_user_selection(ack, body, client):
     response_ts = selected_user_data[2]
     user_input = selected_user_data[3]
     reported_at = selected_user_data[4]
-    categories = selected_user_data[5]
+    categories = [
+        "Ajar",
+        "Cuti",
+        "Data related",
+        "Observasi",
+        "Piket",
+        "Polling",
+        "Recording Video",
+        "Zoom",
+        "Others",
+    ]
     print("ini categories", categories)
-    # Recalculate the timestamps
     timestamp_utc = datetime.utcnow()
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
 
