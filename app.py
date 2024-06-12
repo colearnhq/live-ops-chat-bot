@@ -198,11 +198,10 @@ def handle_hiops_command(ack, body, client, say):
         user_options = [
             {
                 "text": {"type": "plain_text", "text": f"<@{member}>"},
-                "value": f"{member}|{user_id}|{response_for_user['ts']}|{user_input[:30]}|{timestamp_jakarta}|{channel_id}|{init_result['ts']}|{ticket_key_for_user[:30]}",
+                "value": f"{member},{user_id},{response_for_user['ts']},{user_input},{timestamp_jakarta},{categories}",
             }
             for member in members
         ]
-
         category_options = [
             {
                 "text": {"type": "plain_text", "text": category},
@@ -328,110 +327,21 @@ def handle_user_selection(ack, body, client):
     response_ts = selected_user_data[2]
     user_input = selected_user_data[3]
     reported_at = selected_user_data[4]
-    ticket_key_for_user = selected_user_data[7]
+    categories = selected_user_data[5]
     channel_id = body["channel"]["id"]
     thread_ts = body["container"]["message_ts"]
-    timestamp_utc = datetime.utcnow()
-    timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
-
-    categories = [
-        "Ajar",
-        "Cuti",
-        "Data related",
-        "Observasi",
-        "Piket",
-        "Polling",
-        "Recording Video",
-        "Zoom",
-        "Others",
-    ]
+    ticket_key_for_user = (
+        f"{user_who_requested},{response_ts},{user_input},{timestamp_jakarta}"
+    )
     category_options = [
         {
             "text": {"type": "plain_text", "text": category},
-            "value": f"{category}|{ticket_key_for_user[:30]}",
+            "value": f"{category},{ticket_key_for_user}",
         }
         for category in categories
     ]
-
-    updated_blocks = [
-        {
-            "type": "section",
-            "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
-        },
-        {
-            "type": "section",
-            "text": {
-                "type": "mrkdwn",
-                "text": f"We just received a ticket from <@{user_who_requested}> at `{reported_at}`",
-            },
-        },
-        {
-            "type": "section",
-            "fields": [
-                {
-                    "type": "mrkdwn",
-                    "text": f"*Ticket Number:*\nlive-ops.{thread_ts}",
-                },
-                {
-                    "type": "mrkdwn",
-                    "text": f"*Problem:*\n`{user_input}`",
-                },
-                {
-                    "type": "mrkdwn",
-                    "text": f"*Picked up by:*\n<@{selected_user}>",
-                },
-            ],
-        },
-        {"type": "divider"},
-        {
-            "type": "section",
-            "text": {
-                "type": "mrkdwn",
-                "text": "Please select the category of the issue:",
-            },
-            "accessory": {
-                "type": "static_select",
-                "placeholder": {
-                    "type": "plain_text",
-                    "text": "Select category...",
-                    "emoji": True,
-                },
-                "options": category_options,
-                "action_id": "category_select_action",
-            },
-        },
-        {"type": "divider"},
-        {
-            "type": "actions",
-            "elements": [
-                {
-                    "type": "button",
-                    "text": {
-                        "type": "plain_text",
-                        "emoji": True,
-                        "text": "Resolve",
-                    },
-                    "style": "primary",
-                    "value": ticket_key_for_user[:30],
-                    "action_id": "resolve_button",
-                },
-                {
-                    "type": "button",
-                    "text": {
-                        "type": "plain_text",
-                        "emoji": True,
-                        "text": "Reject",
-                    },
-                    "style": "danger",
-                    "value": ticket_key_for_user[:30],
-                    "action_id": "reject_button",
-                },
-            ],
-        },
-    ]
-
-    client.chat_update(channel=channel_id, ts=thread_ts, blocks=updated_blocks)
-
+    timestamp_utc = datetime.utcnow()
+    timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
     response = client.chat_postMessage(
         channel=channel_id,
         thread_ts=thread_ts,
@@ -442,6 +352,79 @@ def handle_user_selection(ack, body, client):
         {"handled_by": selected_user_name, "handled_at": timestamp_utc},
     )
     if response["ok"]:
+        updated_blocks = [
+            {
+                "type": "section",
+                "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"We just received a ticket from <@{user_who_requested}> at `{timestamp_jakarta}`",
+                },
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Ticket Number:*\nlive-ops.{thread_ts}",
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Problem:*\n`{user_input}`",
+                    },
+                    {"type": "mrkdwn", "text": f"*Picked up by:*\n<@{selected_user}"},
+                ],
+            },
+            {"type": "divider"},
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "Please select the category of the issue:",
+                },
+                "accessory": {
+                    "type": "static_select",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Select category...",
+                        "emoji": True,
+                    },
+                    "options": category_options,
+                    "action_id": "category_select_action",
+                },
+            },
+            {"type": "divider"},
+            {
+                "type": "actions",
+                "elements": [
+                    {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "emoji": True,
+                            "text": "Resolve",
+                        },
+                        "style": "primary",
+                        "value": ticket_key_for_user,
+                        "action_id": "resolve_button",
+                    },
+                    {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "emoji": True,
+                            "text": "Reject",
+                        },
+                        "style": "danger",
+                        "value": ticket_key_for_user,
+                        "action_id": "reject_button",
+                    },
+                ],
+            },
+        ]
 
         reflected_msg = [
             {
@@ -481,6 +464,8 @@ def handle_user_selection(ack, body, client):
                 },
             },
         ]
+
+        client.chat_update(channel=channel_id, ts=thread_ts, blocks=updated_blocks)
 
         client.chat_postMessage(
             channel=user_who_requested,
