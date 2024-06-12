@@ -667,13 +667,13 @@ def handle_resolve_button(ack, body, client):
     channel_id = body["channel"]["id"]
     thread_ts = body["container"]["message_ts"]
     reflected_ts = ticket_manager.get_reflected_ts(thread_ts)
+    print("ini body di resolve", body)
     elements = body["message"]["blocks"][7]["elements"]
     resolve_button_value = elements[0]["value"].split(",")
     user_who_requested_ticket_id = resolve_button_value[0]
     user_message_ts = resolve_button_value[1]
     user_input = resolve_button_value[2]
     ticket_reported_at = resolve_button_value[3]
-    print("ini element di resolve", resolve_button_value)
     timestamp_utc = datetime.utcnow()
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
     response = client.chat_postMessage(
