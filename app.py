@@ -152,17 +152,6 @@ def handle_hiops_command(ack, body, client, say):
     channel_id = "C0719R3NQ91"
     timestamp_utc = datetime.utcnow()
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
-    categories = [
-        "Ajar",
-        "Cuti",
-        "Data related",
-        "Observasi",
-        "Piket",
-        "Polling",
-        "Recording Video",
-        "Zoom",
-        "Others",
-    ]
 
     try:
         init_result = client.chat_postMessage(
@@ -210,16 +199,6 @@ def handle_hiops_command(ack, body, client, say):
             for member in members
         ]
 
-        category_options = [
-            {
-                "text": {"type": "plain_text", "text": category},
-                "value": truncate_value(
-                    f"{category},{ticket_key_for_user},{user_id},{user_input},{timestamp_jakarta}"
-                ),
-            }
-            for category in categories
-        ]
-
         if init_result["ok"]:
             ts = init_result["ts"]
             blocks = [
@@ -263,23 +242,6 @@ def handle_hiops_command(ack, body, client, say):
                         },
                         "options": user_options,
                         "action_id": "user_select_action",
-                    },
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "Please select the category of the issue:",
-                    },
-                    "accessory": {
-                        "type": "static_select",
-                        "placeholder": {
-                            "type": "plain_text",
-                            "text": "Select category...",
-                            "emoji": True,
-                        },
-                        "options": category_options,
-                        "action_id": "category_select_action",
                     },
                 },
                 {"type": "divider"},
@@ -354,9 +316,7 @@ def handle_user_selection(ack, body, client):
 
     channel_id = body["channel"]["id"]
     thread_ts = body["container"]["message_ts"]
-    ticket_key_for_user = (
-        f"{user_who_requested},{response_ts},{user_input},{reported_at},{selected_user}"
-    )
+    ticket_key_for_user = f"{user_who_requested},{response_ts},{user_input},{reported_at},{selected_user},'category_selected'"
 
     category_options = [
         {
@@ -668,7 +628,7 @@ def handle_resolve_button(ack, body, client):
     thread_ts = body["container"]["message_ts"]
     reflected_ts = ticket_manager.get_reflected_ts(thread_ts)
     print("ini body di resolve", body)
-    elements = body["message"]["blocks"][7]["elements"]
+    elements = body["message"]["blocks"][4]["elements"]
     resolve_button_value = elements[0]["value"].split(",")
     user_who_requested_ticket_id = resolve_button_value[0]
     user_message_ts = resolve_button_value[1]
