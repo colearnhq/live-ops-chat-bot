@@ -391,7 +391,7 @@ def handle_user_selection(ack, body, client):
                         "type": "mrkdwn",
                         "text": f"*Problem:*\n`{user_input}`",
                     },
-                    {"type": "mrkdwn", "text": f"*Picked up by:*\n<@{selected_user}"},
+                    {"type": "mrkdwn", "text": f"*Picked up by:*\n<@{selected_user}>"},
                 ],
             },
             {"type": "divider"},
