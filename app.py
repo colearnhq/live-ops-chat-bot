@@ -213,7 +213,9 @@ def handle_hiops_command(ack, body, client, say):
         category_options = [
             {
                 "text": {"type": "plain_text", "text": category},
-                "value": truncate_value(f"{category},{ticket_key_for_user}"),
+                "value": truncate_value(
+                    f"{category},{ticket_key_for_user},{user_id},{user_input},{timestamp_jakarta}"
+                ),
             }
             for category in categories
         ]
@@ -344,9 +346,7 @@ def handle_user_selection(ack, body, client):
 
     channel_id = body["channel"]["id"]
     thread_ts = body["container"]["message_ts"]
-    ticket_key_for_user = (
-        f"{user_who_requested},{response_ts},{user_input},{timestamp_jakarta}"
-    )
+    ticket_key_for_user = f"{user_who_requested},{response_ts},{user_input},{timestamp_jakarta},{selected_user}"
 
     category_options = [
         {
@@ -377,7 +377,7 @@ def handle_user_selection(ack, body, client):
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"We just received a ticket from <@{user_who_requested}> at `{timestamp_jakarta}`",
+                    "text": f"We just received a ticket from <@{user_who_requested}> at `{reported_at}`",
                 },
             },
             {
@@ -517,6 +517,9 @@ def handle_category_selection(ack, body, client):
     ack()
     selected_category = body["actions"][0]["selected_option"]["value"].split(",")
     selected_category_name = selected_category[0]
+    user_who_requested = selected_category[2]
+    user_input = selected_category[3]
+    reported_at = selected_category[4]
     thread_ts = body["container"]["message_ts"]
 
     if selected_category_name.lower() == "others":
@@ -544,6 +547,7 @@ def handle_category_selection(ack, body, client):
         }
         client.views_open(trigger_id=trigger_id, view=modal_view)
     else:
+        print("ini isi body", body)
         sheet_manager.update_ticket(
             f"live-ops.{thread_ts}",
             {"category_issue": selected_category_name},
