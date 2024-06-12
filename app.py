@@ -496,9 +496,7 @@ def handle_category_selection(ack, body, client):
     reported_at = selected_category[4]
     selected_user = selected_category[5]
     thread_ts = body["container"]["message_ts"]
-    ticket_key_for_user = (
-        f"{user_who_requested},{response_ts},{user_input},{reported_at},{selected_user}"
-    )
+    ticket_key_for_user = f"{user_who_requested},{response_ts},{user_input},{reported_at},{selected_user}, {selected_category_name}"
 
     if selected_category_name.lower() == "others":
         trigger_id = body["trigger_id"]
@@ -597,9 +595,7 @@ def handle_custom_category_modal_submission(ack, body, client, view, logger):
     selected_user = values[4]
     channel_id = values[5]
     response_ts = values[6]
-    ticket_key_for_user = (
-        f"{user_who_requested},{response_ts},{user_input},{reported_at},{selected_user}"
-    )
+    ticket_key_for_user = f"{user_who_requested},{response_ts},{user_input},{reported_at},{selected_user},{custom_category}"
 
     try:
         updated_blocks = [
@@ -656,10 +652,6 @@ def handle_custom_category_modal_submission(ack, body, client, view, logger):
             f"live-ops.{thread_ts}",
             {"category_issue": custom_category},
         )
-        client.chat_postMessage(
-            channel=user_id,
-            text=f"Thank you! The custom category '{custom_category}' has been recorded.",
-        )
     except Exception as e:
         logger.error(f"Failed to update ticket with custom category: {str(e)}")
         client.chat_postMessage(
@@ -683,6 +675,8 @@ def handle_resolve_button(ack, body, client):
     user_message_ts = resolve_button_value[1]
     user_input = resolve_button_value[2]
     ticket_reported_at = resolve_button_value[3]
+    selected_user = resolve_button_value[4]
+    selected_category = resolve_button_value[4]
     timestamp_utc = datetime.utcnow()
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
     response = client.chat_postMessage(
@@ -722,6 +716,14 @@ def handle_resolve_button(ack, body, client):
                         {
                             "type": "mrkdwn",
                             "text": f"*Problem:*\n`{user_input}`",
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Picked up by:*\n<@{selected_user}>",
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Category:*\n{selected_category}",
                         },
                     ],
                 },
