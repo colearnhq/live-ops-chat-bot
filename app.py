@@ -140,6 +140,10 @@ def handle_message_events(body, say, client):
         logging.error(f"Error handling message: {str(e)}")
 
 
+def truncate_value(value, max_length=150):
+    return value if len(value) <= max_length else value[:max_length]
+
+
 @app.command("/hiops")
 def handle_hiops_command(ack, body, client, say):
     ack()
@@ -195,9 +199,6 @@ def handle_hiops_command(ack, body, client, say):
         )
         members_result = client.conversations_members(channel=channel_id)
         members = members_result["members"] if members_result["ok"] else []
-
-        def truncate_value(value, max_length=150):
-            return value if len(value) <= max_length else value[:max_length]
 
         user_options = [
             {
