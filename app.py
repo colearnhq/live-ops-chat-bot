@@ -193,7 +193,7 @@ def handle_hiops_command(ack, body, client, say):
             {
                 "text": {"type": "plain_text", "text": f"<@{member}>"},
                 "value": truncate_value(
-                    f"{member},{user_id},{response_for_user['ts']},{user_input},{timestamp_jakarta},'key_selected'"
+                    f"{member},{user_id},{response_for_user['ts']},{user_input},{timestamp_jakarta}"
                 ),
             }
             for member in members
@@ -496,7 +496,9 @@ def handle_category_selection(ack, body, client):
     reported_at = selected_category[4]
     selected_user = selected_category[5]
     thread_ts = body["container"]["message_ts"]
-    ticket_key_for_user = f"{user_who_requested},{response_ts},{user_input},{reported_at},{selected_user},'category_selected'"
+    ticket_key_for_user = (
+        f"{user_who_requested},{response_ts},{user_input},{reported_at},{selected_user}"
+    )
 
     if selected_category_name.lower() == "others":
         trigger_id = body["trigger_id"]
@@ -518,7 +520,7 @@ def handle_category_selection(ack, body, client):
                     },
                 }
             ],
-            "private_metadata": f"{thread_ts}",
+            "private_metadata": f"{thread_ts},{user_who_requested},{reported_at},{user_input},{selected_user},{channel_id}",
             "submit": {"type": "plain_text", "text": "Submit"},
         }
         client.views_open(trigger_id=trigger_id, view=modal_view)
@@ -568,17 +570,6 @@ def handle_category_selection(ack, body, client):
                         "value": truncate_value(ticket_key_for_user),
                         "action_id": "resolve_button",
                     },
-                    {
-                        "type": "button",
-                        "text": {
-                            "type": "plain_text",
-                            "emoji": True,
-                            "text": "Reject",
-                        },
-                        "style": "danger",
-                        "value": truncate_value(ticket_key_for_user),
-                        "action_id": "reject_button",
-                    },
                 ],
             },
         ]
@@ -598,10 +589,66 @@ def handle_custom_category_modal_submission(ack, body, client, view, logger):
     custom_category = view["state"]["values"]["custom_category_block"][
         "custom_category_input"
     ]["value"]
-    thread_ts = view["private_metadata"]
+    values = view["private_metadata"].split(",")
+    thread_ts = values[0]
+    user_who_requested = values[1]
+    reported_at = values[2]
+    user_input = values[3]
+    selected_user = values[4]
+    channel_id = values[5]
+    keys = body["message"]["blocks"][4]["elements"][0]["value"]
 
     try:
-        print("ini body di custom", body)
+        updated_blocks = [
+            {
+                "type": "section",
+                "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"We just received a ticket from <@{user_who_requested}> at `{reported_at}`",
+                },
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Ticket Number:*\nlive-ops.{thread_ts}",
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Problem:*\n`{user_input}`",
+                    },
+                    {"type": "mrkdwn", "text": f"*Picked up by:*\n<@{selected_user}>"},
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Category:*\n{custom_category}",
+                    },
+                ],
+            },
+            {"type": "divider"},
+            {
+                "type": "actions",
+                "elements": [
+                    {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "emoji": True,
+                            "text": "Resolve",
+                        },
+                        "style": "primary",
+                        "value": keys,
+                        "action_id": "resolve_button",
+                    },
+                ],
+            },
+        ]
+
+        client.chat_update(channel=channel_id, ts=thread_ts, blocks=updated_blocks)
         sheet_manager.update_ticket(
             f"live-ops.{thread_ts}",
             {"category_issue": custom_category},
@@ -627,11 +674,6 @@ def handle_resolve_button(ack, body, client):
     channel_id = body["channel"]["id"]
     thread_ts = body["container"]["message_ts"]
     reflected_ts = ticket_manager.get_reflected_ts(thread_ts)
-    get_user_option = body["message"]["blocks"][4]["accessory"]["options"][0][
-        "value"
-    ].split(",")
-    get_key_selected = get_user_option[5]
-    print("ini key di resolve", get_key_selected)
     elements = body["message"]["blocks"][4]["elements"]
     resolve_button_value = elements[0]["value"].split(",")
     user_who_requested_ticket_id = resolve_button_value[0]
@@ -756,7 +798,7 @@ def handle_reject_button(ack, body, client):
     channel_id = body["channel"]["id"]
     user_info = client.users_info(user=body["user"]["id"])
     user_name = user_info["user"]["real_name"]
-    elements = body["message"]["blocks"][7]["elements"]
+    elements = body["message"]["blocks"][6]["elements"]
     reject_button_value = elements[0]["value"]
     timestamp_utc = datetime.utcnow()
     sheet_manager.update_ticket(
