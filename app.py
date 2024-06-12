@@ -642,6 +642,7 @@ def handle_custom_category_modal_submission(ack, body, client, view, logger):
 
     # Update the ticket with the custom category
     try:
+        print("ini body di custom", body)
         sheet_manager.update_ticket(
             f"live-ops.{thread_ts}",
             {"category_issue": custom_category},
