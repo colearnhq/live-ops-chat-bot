@@ -355,7 +355,7 @@ def handle_user_selection(ack, body, client):
     channel_id = body["channel"]["id"]
     thread_ts = body["container"]["message_ts"]
     ticket_key_for_user = (
-        f"{user_who_requested},{response_ts},{user_input},{thread_ts},{selected_user}"
+        f"{user_who_requested},{response_ts},{user_input},{reported_at},{selected_user}"
     )
 
     category_options = [
@@ -401,7 +401,7 @@ def handle_user_selection(ack, body, client):
                         "type": "mrkdwn",
                         "text": f"*Problem:*\n`{user_input}`",
                     },
-                    {"type": "mrkdwn", "text": f"*Picked up by:*\n<@{selected_user}>"},
+                    {"type": "mrkdwn", "text": f"*Picked Up By:*\n<@{selected_user}>"},
                 ],
             },
             {"type": "divider"},
