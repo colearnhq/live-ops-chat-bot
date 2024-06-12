@@ -336,7 +336,7 @@ def handle_user_selection(ack, body, client):
     user_input = selected_user_data[3]
     reported_at = selected_user_data[4]
     categories = selected_user_data[5]
-
+    print("ini categories", categories)
     # Recalculate the timestamps
     timestamp_utc = datetime.utcnow()
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
