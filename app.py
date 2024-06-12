@@ -198,7 +198,15 @@ def handle_hiops_command(ack, body, client, say):
         user_options = [
             {
                 "text": {"type": "plain_text", "text": f"<@{member}>"},
-                "value": f"{member},{user_id},{response_for_user['ts']},{user_input},{timestamp_jakarta},{categories}",
+                "value": json.dumps(
+                    {
+                        "member": member,
+                        "user_id": user_id,
+                        "response_ts": response_for_user["ts"],
+                        "user_input": user_input,
+                        "timestamp_jakarta": timestamp_jakarta,
+                    }
+                ),
             }
             for member in members
         ]
@@ -319,113 +327,163 @@ def handle_hiops_command(ack, body, client, say):
 @app.action("user_select_action")
 def handle_user_selection(ack, body, client):
     ack()
-    selected_user_data = body["actions"][0]["selected_option"]["value"].split(",")
-    selected_user = selected_user_data[0]
-    user_info = client.users_info(user=selected_user)
-    selected_user_name = user_info["user"]["real_name"]
-    user_who_requested = selected_user_data[1]
-    response_ts = selected_user_data[2]
-    user_input = selected_user_data[3]
-    reported_at = selected_user_data[4]
-    categories = selected_user_data[5]
-    channel_id = body["channel"]["id"]
-    thread_ts = body["container"]["message_ts"]
-    ticket_key_for_user = (
-        f"{user_who_requested},{response_ts},{user_input},{timestamp_jakarta}"
-    )
+    selected_user_data = json.loads(body["actions"][0]["selected_option"]["value"])
+    selected_user = selected_user_data["member"]
+    user_who_requested = selected_user_data["user_id"]
+    response_ts = selected_user_data["response_ts"]
+    user_input = selected_user_data["user_input"]
+    reported_at = selected_user_data["timestamp_jakarta"]
+
+    try:
+        user_info = client.users_info(user=selected_user)
+        selected_user_name = user_info["user"]["real_name"]
+    except SlackApiError as e:
+        logging.error(f"Error fetching user info: {e.response['error']}")
+        client.chat_postMessage(
+            channel=channel_id,
+            text=f"Failed to fetch user info for <@{selected_user}>. Please try again.",
+            thread_ts=thread_ts,
+        )
+        return
+
+    timestamp_utc = datetime.utcnow()
+    timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
+
+    # Create category options
+    categories = [
+        "Ajar",
+        "Cuti",
+        "Data related",
+        "Observasi",
+        "Piket",
+        "Polling",
+        "Recording Video",
+        "Zoom",
+        "Others",
+    ]
     category_options = [
         {
             "text": {"type": "plain_text", "text": category},
-            "value": f"{category},{ticket_key_for_user}",
+            "value": json.dumps(
+                {
+                    "category": category,
+                    "ticket_key_for_user": f"{user_who_requested},{response_ts},{user_input},{timestamp_jakarta}",
+                }
+            ),
         }
         for category in categories
     ]
-    timestamp_utc = datetime.utcnow()
-    timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
-    response = client.chat_postMessage(
+
+    # Update the blocks
+    updated_blocks = [
+        {
+            "type": "section",
+            "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"We just received a ticket from <@{user_who_requested}> at `{reported_at}`",
+            },
+        },
+        {
+            "type": "section",
+            "fields": [
+                {
+                    "type": "mrkdwn",
+                    "text": f"*Ticket Number:*\nlive-ops.{thread_ts}",
+                },
+                {
+                    "type": "mrkdwn",
+                    "text": f"*Problem:*\n`{user_input}`",
+                },
+                {
+                    "type": "mrkdwn",
+                    "text": f"*Picked up by:*\n<@{selected_user}>",
+                },
+            ],
+        },
+        {"type": "divider"},
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": "Please select the category of the issue:",
+            },
+            "accessory": {
+                "type": "static_select",
+                "placeholder": {
+                    "type": "plain_text",
+                    "text": "Select category...",
+                    "emoji": True,
+                },
+                "options": category_options,
+                "action_id": "category_select_action",
+            },
+        },
+        {"type": "divider"},
+        {
+            "type": "actions",
+            "elements": [
+                {
+                    "type": "button",
+                    "text": {
+                        "type": "plain_text",
+                        "emoji": True,
+                        "text": "Resolve",
+                    },
+                    "style": "primary",
+                    "value": json.dumps(
+                        {
+                            "ticket_key_for_user": f"{user_who_requested},{response_ts},{user_input},{timestamp_jakarta}"
+                        }
+                    ),
+                    "action_id": "resolve_button",
+                },
+                {
+                    "type": "button",
+                    "text": {
+                        "type": "plain_text",
+                        "emoji": True,
+                        "text": "Reject",
+                    },
+                    "style": "danger",
+                    "value": json.dumps(
+                        {
+                            "ticket_key_for_user": f"{user_who_requested},{response_ts},{user_input},{timestamp_jakarta}"
+                        }
+                    ),
+                    "action_id": "reject_button",
+                },
+            ],
+        },
+    ]
+
+    # Update the message with the new blocks
+    client.chat_update(
+        channel=channel_id,
+        ts=thread_ts,
+        blocks=updated_blocks,
+        text="Ticket details updated",
+    )
+
+    # Post a confirmation message in the thread
+    client.chat_postMessage(
         channel=channel_id,
         thread_ts=thread_ts,
         text=f"<@{selected_user}> is going to resolve this issue, starting from `{timestamp_jakarta}`.",
     )
+
+    # Update the ticket in the sheet manager
     sheet_manager.update_ticket(
         f"live-ops.{thread_ts}",
         {"handled_by": selected_user_name, "handled_at": timestamp_utc},
     )
-    if response["ok"]:
-        updated_blocks = [
-            {
-                "type": "section",
-                "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"We just received a ticket from <@{user_who_requested}> at `{timestamp_jakarta}`",
-                },
-            },
-            {
-                "type": "section",
-                "fields": [
-                    {
-                        "type": "mrkdwn",
-                        "text": f"*Ticket Number:*\nlive-ops.{thread_ts}",
-                    },
-                    {
-                        "type": "mrkdwn",
-                        "text": f"*Problem:*\n`{user_input}`",
-                    },
-                    {"type": "mrkdwn", "text": f"*Picked up by:*\n<@{selected_user}"},
-                ],
-            },
-            {"type": "divider"},
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "Please select the category of the issue:",
-                },
-                "accessory": {
-                    "type": "static_select",
-                    "placeholder": {
-                        "type": "plain_text",
-                        "text": "Select category...",
-                        "emoji": True,
-                    },
-                    "options": category_options,
-                    "action_id": "category_select_action",
-                },
-            },
-            {"type": "divider"},
-            {
-                "type": "actions",
-                "elements": [
-                    {
-                        "type": "button",
-                        "text": {
-                            "type": "plain_text",
-                            "emoji": True,
-                            "text": "Resolve",
-                        },
-                        "style": "primary",
-                        "value": ticket_key_for_user,
-                        "action_id": "resolve_button",
-                    },
-                    {
-                        "type": "button",
-                        "text": {
-                            "type": "plain_text",
-                            "emoji": True,
-                            "text": "Reject",
-                        },
-                        "style": "danger",
-                        "value": ticket_key_for_user,
-                        "action_id": "reject_button",
-                    },
-                ],
-            },
-        ]
 
+    # Update reflected message if applicable
+    reflected_ts = ticket_manager.get_reflected_ts(thread_ts)
+    if reflected_ts:
         reflected_msg = [
             {
                 "type": "section",
@@ -451,6 +509,10 @@ def handle_user_selection(ack, body, client):
                     },
                     {
                         "type": "mrkdwn",
+                        "text": f"*Picked up by:*\n<@{selected_user}>",
+                    },
+                    {
+                        "type": "mrkdwn",
                         "text": f"*Current Progress:*\n:pray: On checking",
                     },
                 ],
@@ -465,35 +527,17 @@ def handle_user_selection(ack, body, client):
             },
         ]
 
-        client.chat_update(channel=channel_id, ts=thread_ts, blocks=updated_blocks)
-
+        client.chat_update(
+            channel=reflected_cn,
+            ts=reflected_ts,
+            blocks=reflected_msg,
+            text="Ticket details updated",
+        )
         client.chat_postMessage(
-            channel=user_who_requested,
-            thread_ts=response_ts,
-            text=f"<@{user_who_requested}> your issue will be handled by <@{selected_user}>. We will check and text you asap. Please wait ya.",
+            channel=reflected_cn,
+            thread_ts=reflected_ts,
+            text=f"This issue will be handled by <@{selected_user}>, starting from `{timestamp_jakarta}`",
         )
-        reflected_post = client.chat_postMessage(
-            channel=reflected_cn, blocks=reflected_msg
-        )
-
-        if reflected_post["ok"]:
-            reflected_ts = reflected_post["ts"]
-            ticket_manager.store_reflected_ts(thread_ts, reflected_ts)
-            client.chat_postMessage(
-                channel=reflected_cn,
-                thread_ts=reflected_ts,
-                text=f"This issue will be handled by <@{selected_user}>, starting from `{timestamp_jakarta}`",
-            )
-        else:
-            logging.error(
-                f"Failed to post reflected message: {reflected_post['error']}"
-            )
-
-    else:
-        logging.error(f"Failed to post message: {response['error']}")
-
-    if not response["ok"]:
-        logging.error(f"Failed to post message: {response['error']}")
 
 
 @app.action("category_select_action")
