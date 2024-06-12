@@ -195,17 +195,24 @@ def handle_hiops_command(ack, body, client, say):
         )
         members_result = client.conversations_members(channel=channel_id)
         members = members_result["members"] if members_result["ok"] else []
+
+        def truncate_value(value, max_length=150):
+            return value if len(value) <= max_length else value[:max_length]
+
         user_options = [
             {
                 "text": {"type": "plain_text", "text": f"<@{member}>"},
-                "value": f"{member},{user_id},{response_for_user['ts']},{user_input},{timestamp_jakarta},{categories}",
+                "value": truncate_value(
+                    f"{member},{user_id},{response_for_user['ts']},{user_input},{timestamp_jakarta},{categories}"
+                ),
             }
             for member in members
         ]
+
         category_options = [
             {
                 "text": {"type": "plain_text", "text": category},
-                "value": f"{category},{ticket_key_for_user}",
+                "value": truncate_value(f"{category},{ticket_key_for_user}"),
             }
             for category in categories
         ]
@@ -284,7 +291,7 @@ def handle_hiops_command(ack, body, client, say):
                                 "text": "Resolve",
                             },
                             "style": "primary",
-                            "value": ticket_key_for_user,
+                            "value": truncate_value(ticket_key_for_user),
                             "action_id": "resolve_button",
                         },
                         {
@@ -295,7 +302,7 @@ def handle_hiops_command(ack, body, client, say):
                                 "text": "Reject",
                             },
                             "style": "danger",
-                            "value": ticket_key_for_user,
+                            "value": truncate_value(ticket_key_for_user),
                             "action_id": "reject_button",
                         },
                     ],
@@ -336,7 +343,7 @@ def handle_user_selection(ack, body, client):
     category_options = [
         {
             "text": {"type": "plain_text", "text": category},
-            "value": f"{category},{ticket_key_for_user}",
+            "value": truncate_value(f"{category},{ticket_key_for_user}"),
         }
         for category in categories
     ]
@@ -408,7 +415,7 @@ def handle_user_selection(ack, body, client):
                             "text": "Resolve",
                         },
                         "style": "primary",
-                        "value": ticket_key_for_user,
+                        "value": truncate_value(ticket_key_for_user),
                         "action_id": "resolve_button",
                     },
                     {
@@ -419,7 +426,7 @@ def handle_user_selection(ack, body, client):
                             "text": "Reject",
                         },
                         "style": "danger",
-                        "value": ticket_key_for_user,
+                        "value": truncate_value(ticket_key_for_user),
                         "action_id": "reject_button",
                     },
                 ],
