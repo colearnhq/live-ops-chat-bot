@@ -627,7 +627,11 @@ def handle_resolve_button(ack, body, client):
     channel_id = body["channel"]["id"]
     thread_ts = body["container"]["message_ts"]
     reflected_ts = ticket_manager.get_reflected_ts(thread_ts)
-    print("ini body di resolve", body)
+    get_user_option = body["message"]["blocks"][4]["accessory"]["options"][0][
+        "value"
+    ].split(",")
+    get_key_selected = get_user_option[5]
+    print("ini key di resolve", get_key_selected)
     elements = body["message"]["blocks"][4]["elements"]
     resolve_button_value = elements[0]["value"].split(",")
     user_who_requested_ticket_id = resolve_button_value[0]
