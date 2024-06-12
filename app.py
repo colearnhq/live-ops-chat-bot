@@ -378,7 +378,7 @@ def handle_user_selection(ack, body, client):
                 },
                 {
                     "type": "mrkdwn",
-                    "text": f"*Picked up by:*\n`{selected_user_name}`",
+                    "text": f"*Picked up by:*\n<@{selected_user}>",
                 },
             ],
         },
