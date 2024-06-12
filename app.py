@@ -193,7 +193,7 @@ def handle_hiops_command(ack, body, client, say):
             {
                 "text": {"type": "plain_text", "text": f"<@{member}>"},
                 "value": truncate_value(
-                    f"{member},{user_id},{response_for_user['ts']},{user_input},{timestamp_jakarta}"
+                    f"{member},{user_id},{response_for_user['ts']},{user_input},{timestamp_jakarta},'key_selected'"
                 ),
             }
             for member in members
