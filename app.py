@@ -854,6 +854,7 @@ def handle_modal_submission(ack, body, client, view, logger):
         user_message_ts = private_metadata[3]
         user_input = private_metadata[4]
         ticket_reported_at = private_metadata[5]
+        reflected_ts = ticket_manager.get_reflected_ts(message_ts)
         reason = view["state"]["values"]["reject_reason"]["reason_input"]["value"]
         timestamp_utc = datetime.utcnow()
         timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
@@ -931,10 +932,6 @@ def handle_modal_submission(ack, body, client, view, logger):
                             "type": "mrkdwn",
                             "text": f"*Current Progress:*\n:white_check_mark: Resolved",
                         },
-                        {
-                            "type": "mrkdwn",
-                            "text": f"*Issue Category:*\n{selected_category}",
-                        },
                     ],
                 },
                 {"type": "divider"},
@@ -942,7 +939,7 @@ def handle_modal_submission(ack, body, client, view, logger):
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": ":x: This issue was rejected. Please ignore this",
+                        "text": f":x: This issue was rejected by {user_id}. Please ignore this",
                     },
                 },
             ]
@@ -955,6 +952,12 @@ def handle_modal_submission(ack, body, client, view, logger):
 
             client.chat_update(
                 channel=reflected_cn, ts=reflected_ts, blocks=reflected_msg
+            )
+
+            client.chat_postMessage(
+                channel=reflected_cn,
+                thread_ts=reflected_ts,
+                text=f"We are sorry, this issue was rejected due to `{reason}`.",
             )
 
         else:
