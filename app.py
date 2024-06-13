@@ -930,7 +930,7 @@ def handle_modal_submission(ack, body, client, view, logger):
                         },
                         {
                             "type": "mrkdwn",
-                            "text": f"*Current Progress:*\n:white_check_mark: Resolved",
+                            "text": f"*Current Progress:*\n:x: Issue Rejected",
                         },
                     ],
                 },
@@ -939,7 +939,7 @@ def handle_modal_submission(ack, body, client, view, logger):
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f":x: This issue was rejected by {user_id}. Please ignore this",
+                        "text": f":x: This issue was rejected by <@{user_id}>. Please ignore this",
                     },
                 },
             ]
