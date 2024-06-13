@@ -332,7 +332,7 @@ def handle_user_selection(ack, body, client):
     client.chat_postMessage(
         channel=user_who_requested,
         thread_ts=response_ts,
-        text=f"<@{user_who_requested}> your issue will be handled by <@{selected_user}. We will check and text you asap. Please wait ya.",
+        text=f"<@{user_who_requested}> your issue will be handled by <@{selected_user}>. We will check and text you asap. Please wait ya.",
     )
 
     response = client.chat_postMessage(
@@ -940,7 +940,7 @@ def handle_modal_submission(ack, body, client, view, logger):
             client.chat_postMessage(
                 channel=user_requested_id,
                 thread_ts=user_message_ts,
-                text=f"We are sorry :smiling_face_with_tear: your issue was rejected due to `{reason}`. Let's put another question.",
+                text=f"We are sorry :smiling_face_with_tear: your issue was rejected due to `{reason}` at {timestamp_jakarta}. Let's put another question.",
             )
 
             client.chat_update(
@@ -950,7 +950,7 @@ def handle_modal_submission(ack, body, client, view, logger):
             client.chat_postMessage(
                 channel=reflected_cn,
                 thread_ts=reflected_ts,
-                text=f"We are sorry, this issue was rejected by <@{user_id}> due to `{reason}`.",
+                text=f"We are sorry, this issue was rejected by <@{user_id}> at {timestamp_jakarta} due to `{reason}`.",
             )
 
         else:
