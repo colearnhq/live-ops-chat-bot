@@ -195,7 +195,7 @@ def handle_hiops_command(ack, body, client, say):
             {
                 "text": {"type": "plain_text", "text": f"<@{member}>"},
                 "value": truncate_value(
-                    f"{member},{user_id},{response_for_user['ts']},{user_input},{timestamp_jakarta},{reporter_name}"
+                    f"{member},{user_id},{response_for_user['ts']},{user_input},{timestamp_jakarta}"
                 ),
             }
             for member in members
@@ -299,7 +299,6 @@ def handle_user_selection(ack, body, client):
     response_ts = selected_user_data[2]
     user_input = selected_user_data[3]
     reported_at = selected_user_data[4]
-    reporter_name = selected_user_data[5]
     categories = [
         "Ajar",
         "Cuti",
@@ -456,51 +455,7 @@ def handle_user_selection(ack, body, client):
             },
         ]
 
-        update_ticket = [
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"Your ticket number: *live-ops.{thread_ts}*",
-                },
-            },
-            {
-                "type": "section",
-                "fields": [
-                    {
-                        "type": "mrkdwn",
-                        "text": f"*Your Name:*\n{reporter_name}",
-                    },
-                    {"type": "mrkdwn", "text": f"*Reported at:*\n{reported_at}"},
-                    {
-                        "type": "mrkdwn",
-                        "text": f"*Problem:*\n`{user_input}`",
-                    },
-                    {
-                        "type": "mrkdwn",
-                        "text": "*Current Progress:*\nThe issue is being resolved",
-                    },
-                ],
-            },
-        ]
-
         client.chat_update(channel=channel_id, ts=thread_ts, blocks=updated_blocks)
-
-        info_update = client.chat_postMessage(
-            channel=user_who_requested,
-            thread_ts=response_ts,
-            text=f"<@{user_who_requested}> your issue will be handled by <@{selected_user}>. We will check and text you asap. Please wait ya.",
-        )
-
-        if info_update["ok"]:
-            info_update = info_update["ts"]
-            client.chat_update(
-                channel=user_who_requested, ts=info_update, blocks=update_ticket
-            )
-        else:
-            logging.error(
-                f"Failed to update the ticket because: {info_update['error']}"
-            )
 
         reflected_post = client.chat_postMessage(
             channel=reflected_cn, blocks=reflected_msg
