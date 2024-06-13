@@ -950,7 +950,7 @@ def handle_modal_submission(ack, body, client, view, logger):
             client.chat_postMessage(
                 channel=reflected_cn,
                 thread_ts=reflected_ts,
-                text=f"We are sorry, this issue was rejected by <@{user_id}> at {timestamp_jakarta} due to `{reason}`.",
+                text=f"We are sorry, this issue was rejected by <@{user_id}> at `{timestamp_jakarta}` due to `{reason}`.",
             )
 
         else:
