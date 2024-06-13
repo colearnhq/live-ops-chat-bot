@@ -486,15 +486,22 @@ def handle_user_selection(ack, body, client):
 
         client.chat_update(channel=channel_id, ts=thread_ts, blocks=updated_blocks)
 
-        client.chat_update(
-            channel=user_who_requested, ts=response_ts, blocks=update_ticket
-        )
-
-        client.chat_postMessage(
+        info_update = client.chat_postMessage(
             channel=user_who_requested,
             thread_ts=response_ts,
             text=f"<@{user_who_requested}> your issue will be handled by <@{selected_user}>. We will check and text you asap. Please wait ya.",
         )
+
+        if info_update["ok"]:
+            info_update = info_update["ts"]
+            client.chat_update(
+                channel=user_who_requested, ts=info_update, blocks=update_ticket
+            )
+        else:
+            logging.error(
+                f"Failed to update the ticket because: {info_update["error"]}"
+            )
+
         reflected_post = client.chat_postMessage(
             channel=reflected_cn, blocks=reflected_msg
         )
