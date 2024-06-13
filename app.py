@@ -499,7 +499,7 @@ def handle_user_selection(ack, body, client):
             )
         else:
             logging.error(
-                f"Failed to update the ticket because: {info_update["error"]}"
+                f"Failed to update the ticket because: {info_update['error']}"
             )
 
         reflected_post = client.chat_postMessage(
