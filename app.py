@@ -809,6 +809,7 @@ def handle_reject_button(ack, body, client):
     user_name = user_info["user"]["real_name"]
     elements = body["message"]["blocks"][6]["elements"]
     reject_button_value = elements[0]["value"]
+    print("ini body di rejct", body)
     timestamp_utc = datetime.utcnow()
     sheet_manager.update_ticket(
         f"live-ops.{message_ts}",
@@ -903,10 +904,57 @@ def handle_modal_submission(ack, body, client, view, logger):
                 ],
             )
 
+            reflected_msg = [
+                {
+                    "type": "section",
+                    "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"We just received an issue from <@{user_requested_id}> at `{ticket_reported_at}`",
+                    },
+                },
+                {
+                    "type": "section",
+                    "fields": [
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Ticket Number:*\nlive-ops.{message_ts}",
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Problem:*\n`{user_input}`",
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Current Progress:*\n:white_check_mark: Resolved",
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Issue Category:*\n{selected_category}",
+                        },
+                    ],
+                },
+                {"type": "divider"},
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": ":x: This issue was rejected. Please ignore this",
+                    },
+                },
+            ]
+
             client.chat_postMessage(
                 channel=user_requested_id,
                 thread_ts=user_message_ts,
                 text=f"We are sorry :smiling_face_with_tear: your issue was rejected due to `{reason}`. Let's put another question.",
+            )
+
+            client.chat_update(
+                channel=reflected_cn, ts=reflected_ts, blocks=reflected_msg
             )
 
         else:
