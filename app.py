@@ -809,7 +809,6 @@ def handle_reject_button(ack, body, client):
     user_name = user_info["user"]["real_name"]
     elements = body["message"]["blocks"][6]["elements"]
     reject_button_value = elements[0]["value"]
-    print("ini body di rejct", body)
     timestamp_utc = datetime.utcnow()
     sheet_manager.update_ticket(
         f"live-ops.{message_ts}",
