@@ -149,6 +149,7 @@ def handle_hiops_command(ack, body, client, say):
     ack()
     user_input = body.get("text", "No message provided.")
     user_id = body["user_id"]
+    reporter_name = body["user_name"]
     channel_id = "C0719R3NQ91"
     timestamp_utc = datetime.utcnow()
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
@@ -171,13 +172,14 @@ def handle_hiops_command(ack, body, client, say):
                 "fields": [
                     {
                         "type": "mrkdwn",
-                        "text": f"*Your Name:*\n{body['user_name']}",
+                        "text": f"*Your Name:*\n{reporter_name}",
                     },
                     {"type": "mrkdwn", "text": f"*Reported at:*\n{timestamp_jakarta}"},
                     {
                         "type": "mrkdwn",
                         "text": f"*Problem:*\n`{user_input}`",
                     },
+                    {"type": "mrkdwn", "text": "*Current Progress:*\nOn checking"},
                 ],
             },
         ]
@@ -193,7 +195,7 @@ def handle_hiops_command(ack, body, client, say):
             {
                 "text": {"type": "plain_text", "text": f"<@{member}>"},
                 "value": truncate_value(
-                    f"{member},{user_id},{response_for_user['ts']},{user_input},{timestamp_jakarta}"
+                    f"{member},{user_id},{response_for_user['ts']},{user_input},{timestamp_jakarta},{reporter_name}"
                 ),
             }
             for member in members
@@ -297,6 +299,7 @@ def handle_user_selection(ack, body, client):
     response_ts = selected_user_data[2]
     user_input = selected_user_data[3]
     reported_at = selected_user_data[4]
+    reporter_name = selected_user_data[5]
     categories = [
         "Ajar",
         "Cuti",
@@ -453,7 +456,39 @@ def handle_user_selection(ack, body, client):
             },
         ]
 
+        update_ticket = [
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"Your ticket number: *live-ops.{thread_ts}*",
+                },
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Your Name:*\n{reporter_name}",
+                    },
+                    {"type": "mrkdwn", "text": f"*Reported at:*\n{reported_at}"},
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Problem:*\n`{user_input}`",
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": "*Current Progress:*\nThe issue is being resolved",
+                    },
+                ],
+            },
+        ]
+
         client.chat_update(channel=channel_id, ts=thread_ts, blocks=updated_blocks)
+
+        client.chat_update(
+            channel=user_who_requested, ts=response_ts, blocks=update_ticket
+        )
 
         client.chat_postMessage(
             channel=user_who_requested,
@@ -933,14 +968,6 @@ def handle_modal_submission(ack, body, client, view, logger):
                         },
                     ],
                 },
-                {"type": "divider"},
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": f":x: This issue was rejected by <@{user_id}>. Please ignore this",
-                    },
-                },
             ]
 
             client.chat_postMessage(
@@ -956,7 +983,7 @@ def handle_modal_submission(ack, body, client, view, logger):
             client.chat_postMessage(
                 channel=reflected_cn,
                 thread_ts=reflected_ts,
-                text=f"We are sorry, this issue was rejected due to `{reason}`.",
+                text=f"We are sorry, this issue was rejected by <@{user_id}> due to `{reason}`.",
             )
 
         else:
