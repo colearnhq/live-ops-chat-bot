@@ -179,7 +179,6 @@ def handle_hiops_command(ack, body, client, say):
                         "type": "mrkdwn",
                         "text": f"*Problem:*\n`{user_input}`",
                     },
-                    {"type": "mrkdwn", "text": "*Current Progress:*\nOn checking"},
                 ],
             },
         ]
@@ -329,6 +328,12 @@ def handle_user_selection(ack, body, client):
         }
         for category in categories
     ]
+
+    client.chat_postMessage(
+        channel=user_who_requested,
+        thread_ts=response_ts,
+        text=f"<@{user_who_requested}> your issue will be handled by <@{selected_user}. We will check and text you asap. Please wait ya.",
+    )
 
     response = client.chat_postMessage(
         channel=channel_id,
