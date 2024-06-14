@@ -495,8 +495,8 @@ def handle_category_selection(ack, body, client):
     user_input = selected_category[3]
     reported_at = selected_category[4]
     selected_user = selected_category[5]
-    reflected_ts = ticket_manager.get_reflected_ts(thread_ts)
     thread_ts = body["container"]["message_ts"]
+    reflected_ts = ticket_manager.get_reflected_ts(thread_ts)
     ticket_key_for_user = f"{user_who_requested},{response_ts},{user_input},{reported_at},{selected_user}, {selected_category_name}"
 
     if selected_category_name.lower() == "others":
