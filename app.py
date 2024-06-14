@@ -602,7 +602,7 @@ def handle_category_selection(ack, body, client):
                     },
                     {
                         "type": "mrkdwn",
-                        "text": f"*Issue Category:*\n{selected_category}",
+                        "text": f"*Issue Category:*\n{selected_category_name}",
                     },
                 ],
             },
