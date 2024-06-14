@@ -495,6 +495,7 @@ def handle_category_selection(ack, body, client):
     user_input = selected_category[3]
     reported_at = selected_category[4]
     selected_user = selected_category[5]
+    reflected_ts = ticket_manager.get_reflected_ts(thread_ts)
     thread_ts = body["container"]["message_ts"]
     ticket_key_for_user = f"{user_who_requested},{response_ts},{user_input},{reported_at},{selected_user}, {selected_category_name}"
 
@@ -572,7 +573,52 @@ def handle_category_selection(ack, body, client):
             },
         ]
 
+        reflected_msg = [
+            {
+                "type": "section",
+                "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"We just received an issue from <@{user_who_requested}> at `{reported_at}`",
+                },
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Ticket Number:*\nlive-ops.{thread_ts}",
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Problem:*\n`{user_input}`",
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Current Progress:*\nBeing resolved",
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Issue Category:*\n{selected_category}",
+                    },
+                ],
+            },
+            {"type": "divider"},
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "Please pay attention, if this issue related to you :point_up_2:",
+                },
+            },
+        ]
+
         client.chat_update(channel=channel_id, ts=thread_ts, blocks=updated_blocks)
+
+        client.chat_update(channel=reflected_cn, ts=reflected_ts, blocks=reflected_msg)
 
         sheet_manager.update_ticket(
             f"live-ops.{thread_ts}",
@@ -595,6 +641,7 @@ def handle_custom_category_modal_submission(ack, body, client, view, logger):
     selected_user = values[4]
     channel_id = values[5]
     response_ts = values[6]
+    reflected_ts = ticket_manager.get_reflected_ts(thread_ts)
     ticket_key_for_user = f"{user_who_requested},{response_ts},{user_input},{reported_at},{selected_user},{custom_category}"
 
     try:
@@ -647,7 +694,53 @@ def handle_custom_category_modal_submission(ack, body, client, view, logger):
             },
         ]
 
+        reflected_msg = [
+            {
+                "type": "section",
+                "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"We just received an issue from <@{user_who_requested}> at `{reported_at}`",
+                },
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Ticket Number:*\nlive-ops.{thread_ts}",
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Problem:*\n`{user_input}`",
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Current Progress:*\nBeing resolved",
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Issue Category:*\n{custom_category}",
+                    },
+                ],
+            },
+            {"type": "divider"},
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "Please pay attention, if this issue related to you :point_up_2:",
+                },
+            },
+        ]
+
         client.chat_update(channel=channel_id, ts=thread_ts, blocks=updated_blocks)
+
+        client.chat_update(channel=reflected_cn, ts=reflected_ts, blocks=reflected_msg)
+
         sheet_manager.update_ticket(
             f"live-ops.{thread_ts}",
             {"category_issue": custom_category},
