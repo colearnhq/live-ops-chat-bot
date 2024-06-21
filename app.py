@@ -28,7 +28,7 @@ creds_dict = {
 app = App(token=os.getenv("SLACK_BOT_TOKEN"))
 sheet_manager = SheetManager(creds_dict, "1dPXiGBN2dDyyQ9TnO6Hi8cQtmbkFBU4O7sI5ztbXT90")
 
-reflected_cn = "C05Q52ZTQ3X"
+reflected_cn = "C05TXM41ML2"
 
 greetings_response = {
     "morning": "Good Morning",
@@ -148,7 +148,7 @@ def handle_hiops_command(ack, body, client, say):
     user_input = body.get("text", "No message provided.")
     user_id = body["user_id"]
     reporter_name = body["user_name"]
-    channel_id = "C0719R3NQ91"
+    channel_id = "C079J897A49"
     timestamp_utc = datetime.utcnow()
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
 
