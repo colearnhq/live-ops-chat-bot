@@ -113,7 +113,7 @@ def handle_message_events(body, say, client):
                 response = greetings_response[greeting]
                 say(f"{response} <@{event['user']}>, Pepe is ready to help :frog:")
                 say(
-                    f"Please type your issue with the following pattern: `/hipepe [write your issue/inquiry]`"
+                    f"Please type your issue with the following pattern: `/hiops [write your issue/inquiry]`"
                 )
         elif match_thank_you:
             thank_you = match_thank_you.group(1)
@@ -123,7 +123,7 @@ def handle_message_events(body, say, client):
         else:
             say(f"Hi <@{event['user']}>, Pepe is ready to help :frog:")
             say(
-                f"Please type your issue with this following pattern: `/hipepe [write your issue/inquiry]`"
+                f"Please type your issue with this following pattern: `/hiops [write your issue/inquiry]`"
             )
         sheet_manager.log_ticket(
             chat_timestamp,
@@ -142,8 +142,8 @@ def truncate_value(value, max_length=150):
     return value if len(value) <= max_length else value[:max_length]
 
 
-@app.command("/hipepe")
-def handle_hipepe_command(ack, body, client, say):
+@app.command("/hiops")
+def handle_hiops_command(ack, body, client, say):
     ack()
     user_input = body.get("text", "No message provided.")
     user_id = body["user_id"]
