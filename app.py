@@ -191,9 +191,7 @@ def handle_hiops_command(ack, body, client, say):
         user_options = [
             {
                 "text": {"type": "plain_text", "text": f"<@{member}>"},
-                "value": truncate_value(
-                    f"{member}@@{user_id}@@{response_for_user['ts']}@@{user_input}@@{timestamp_jakarta}"
-                ),
+                "value": f"{member}@@{user_id}@@{response_for_user['ts']}@@{user_input}@@{timestamp_jakarta}",
             }
             for member in members
         ]
@@ -298,6 +296,7 @@ def handle_hiops_command(ack, body, client, say):
 def handle_user_selection(ack, body, client):
     ack()
     selected_user_data = body["actions"][0]["selected_option"]["value"].split("@@")
+    print(f"test di user selection: {body["actions"][0]["selected_option"]["value"]}")
     print(f"test aja duls: {selected_user_data}")
     selected_user = selected_user_data[0]
     user_who_requested = selected_user_data[1]
