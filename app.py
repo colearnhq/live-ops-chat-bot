@@ -138,8 +138,8 @@ def handle_message_events(body, say, client):
         logging.error(f"Error handling message: {str(e)}")
 
 
-def truncate_value(value, max_length=150):
-    return value if len(value) <= max_length else value[:max_length]
+def truncate_value(value, max_length=100):
+    return value if len(value) <= max_length else value[:max_length] + "..."
 
 
 @app.command("/hiops")
@@ -182,16 +182,16 @@ def handle_hiops_command(ack, body, client, say):
         ]
 
         response_for_user = client.chat_postMessage(channel=user_id, blocks=ticket)
-        ticket_key_for_user = (
-            f"{user_id}@@{response_for_user['ts']}@@{user_input}@@{timestamp_jakarta}"
-        )
+        ticket_key_for_user = f"{user_id}@@{response_for_user['ts']}@@{truncate_value(user_input)}@@{timestamp_jakarta}"
         members_result = client.conversations_members(channel=channel_id)
         members = members_result["members"] if members_result["ok"] else []
 
         user_options = [
             {
                 "text": {"type": "plain_text", "text": f"<@{member}>"},
-                "value": f"{member}@@{user_id}@@{response_for_user['ts']}@@{user_input}@@{timestamp_jakarta}",
+                "value": truncate_value(
+                    f"{member}@@{user_id}@@{response_for_user['ts']}@@{truncate_value(user_input)}@@{timestamp_jakarta}"
+                ),
             }
             for member in members
         ]
@@ -280,11 +280,11 @@ def handle_hiops_command(ack, body, client, say):
             timestamp_utc,
         )
         if result["ok"]:
-            if len(user_input) > 120:
+            if len(user_input) > 100:
                 client.chat_postMessage(
                     channel=channel_id,
                     thread_ts=ts,
-                    text=f"For the full details: `{user_input}`",
+                    text=f"For the problem details: `{user_input}`",
                 )
         else:
             say("Failed to post message")
