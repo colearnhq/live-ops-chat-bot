@@ -138,7 +138,7 @@ def handle_message_events(body, say, client):
         logging.error(f"Error handling message: {str(e)}")
 
 
-def truncate_value(value, max_length=100):
+def truncate_value(value, max_length=80):
     return value if len(value) <= max_length else value[:max_length] + "..."
 
 
@@ -253,7 +253,7 @@ def handle_hiops_command(ack, body, client, say):
                                 "text": "Resolve",
                             },
                             "style": "primary",
-                            "value": truncate_value(ticket_key_for_user),
+                            "value": ticket_key_for_user,
                             "action_id": "resolve_button",
                         },
                         {
@@ -264,7 +264,7 @@ def handle_hiops_command(ack, body, client, say):
                                 "text": "Reject",
                             },
                             "style": "danger",
-                            "value": truncate_value(ticket_key_for_user),
+                            "value": ticket_key_for_user,
                             "action_id": "reject_button",
                         },
                     ],
@@ -280,7 +280,7 @@ def handle_hiops_command(ack, body, client, say):
             timestamp_utc,
         )
         if result["ok"]:
-            if len(user_input) > 100:
+            if len(user_input) > 80:
                 client.chat_postMessage(
                     channel=channel_id,
                     thread_ts=ts,
@@ -322,7 +322,7 @@ def handle_user_selection(ack, body, client):
 
     channel_id = body["channel"]["id"]
     thread_ts = body["container"]["message_ts"]
-    ticket_key_for_user = f"{user_who_requested}@@{response_ts}@@{user_input}@@{reported_at}@@{selected_user}"
+    ticket_key_for_user = f"{user_who_requested}@@{response_ts}@@{truncate_value(user_input)}@@{reported_at}@@{selected_user}"
 
     category_options = [
         {
@@ -406,7 +406,7 @@ def handle_user_selection(ack, body, client):
                             "text": "Resolve",
                         },
                         "style": "primary",
-                        "value": truncate_value(ticket_key_for_user),
+                        "value": ticket_key_for_user,
                         "action_id": "resolve_button",
                     },
                     {
@@ -417,7 +417,7 @@ def handle_user_selection(ack, body, client):
                             "text": "Reject",
                         },
                         "style": "danger",
-                        "value": truncate_value(ticket_key_for_user),
+                        "value": ticket_key_for_user,
                         "action_id": "reject_button",
                     },
                 ],
@@ -472,7 +472,7 @@ def handle_user_selection(ack, body, client):
         if reflected_post["ok"]:
             reflected_ts = reflected_post["ts"]
             ticket_manager.store_reflected_ts(thread_ts, reflected_ts)
-            if len(user_input) > 150:
+            if len(user_input) > 80:
                 client.chat_postMessage(
                     channel=channel_id,
                     thread_ts=reflected_ts,
@@ -508,7 +508,7 @@ def handle_category_selection(ack, body, client):
     selected_user = selected_category[5]
     thread_ts = body["container"]["message_ts"]
     reflected_ts = ticket_manager.get_reflected_ts(thread_ts)
-    ticket_key_for_user = f"{user_who_requested},{response_ts},{user_input},{reported_at},{selected_user}, {selected_category_name}"
+    ticket_key_for_user = f"{user_who_requested},{response_ts},{truncate_value(user_input)},{reported_at},{selected_user}, {selected_category_name}"
 
     if selected_category_name.lower() == "others":
         trigger_id = body["trigger_id"]
@@ -530,7 +530,7 @@ def handle_category_selection(ack, body, client):
                     },
                 }
             ],
-            "private_metadata": f"{thread_ts}@@{user_who_requested}@@{reported_at}@@{user_input}@@{selected_user}@@{channel_id}@@{response_ts}",
+            "private_metadata": f"{thread_ts}@@{user_who_requested}@@{reported_at}@@{truncate_value(user_input)}@@{selected_user}@@{channel_id}@@{response_ts}",
             "submit": {"type": "plain_text", "text": "Submit"},
         }
         client.views_open(trigger_id=trigger_id, view=modal_view)
@@ -577,7 +577,7 @@ def handle_category_selection(ack, body, client):
                             "text": "Resolve",
                         },
                         "style": "primary",
-                        "value": truncate_value(ticket_key_for_user),
+                        "value": ticket_key_for_user,
                         "action_id": "resolve_button",
                     },
                 ],
@@ -653,7 +653,7 @@ def handle_custom_category_modal_submission(ack, body, client, view, logger):
     channel_id = values[5]
     response_ts = values[6]
     reflected_ts = ticket_manager.get_reflected_ts(thread_ts)
-    ticket_key_for_user = f"{user_who_requested}@@{response_ts}@@{user_input}@@{reported_at}@@{selected_user}@@{custom_category}"
+    ticket_key_for_user = f"{user_who_requested}@@{response_ts}@@{truncate_value(user_input)}@@{reported_at}@@{selected_user}@@{custom_category}"
 
     try:
         updated_blocks = [
@@ -698,7 +698,7 @@ def handle_custom_category_modal_submission(ack, body, client, view, logger):
                             "text": "Resolve",
                         },
                         "style": "primary",
-                        "value": truncate_value(ticket_key_for_user),
+                        "value": ticket_key_for_user,
                         "action_id": "resolve_button",
                     },
                 ],
