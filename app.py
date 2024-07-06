@@ -28,7 +28,7 @@ creds_dict = {
 app = App(token=os.getenv("SLACK_BOT_TOKEN"))
 sheet_manager = SheetManager(creds_dict, "1dPXiGBN2dDyyQ9TnO6Hi8cQtmbkFBU4O7sI5ztbXT90")
 
-reflected_cn = "C032B89UK36"
+reflected_cn = "C047HN4ABD5"
 
 greetings_response = {
     "morning": "Good Morning",
@@ -148,7 +148,7 @@ def handle_hiops_command(ack, body, client, say):
     user_input = body.get("text", "No message provided.")
     user_id = body["user_id"]
     reporter_name = body["user_name"]
-    channel_id = "C079J897A49"
+    channel_id = "C0719R3NQ91"
     timestamp_utc = datetime.utcnow()
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
 
@@ -175,7 +175,7 @@ def handle_hiops_command(ack, body, client, say):
                     {"type": "mrkdwn", "text": f"*Reported at:*\n{timestamp_jakarta}"},
                     {
                         "type": "mrkdwn",
-                        "text": f"*Problem:*\n`{user_input}`",
+                        "text": f"*Problem:*\n`{truncate_value(user_input)}`",
                     },
                 ],
             },
@@ -183,7 +183,7 @@ def handle_hiops_command(ack, body, client, say):
 
         response_for_user = client.chat_postMessage(channel=user_id, blocks=ticket)
         ticket_key_for_user = (
-            f"{user_id},{response_for_user['ts']},{user_input},{timestamp_jakarta}"
+            f"{user_id}@@{response_for_user['ts']}@@{user_input}@@{timestamp_jakarta}"
         )
         members_result = client.conversations_members(channel=channel_id)
         members = members_result["members"] if members_result["ok"] else []
@@ -192,7 +192,7 @@ def handle_hiops_command(ack, body, client, say):
             {
                 "text": {"type": "plain_text", "text": f"<@{member}>"},
                 "value": truncate_value(
-                    f"{member},{user_id},{response_for_user['ts']},{user_input},{timestamp_jakarta}"
+                    f"{member}@@{user_id}@@{response_for_user['ts']}@@{user_input}@@{timestamp_jakarta}"
                 ),
             }
             for member in members
@@ -221,7 +221,7 @@ def handle_hiops_command(ack, body, client, say):
                         },
                         {
                             "type": "mrkdwn",
-                            "text": f"*Problem:*\n`{user_input}`",
+                            "text": f"*Problem:*\n`{truncate_value(user_input)}`",
                         },
                     ],
                 },
@@ -282,6 +282,12 @@ def handle_hiops_command(ack, body, client, say):
             timestamp_utc,
         )
         if not result["ok"]:
+            if len(user_input) > 150:
+                client.chat_postMessage(
+                    channel=channel_id,
+                    thread_ts=ts,
+                    text=f"For the full details: `{user_input}`",
+                )
             say("Failed to post message")
     except Exception as e:
         logging.error(f"An error occurred: {str(e)}")
@@ -290,7 +296,7 @@ def handle_hiops_command(ack, body, client, say):
 @app.action("user_select_action")
 def handle_user_selection(ack, body, client):
     ack()
-    selected_user_data = body["actions"][0]["selected_option"]["value"].split(",")
+    selected_user_data = body["actions"][0]["selected_option"]["value"].split("@@")
     selected_user = selected_user_data[0]
     user_who_requested = selected_user_data[1]
     response_ts = selected_user_data[2]
@@ -315,14 +321,12 @@ def handle_user_selection(ack, body, client):
 
     channel_id = body["channel"]["id"]
     thread_ts = body["container"]["message_ts"]
-    ticket_key_for_user = (
-        f"{user_who_requested},{response_ts},{user_input},{reported_at},{selected_user}"
-    )
+    ticket_key_for_user = f"{user_who_requested}@@{response_ts}@@{user_input}@@{reported_at}@@{selected_user}"
 
     category_options = [
         {
             "text": {"type": "plain_text", "text": category},
-            "value": truncate_value(f"{category},{ticket_key_for_user}"),
+            "value": truncate_value(f"{category}@@{ticket_key_for_user}"),
         }
         for category in categories
     ]
@@ -366,7 +370,7 @@ def handle_user_selection(ack, body, client):
                     },
                     {
                         "type": "mrkdwn",
-                        "text": f"*Problem:*\n`{user_input}`",
+                        "text": f"*Problem:*\n`{truncate_value(user_input)}`",
                     },
                     {"type": "mrkdwn", "text": f"*Picked Up By:*\n<@{selected_user}>"},
                 ],
@@ -440,7 +444,7 @@ def handle_user_selection(ack, body, client):
                     },
                     {
                         "type": "mrkdwn",
-                        "text": f"*Problem:*\n`{user_input}`",
+                        "text": f"*Problem:*\n`{truncate_value(user_input)}`",
                     },
                     {
                         "type": "mrkdwn",
@@ -467,6 +471,12 @@ def handle_user_selection(ack, body, client):
         if reflected_post["ok"]:
             reflected_ts = reflected_post["ts"]
             ticket_manager.store_reflected_ts(thread_ts, reflected_ts)
+            if len(user_input) > 150:
+                client.chat_postMessage(
+                    channel=channel_id,
+                    thread_ts=reflected_ts,
+                    text=f"For the full details: `{user_input}`",
+                )
             client.chat_postMessage(
                 channel=reflected_cn,
                 thread_ts=reflected_ts,
@@ -488,7 +498,7 @@ def handle_user_selection(ack, body, client):
 def handle_category_selection(ack, body, client):
     ack()
     channel_id = body["channel"]["id"]
-    selected_category = body["actions"][0]["selected_option"]["value"].split(",")
+    selected_category = body["actions"][0]["selected_option"]["value"].split("@@")
     selected_category_name = selected_category[0]
     user_who_requested = selected_category[1]
     response_ts = selected_category[2]
@@ -519,7 +529,7 @@ def handle_category_selection(ack, body, client):
                     },
                 }
             ],
-            "private_metadata": f"{thread_ts},{user_who_requested},{reported_at},{user_input},{selected_user},{channel_id},{response_ts}",
+            "private_metadata": f"{thread_ts}@@{user_who_requested}@@{reported_at}@@{user_input}@@{selected_user}@@{channel_id}@@{response_ts}",
             "submit": {"type": "plain_text", "text": "Submit"},
         }
         client.views_open(trigger_id=trigger_id, view=modal_view)
@@ -545,7 +555,7 @@ def handle_category_selection(ack, body, client):
                     },
                     {
                         "type": "mrkdwn",
-                        "text": f"*Problem:*\n`{user_input}`",
+                        "text": f"*Problem:*\n`{truncate_value(user_input)}`",
                     },
                     {"type": "mrkdwn", "text": f"*Picked up by:*\n<@{selected_user}>"},
                     {
@@ -594,7 +604,7 @@ def handle_category_selection(ack, body, client):
                     },
                     {
                         "type": "mrkdwn",
-                        "text": f"*Problem:*\n`{user_input}`",
+                        "text": f"*Problem:*\n`{truncate_value(user_input)}`",
                     },
                     {
                         "type": "mrkdwn",
@@ -633,7 +643,7 @@ def handle_custom_category_modal_submission(ack, body, client, view, logger):
     custom_category = view["state"]["values"]["custom_category_block"][
         "custom_category_input"
     ]["value"]
-    values = view["private_metadata"].split(",")
+    values = view["private_metadata"].split("@@")
     thread_ts = values[0]
     user_who_requested = values[1]
     reported_at = values[2]
@@ -642,7 +652,7 @@ def handle_custom_category_modal_submission(ack, body, client, view, logger):
     channel_id = values[5]
     response_ts = values[6]
     reflected_ts = ticket_manager.get_reflected_ts(thread_ts)
-    ticket_key_for_user = f"{user_who_requested},{response_ts},{user_input},{reported_at},{selected_user},{custom_category}"
+    ticket_key_for_user = f"{user_who_requested}@@{response_ts}@@{user_input}@@{reported_at}@@{selected_user}@@{custom_category}"
 
     try:
         updated_blocks = [
@@ -666,7 +676,7 @@ def handle_custom_category_modal_submission(ack, body, client, view, logger):
                     },
                     {
                         "type": "mrkdwn",
-                        "text": f"*Problem:*\n`{user_input}`",
+                        "text": f"*Problem:*\n`{truncate_value(user_input)}`",
                     },
                     {"type": "mrkdwn", "text": f"*Picked up by:*\n<@{selected_user}>"},
                     {
@@ -715,7 +725,7 @@ def handle_custom_category_modal_submission(ack, body, client, view, logger):
                     },
                     {
                         "type": "mrkdwn",
-                        "text": f"*Problem:*\n`{user_input}`",
+                        "text": f"*Problem:*\n`{truncate_value(user_input)}`",
                     },
                     {
                         "type": "mrkdwn",
@@ -763,7 +773,7 @@ def handle_resolve_button(ack, body, client):
     thread_ts = body["container"]["message_ts"]
     reflected_ts = ticket_manager.get_reflected_ts(thread_ts)
     elements = body["message"]["blocks"][4]["elements"]
-    resolve_button_value = elements[0]["value"].split(",")
+    resolve_button_value = elements[0]["value"].split("@@")
     user_who_requested_ticket_id = resolve_button_value[0]
     user_message_ts = resolve_button_value[1]
     user_input = resolve_button_value[2]
@@ -772,10 +782,52 @@ def handle_resolve_button(ack, body, client):
     selected_category = resolve_button_value[5]
     timestamp_utc = datetime.utcnow()
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
-    response = client.chat_postMessage(
+    response = client.chat_update(
         channel=channel_id,
-        thread_ts=thread_ts,
-        text=f"<@{user_id}> has resolved the issue at `{timestamp_jakarta}`.",
+        ts=thread_ts,
+        text=None,
+        blocks=[
+            {
+                "type": "section",
+                "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"We just received a message from <@{user_who_requested_ticket_id}> at `{ticket_reported_at}`",
+                },
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Ticket Number:*\nlive.ops.{thread_ts}",
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Problem:*\n`{truncate_value(user_input)}`",
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Picked up by:*\n<@{selected_user}>",
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Category:*\n{selected_category}",
+                    },
+                ],
+            },
+            {"type": "divider"},
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f":white_check_mark: <@{user_id}> resolved this issue",
+                },
+            },
+        ],
     )
     sheet_manager.update_ticket(
         f"live-ops.{thread_ts}",
@@ -783,52 +835,10 @@ def handle_resolve_button(ack, body, client):
     )
 
     if response["ok"]:
-        client.chat_update(
+        client.chat_postMessage(
             channel=channel_id,
-            ts=thread_ts,
-            text=None,
-            blocks=[
-                {
-                    "type": "section",
-                    "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": f"We just received a message from <@{user_who_requested_ticket_id}> at `{ticket_reported_at}`",
-                    },
-                },
-                {
-                    "type": "section",
-                    "fields": [
-                        {
-                            "type": "mrkdwn",
-                            "text": f"*Ticket Number:*\nlive.ops.{thread_ts}",
-                        },
-                        {
-                            "type": "mrkdwn",
-                            "text": f"*Problem:*\n`{user_input}`",
-                        },
-                        {
-                            "type": "mrkdwn",
-                            "text": f"*Picked up by:*\n<@{selected_user}>",
-                        },
-                        {
-                            "type": "mrkdwn",
-                            "text": f"*Category:*\n{selected_category}",
-                        },
-                    ],
-                },
-                {"type": "divider"},
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": f":white_check_mark: <@{user_id}> resolved this issue",
-                    },
-                },
-            ],
+            thread_ts=thread_ts,
+            text=f"<@{user_id}> has resolved the issue at `{timestamp_jakarta}`.",
         )
 
         reflected_msg = [
@@ -852,7 +862,7 @@ def handle_resolve_button(ack, body, client):
                     },
                     {
                         "type": "mrkdwn",
-                        "text": f"*Problem:*\n`{user_input}`",
+                        "text": f"*Problem:*\n`{truncate_value(user_input)}`",
                     },
                     {
                         "type": "mrkdwn",
@@ -925,7 +935,7 @@ def handle_reject_button(ack, body, client):
                 },
             }
         ],
-        "private_metadata": f"{channel_id},{message_ts},{reject_button_value} ",
+        "private_metadata": f"{channel_id}@@{message_ts}@@{reject_button_value} ",
     }
 
     try:
@@ -939,7 +949,7 @@ def handle_modal_submission(ack, body, client, view, logger):
     ack()
     try:
         user_id = body["user"]["id"]
-        private_metadata = view["private_metadata"].split(",")
+        private_metadata = view["private_metadata"].split("@@")
         channel_id = private_metadata[0]
         message_ts = private_metadata[1]
         user_requested_id = private_metadata[2]
@@ -982,7 +992,7 @@ def handle_modal_submission(ack, body, client, view, logger):
                             },
                             {
                                 "type": "mrkdwn",
-                                "text": f"*Problem:*\n`{user_input}`",
+                                "text": f"*Problem:*\n`{truncate_value(user_input)}`",
                             },
                         ],
                     },
@@ -1018,7 +1028,7 @@ def handle_modal_submission(ack, body, client, view, logger):
                         },
                         {
                             "type": "mrkdwn",
-                            "text": f"*Problem:*\n`{user_input}`",
+                            "text": f"*Problem:*\n`{truncate_value(user_input)}`",
                         },
                         {
                             "type": "mrkdwn",
