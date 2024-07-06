@@ -182,7 +182,9 @@ def handle_hiops_command(ack, body, client, say):
         ]
 
         response_for_user = client.chat_postMessage(channel=user_id, blocks=ticket)
-        ticket_key_for_user = f"{user_id}@@{response_for_user['ts']}@@{truncate_value(user_input)}@@{timestamp_jakarta}"
+        ticket_key_for_user = (
+            f"{user_id}@@{response_for_user['ts']}@@{user_input}@@{timestamp_jakarta}"
+        )
         members_result = client.conversations_members(channel=channel_id)
         members = members_result["members"] if members_result["ok"] else []
 
@@ -294,8 +296,6 @@ def handle_hiops_command(ack, body, client, say):
 def handle_user_selection(ack, body, client):
     ack()
     selected_user_data = body["actions"][0]["selected_option"]["value"].split("@@")
-    print(f"test di user selection: {body['actions'][0]['selected_option']['value']}")
-    print(f"test aja duls: {selected_user_data}")
     selected_user = selected_user_data[0]
     user_who_requested = selected_user_data[1]
     response_ts = selected_user_data[2]
@@ -325,7 +325,7 @@ def handle_user_selection(ack, body, client):
     category_options = [
         {
             "text": {"type": "plain_text", "text": category},
-            "value": truncate_value(f"{category}@@{ticket_key_for_user}"),
+            "value": f"{category}@@{ticket_key_for_user}",
         }
         for category in categories
     ]
@@ -472,7 +472,7 @@ def handle_user_selection(ack, body, client):
             ticket_manager.store_reflected_ts(thread_ts, reflected_ts)
             if len(user_input) > 80:
                 client.chat_postMessage(
-                    channel=channel_id,
+                    channel=reflected_cn,
                     thread_ts=reflected_ts,
                     text=f"For the full details: `{user_input}`",
                 )
