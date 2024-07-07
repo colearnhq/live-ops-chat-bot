@@ -307,6 +307,7 @@ def handle_hiops_command(ack, body, client, say):
 def handle_user_selection(ack, body, client):
     ack()
     selected_user_data = body["actions"][0]["selected_option"]["value"].split("@@")
+    print(f"test selected_user_data: {selected_user_data}")
     selected_user = selected_user_data[0]
     user_who_requested = selected_user_data[1]
     response_ts = selected_user_data[2]
