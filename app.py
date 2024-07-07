@@ -479,6 +479,8 @@ def handle_user_selection(ack, body, client):
             channel=reflected_cn, blocks=reflected_msg
         )
 
+        print(f"test si reflected_post {reflected_post}")
+
         if reflected_post["ok"]:
             reflected_ts = reflected_post["ts"]
             ticket_manager.store_reflected_ts(thread_ts, reflected_ts)
