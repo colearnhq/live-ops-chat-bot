@@ -149,11 +149,11 @@ def handle_message_events(body, say, client):
         logging.error(f"Error handling message: {str(e)}")
 
 
-def truncate_value(value, max_length=40):
+def truncate_value(value, max_length=37):
     return (
         value
         if len(value) <= max_length
-        else value[:max_length] + "(continued in thread)"
+        else value[:max_length] + "...(continued in thread)"
     )
 
 
@@ -213,7 +213,7 @@ def handle_hiops_command(ack, body, client, say):
 
         if response_for_user["ok"]:
             ts = response_for_user["ts"]
-            if len(user_input) > 40:
+            if len(user_input) > 37:
                 client.chat_postMessage(
                     channel=user_id,
                     thread_ts=ts,
@@ -304,7 +304,7 @@ def handle_hiops_command(ack, body, client, say):
             timestamp_utc,
         )
         if result["ok"]:
-            if len(user_input) > 40:
+            if len(user_input) > 37:
                 client.chat_postMessage(
                     channel=channel_id,
                     thread_ts=ts,
@@ -495,7 +495,7 @@ def handle_user_selection(ack, body, client):
             reflected_ts = reflected_post["ts"]
             ticket_manager.store_reflected_ts(thread_ts, reflected_ts)
             full_user_input = ticket_manager.get_user_input(thread_ts)
-            if len(full_user_input) > 40:
+            if len(full_user_input) > 37:
                 client.chat_postMessage(
                     channel=reflected_cn,
                     thread_ts=reflected_ts,
