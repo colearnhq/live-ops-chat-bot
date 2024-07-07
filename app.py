@@ -1062,11 +1062,51 @@ def handle_modal_submission(ack, body, client, view, logger):
                 },
             ]
 
-            client.chat_postMessage(
+            rejection_msg_for_user = client.chat_postMessage(
                 channel=user_requested_id,
                 thread_ts=user_message_ts,
                 text=f"We are sorry :smiling_face_with_tear: your issue was rejected due to `{reason}` at {timestamp_jakarta}. Let's put another question.",
             )
+
+            if rejection_msg_for_user["ok"]:
+                client.chat_update(
+                    channel=user_requested_id,
+                    ts=user_message_ts,
+                    blocks=[
+                        {
+                            "type": "section",
+                            "text": {
+                                "type": "mrkdwn",
+                                "text": f"Your ticket number: *live-ops.{ticket_reported_at}*",
+                            },
+                        },
+                        {
+                            "type": "section",
+                            "fields": [
+                                {
+                                    "type": "mrkdwn",
+                                    "text": f"*Your Name:*\n<@{user_requested_id}>",
+                                },
+                                {
+                                    "type": "mrkdwn",
+                                    "text": f"*Reported at:*\n{timestamp_jakarta}",
+                                },
+                                {
+                                    "type": "mrkdwn",
+                                    "text": f"*Problem:*\n`{truncate_value(user_input)}`",
+                                },
+                            ],
+                        },
+                        {"type": "divider"},
+                        {
+                            "type": "section",
+                            "text": {
+                                "type": "mrkdwn",
+                                "text": f":x: This issue was rejected by <@{user_id}>",
+                            },
+                        },
+                    ],
+                )
 
             client.chat_update(
                 channel=reflected_cn, ts=reflected_ts, blocks=reflected_msg
