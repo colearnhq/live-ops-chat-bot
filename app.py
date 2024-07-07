@@ -207,7 +207,7 @@ def handle_hiops_command(ack, body, client, say):
             for member in members
         ]
         
-        print(f"ini panjang user_options: {len(user_options["value"])}")
+        print(f"ini panjang user_options: {len(user_options[0]["value"])}")
 
         if init_result["ok"]:
             ts = init_result["ts"]
