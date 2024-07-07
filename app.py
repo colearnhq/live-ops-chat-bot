@@ -149,7 +149,7 @@ def handle_message_events(body, say, client):
         logging.error(f"Error handling message: {str(e)}")
 
 
-def truncate_value(value, max_length=80):
+def truncate_value(value, max_length=50):
     return value if len(value) <= max_length else value[:max_length] + "..."
 
 
