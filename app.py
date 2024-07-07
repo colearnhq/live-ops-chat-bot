@@ -1107,6 +1107,8 @@ def handle_modal_submission(ack, body, client, view, logger):
                         },
                     ],
                 )
+            else:
+                logger.error(f"Cannot update the message")
 
             client.chat_update(
                 channel=reflected_cn, ts=reflected_ts, blocks=reflected_msg
