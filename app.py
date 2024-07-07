@@ -76,6 +76,7 @@ def convert_utc_to_jakarta(time):
 class TicketManager:
     def __init__(self):
         self.reflected_timestamps = {}
+        self.user_inputs = {}
 
     def store_reflected_ts(self, thread_ts, reflected_ts):
         self.reflected_timestamps[thread_ts] = reflected_ts
