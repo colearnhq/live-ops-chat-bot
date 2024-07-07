@@ -307,7 +307,6 @@ def handle_hiops_command(ack, body, client, say):
 def handle_user_selection(ack, body, client):
     ack()
     selected_user_data = body["actions"][0]["selected_option"]["value"].split("@@")
-    print(f"test selected_user_data: {selected_user_data}")
     selected_user = selected_user_data[0]
     user_who_requested = selected_user_data[1]
     response_ts = selected_user_data[2]
@@ -479,17 +478,15 @@ def handle_user_selection(ack, body, client):
             channel=reflected_cn, blocks=reflected_msg
         )
 
-        print(f"test si reflected_post {reflected_post}")
-
         if reflected_post["ok"]:
             reflected_ts = reflected_post["ts"]
             ticket_manager.store_reflected_ts(thread_ts, reflected_ts)
             full_user_input = ticket_manager.get_user_input(thread_ts)
-            if len(user_input) > 80:
+            if len(full_user_input) > 80:
                 client.chat_postMessage(
                     channel=reflected_cn,
                     thread_ts=reflected_ts,
-                    text=f"For the problem details: `{full_user_input}`",
+                    text=f"For the full details: `{full_user_input}`",
                 )
             client.chat_postMessage(
                 channel=reflected_cn,
