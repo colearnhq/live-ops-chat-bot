@@ -508,7 +508,7 @@ def select_user(ack, body, client):
                     text=f"For the full details: `{full_user_input}`",
                 )
             client.chat_postMessage(
-                channel_id=reflected_cn,
+                channel=reflected_cn,
                 thread_ts=reflected_ts,
                 text=f"thread ts: {reflected_ts}",
             )
