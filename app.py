@@ -304,11 +304,11 @@ def dev_ops(ack, body, client, say):
             timestamp_utc,
         )
         if result["ok"]:
-            #we post the ts, only for development purpose
+            # we post the ts, only for development purpose
             client.chat_postMessage(
                 channel=channel_id,
                 thread_ts=ts,
-                text=f"thread ts: {result["ts"]}"
+                text=f"thread ts: {result['ts']}",
             )
             if len(user_input) > 37:
                 client.chat_postMessage(
@@ -510,7 +510,7 @@ def select_user(ack, body, client):
             client.chat_postMessage(
                 channel_id=reflected_cn,
                 thread_ts=reflected_ts,
-                text=f"thread ts: {reflected_ts}"
+                text=f"thread ts: {reflected_ts}",
             )
             client.chat_postMessage(
                 channel=reflected_cn,
