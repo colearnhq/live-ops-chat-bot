@@ -103,7 +103,7 @@ ticket_manager = TicketManager()
 
 
 @app.event("message")
-def handle_message_events(body, say, client):
+def intial_msg(body, say, client):
     event = body.get("event", {})
     user_id = event.get("user")
     chat_timestamp = event["ts"]
@@ -158,7 +158,7 @@ def truncate_value(value, max_length=37):
 
 
 @app.command("/opsdev")
-def handle_hiops_command(ack, body, client, say):
+def dev_ops(ack, body, client, say):
     ack()
     user_input = body.get("text", "No message provided.")
     user_id = body["user_id"]
@@ -304,6 +304,12 @@ def handle_hiops_command(ack, body, client, say):
             timestamp_utc,
         )
         if result["ok"]:
+            #we post the ts, only for development purpose
+            client.chat_postMessage(
+                channel=channel_id,
+                thread_ts=ts,
+                text=f"thread ts: {result["ts"]}"
+            )
             if len(user_input) > 37:
                 client.chat_postMessage(
                     channel=channel_id,
@@ -317,7 +323,7 @@ def handle_hiops_command(ack, body, client, say):
 
 
 @app.action("user_select_action")
-def handle_user_selection(ack, body, client):
+def select_user(ack, body, client):
     ack()
     selected_user_data = body["actions"][0]["selected_option"]["value"].split("@@")
     selected_user = selected_user_data[0]
@@ -502,6 +508,11 @@ def handle_user_selection(ack, body, client):
                     text=f"For the full details: `{full_user_input}`",
                 )
             client.chat_postMessage(
+                channel_id=reflected_cn,
+                thread_ts=reflected_ts,
+                text=f"thread ts: {reflected_ts}"
+            )
+            client.chat_postMessage(
                 channel=reflected_cn,
                 thread_ts=reflected_ts,
                 text=f"This issue will be handled by <@{selected_user}>, starting from `{timestamp_jakarta}`",
@@ -519,7 +530,7 @@ def handle_user_selection(ack, body, client):
 
 
 @app.action("category_select_action")
-def handle_category_selection(ack, body, client):
+def select_category(ack, body, client):
     ack()
     channel_id = body["channel"]["id"]
     selected_category = body["actions"][0]["selected_option"]["value"].split("@@")
@@ -661,7 +672,7 @@ def handle_category_selection(ack, body, client):
 
 
 @app.view("custom_category_modal")
-def handle_custom_category_modal_submission(ack, body, client, view, logger):
+def select_custom_category(ack, body, client, view, logger):
     ack()
     user_id = body["user"]["id"]
     custom_category = view["state"]["values"]["custom_category_block"][
@@ -788,7 +799,7 @@ def handle_custom_category_modal_submission(ack, body, client, view, logger):
 
 
 @app.action("resolve_button")
-def handle_resolve_button(ack, body, client):
+def resolve_button(ack, body, client):
     ack()
     user_id = body["user"]["id"]
     user_info = client.users_info(user=user_id)
@@ -927,7 +938,7 @@ def handle_resolve_button(ack, body, client):
 
 
 @app.action("reject_button")
-def handle_reject_button(ack, body, client):
+def reject_button(ack, body, client):
     ack()
     trigger_id = body["trigger_id"]
     message_ts = body["container"]["message_ts"]
@@ -969,7 +980,7 @@ def handle_reject_button(ack, body, client):
 
 
 @app.view("modal_reject")
-def handle_modal_submission(ack, body, client, view, logger):
+def show_reject_modal(ack, body, client, view, logger):
     ack()
     try:
         user_id = body["user"]["id"]
