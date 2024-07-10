@@ -9,7 +9,7 @@ from slack_sdk.errors import SlackApiError
 from database import SheetManager
 import pytz
 
-load_dotenv(".env")
+load_dotenv(".env.dev")
 
 creds_dict = {
     "type": os.getenv("GOOGLE_CREDENTIALS_TYPE"),
