@@ -207,7 +207,7 @@ def dev_ops(ack, body, client, say):
         else:
             members = []
 
-        group_mentions = ["@all_pms", "@support_team"]
+        group_mentions = ["@all_pms ", "@support_team @"]
         members.extend(group_mentions)
         members.sort()
 
