@@ -386,6 +386,8 @@ def select_user(ack, body, client):
     response_ts = selected_user_data[2]
     user_input = selected_user_data[3]
     reported_at = selected_user_data[4]
+    channel_id = body["channel"]["id"]
+    thread_ts = body["container"]["message_ts"]
     categories = [
         "Ajar",
         "Cuti",
@@ -417,9 +419,6 @@ def select_user(ack, body, client):
 
         user_info = client.users_info(user=selected_user)
         selected_user_name = user_info["user"]["real_name"]
-
-        channel_id = body["channel"]["id"]
-        thread_ts = body["container"]["message_ts"]
         ticket_key_for_user = f"{user_who_requested}@@{response_ts}@@{truncate_value(user_input)}@@{reported_at}@@{selected_user}"
 
         category_options = [
