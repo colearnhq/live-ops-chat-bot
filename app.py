@@ -207,7 +207,7 @@ def dev_ops(ack, body, client, say):
         else:
             members = []
 
-        group_mentions = ["@all_pms ", "@support_team @"]
+        group_mentions = ["@all_pms ", "@support_team "]
         members.extend(group_mentions)
         members.sort()
 
@@ -351,9 +351,9 @@ def handle_group_selection(ack, body, client):
     timestamp_utc = datetime.utcnow()
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
 
-    if selected_group == "@support_team":
+    if selected_group == "@support_team ":
         target_channel = "C05TXM41ML2"
-    elif selected_group == "@all_pms":
+    elif selected_group == "@all_pms ":
         target_channel = "C05Q52ZTQ3X"
     else:
         logging.error(f"Unknown group selected: {selected_group}")
@@ -402,7 +402,7 @@ def select_user(ack, body, client):
     timestamp_utc = datetime.utcnow()
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
 
-    if selected_user in ["@all_pms", "@support_team"]:
+    if selected_user in ["@all_pms ", "@support_team "]:
         handle_group_selection(ack, body, client)
         client.chat_postMessage(
             channel=user_who_requested,
