@@ -201,14 +201,20 @@ def dev_ops(ack, body, client, say):
         response_for_user = client.chat_postMessage(channel=user_id, blocks=ticket)
         ticket_key_for_user = f"{user_id}@@{response_for_user['ts']}@@{truncate_value(user_input)}@@{timestamp_jakarta}"
         members_result = client.conversations_members(channel=channel_id)
-        members_result["members"] = members_result["members"].insert(
-            len(members_result["members"]) - 1, "@support_team"
-        )
-        members = members_result["members"] if members_result["ok"] else []
+        if members_result["ok"]:
+            members = members_result["members"]
+        else:
+            members = []
+
+        group_mentions = ["@all_pms", "@support_team"]
+        members.extend(group_mentions)
 
         user_options = [
             {
-                "text": {"type": "plain_text", "text": f"<@{member}>"},
+                "text": {
+                    "type": "plain_text",
+                    "text": f"<@{member}>" if not member.startswith("@") else member,
+                },
                 "value": f"{member}@@{user_id}@@{response_for_user['ts']}@@{truncate_value(user_input)}@@{timestamp_jakarta}",
             }
             for member in members
