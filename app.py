@@ -382,11 +382,6 @@ def select_user(ack, body, client):
     ack()
     selected_user_data = body["actions"][0]["selected_option"]["value"].split("@@")
     selected_user = selected_user_data[0]
-
-    if selected_user in ["@all_pms", "@support_team"]:
-        handle_group_selection(ack, body, client)
-        return
-
     user_who_requested = selected_user_data[1]
     response_ts = selected_user_data[2]
     user_input = selected_user_data[3]
@@ -405,188 +400,206 @@ def select_user(ack, body, client):
     timestamp_utc = datetime.utcnow()
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
 
-    user_info = client.users_info(user=selected_user)
-    selected_user_name = user_info["user"]["real_name"]
+    if selected_user in ["@all_pms", "@support_team"]:
+        handle_group_selection(ack, body, client)
+        client.chat_postMessage(
+            channel=user_who_requested,
+            thread_ts=response_ts,
+            text=f"Sorry <@{user_who_requested}>, your issue is not part of Live Ops's domain. But do not worry, your issue will be handled by {selected_user}.",
+        )
+        client.chat_postMessage(
+            channel=channel_id,
+            thread_ts=thread_ts,
+            text=f"We handover this issue to {selected_user} and already told the user.",
+        )
+        return
+    else:
 
-    channel_id = body["channel"]["id"]
-    thread_ts = body["container"]["message_ts"]
-    ticket_key_for_user = f"{user_who_requested}@@{response_ts}@@{truncate_value(user_input)}@@{reported_at}@@{selected_user}"
+        user_info = client.users_info(user=selected_user)
+        selected_user_name = user_info["user"]["real_name"]
 
-    category_options = [
-        {
-            "text": {"type": "plain_text", "text": category},
-            "value": f"{category}@@{ticket_key_for_user}",
-        }
-        for category in categories
-    ]
+        channel_id = body["channel"]["id"]
+        thread_ts = body["container"]["message_ts"]
+        ticket_key_for_user = f"{user_who_requested}@@{response_ts}@@{truncate_value(user_input)}@@{reported_at}@@{selected_user}"
 
-    client.chat_postMessage(
-        channel=user_who_requested,
-        thread_ts=response_ts,
-        text=f"<@{user_who_requested}> your issue will be handled by <@{selected_user}>. We will check and text you asap. Please wait ya.",
-    )
-
-    response = client.chat_postMessage(
-        channel=channel_id,
-        thread_ts=thread_ts,
-        text=f"<@{selected_user}> is going to resolve this issue, starting from `{timestamp_jakarta}`.",
-    )
-
-    sheet_manager.update_ticket(
-        f"live-ops.{thread_ts}",
-        {"handled_by": selected_user_name, "handled_at": timestamp_utc},
-    )
-
-    if response["ok"]:
-        updated_blocks = [
+        category_options = [
             {
-                "type": "section",
-                "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"We just received a ticket from <@{user_who_requested}> at `{reported_at}`",
-                },
-            },
-            {
-                "type": "section",
-                "fields": [
-                    {
-                        "type": "mrkdwn",
-                        "text": f"*Ticket Number:*\nlive-ops.{thread_ts}",
-                    },
-                    {
-                        "type": "mrkdwn",
-                        "text": f"*Problem:*\n`{truncate_value(user_input)}`",
-                    },
-                    {"type": "mrkdwn", "text": f"*Picked Up By:*\n<@{selected_user}>"},
-                ],
-            },
-            {"type": "divider"},
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "Please select the category of the issue:",
-                },
-                "accessory": {
-                    "type": "static_select",
-                    "placeholder": {
-                        "type": "plain_text",
-                        "text": "Select category...",
-                        "emoji": True,
-                    },
-                    "options": category_options,
-                    "action_id": "category_select_action",
-                },
-            },
-            {"type": "divider"},
-            {
-                "type": "actions",
-                "elements": [
-                    {
-                        "type": "button",
-                        "text": {
-                            "type": "plain_text",
-                            "emoji": True,
-                            "text": "Resolve",
-                        },
-                        "style": "primary",
-                        "value": ticket_key_for_user,
-                        "action_id": "resolve_button",
-                    },
-                    {
-                        "type": "button",
-                        "text": {
-                            "type": "plain_text",
-                            "emoji": True,
-                            "text": "Reject",
-                        },
-                        "style": "danger",
-                        "value": ticket_key_for_user,
-                        "action_id": "reject_button",
-                    },
-                ],
-            },
+                "text": {"type": "plain_text", "text": category},
+                "value": f"{category}@@{ticket_key_for_user}",
+            }
+            for category in categories
         ]
 
-        reflected_msg = [
-            {
-                "type": "section",
-                "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"We just received an issue from <@{user_who_requested}> at `{reported_at}`",
-                },
-            },
-            {
-                "type": "section",
-                "fields": [
-                    {
-                        "type": "mrkdwn",
-                        "text": f"*Ticket Number:*\nlive-ops.{thread_ts}",
-                    },
-                    {
-                        "type": "mrkdwn",
-                        "text": f"*Problem:*\n`{truncate_value(user_input)}`",
-                    },
-                    {
-                        "type": "mrkdwn",
-                        "text": f"*Current Progress:*\n:pray: On checking",
-                    },
-                ],
-            },
-            {"type": "divider"},
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "Please pay attention, if this issue related to you :point_up_2:",
-                },
-            },
-        ]
-
-        client.chat_update(channel=channel_id, ts=thread_ts, blocks=updated_blocks)
-
-        reflected_post = client.chat_postMessage(
-            channel=reflected_cn, blocks=reflected_msg
+        client.chat_postMessage(
+            channel=user_who_requested,
+            thread_ts=response_ts,
+            text=f"<@{user_who_requested}> your issue will be handled by <@{selected_user}>. We will check and text you asap. Please wait ya.",
         )
 
-        if reflected_post["ok"]:
-            reflected_ts = reflected_post["ts"]
-            ticket_manager.store_reflected_ts(thread_ts, reflected_ts)
-            full_user_input = ticket_manager.get_user_input(thread_ts)
-            if len(full_user_input) > 37:
+        response = client.chat_postMessage(
+            channel=channel_id,
+            thread_ts=thread_ts,
+            text=f"<@{selected_user}> is going to resolve this issue, starting from `{timestamp_jakarta}`.",
+        )
+
+        sheet_manager.update_ticket(
+            f"live-ops.{thread_ts}",
+            {"handled_by": selected_user_name, "handled_at": timestamp_utc},
+        )
+
+        if response["ok"]:
+            updated_blocks = [
+                {
+                    "type": "section",
+                    "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"We just received a ticket from <@{user_who_requested}> at `{reported_at}`",
+                    },
+                },
+                {
+                    "type": "section",
+                    "fields": [
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Ticket Number:*\nlive-ops.{thread_ts}",
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Problem:*\n`{truncate_value(user_input)}`",
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Picked Up By:*\n<@{selected_user}>",
+                        },
+                    ],
+                },
+                {"type": "divider"},
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "Please select the category of the issue:",
+                    },
+                    "accessory": {
+                        "type": "static_select",
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "Select category...",
+                            "emoji": True,
+                        },
+                        "options": category_options,
+                        "action_id": "category_select_action",
+                    },
+                },
+                {"type": "divider"},
+                {
+                    "type": "actions",
+                    "elements": [
+                        {
+                            "type": "button",
+                            "text": {
+                                "type": "plain_text",
+                                "emoji": True,
+                                "text": "Resolve",
+                            },
+                            "style": "primary",
+                            "value": ticket_key_for_user,
+                            "action_id": "resolve_button",
+                        },
+                        {
+                            "type": "button",
+                            "text": {
+                                "type": "plain_text",
+                                "emoji": True,
+                                "text": "Reject",
+                            },
+                            "style": "danger",
+                            "value": ticket_key_for_user,
+                            "action_id": "reject_button",
+                        },
+                    ],
+                },
+            ]
+
+            reflected_msg = [
+                {
+                    "type": "section",
+                    "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"We just received an issue from <@{user_who_requested}> at `{reported_at}`",
+                    },
+                },
+                {
+                    "type": "section",
+                    "fields": [
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Ticket Number:*\nlive-ops.{thread_ts}",
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Problem:*\n`{truncate_value(user_input)}`",
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Current Progress:*\n:pray: On checking",
+                        },
+                    ],
+                },
+                {"type": "divider"},
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "Please pay attention, if this issue related to you :point_up_2:",
+                    },
+                },
+            ]
+
+            client.chat_update(channel=channel_id, ts=thread_ts, blocks=updated_blocks)
+
+            reflected_post = client.chat_postMessage(
+                channel=reflected_cn, blocks=reflected_msg
+            )
+
+            if reflected_post["ok"]:
+                reflected_ts = reflected_post["ts"]
+                ticket_manager.store_reflected_ts(thread_ts, reflected_ts)
+                full_user_input = ticket_manager.get_user_input(thread_ts)
+                if len(full_user_input) > 37:
+                    client.chat_postMessage(
+                        channel=reflected_cn,
+                        thread_ts=reflected_ts,
+                        text=f"For the full details: `{full_user_input}`",
+                    )
                 client.chat_postMessage(
                     channel=reflected_cn,
                     thread_ts=reflected_ts,
-                    text=f"For the full details: `{full_user_input}`",
+                    text=f"thread ts: {reflected_ts}",
                 )
-            client.chat_postMessage(
-                channel=reflected_cn,
-                thread_ts=reflected_ts,
-                text=f"thread ts: {reflected_ts}",
-            )
-            client.chat_postMessage(
-                channel=reflected_cn,
-                thread_ts=reflected_ts,
-                text=f"This issue will be handled by <@{selected_user}>, starting from `{timestamp_jakarta}`",
-            )
+                client.chat_postMessage(
+                    channel=reflected_cn,
+                    thread_ts=reflected_ts,
+                    text=f"This issue will be handled by <@{selected_user}>, starting from `{timestamp_jakarta}`",
+                )
+            else:
+                logging.error(
+                    f"Failed to post reflected message: {reflected_post['error']}"
+                )
+
         else:
-            logging.error(
-                f"Failed to post reflected message: {reflected_post['error']}"
-            )
+            logging.error(f"Failed to post message: {response['error']}")
 
-    else:
-        logging.error(f"Failed to post message: {response['error']}")
-
-    if not response["ok"]:
-        logging.error(f"Failed to post message: {response['error']}")
+        if not response["ok"]:
+            logging.error(f"Failed to post message: {response['error']}")
 
 
 @app.action("category_select_action")
