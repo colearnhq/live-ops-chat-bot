@@ -202,6 +202,7 @@ def dev_ops(ack, body, client, say):
         ticket_key_for_user = f"{user_id}@@{response_for_user['ts']}@@{truncate_value(user_input)}@@{timestamp_jakarta}"
         members_result = client.conversations_members(channel=channel_id)
         members = members_result["members"] if members_result["ok"] else []
+        print(f"ini isi dari: {members_result['members']}")
 
         user_options = [
             {
