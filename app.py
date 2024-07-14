@@ -200,15 +200,19 @@ def dev_ops(ack, body, client, say):
 
         response_for_user = client.chat_postMessage(channel=user_id, blocks=ticket)
         ticket_key_for_user = f"{user_id}@@{response_for_user['ts']}@@{truncate_value(user_input)}@@{timestamp_jakarta}"
+
+        # Retrieve members from the channel
         members_result = client.conversations_members(channel=channel_id)
         if members_result["ok"]:
             members = members_result["members"]
         else:
             members = []
 
+        # Add group mentions to the list of members
         group_mentions = ["@all_pms", "@support_team"]
         members.extend(group_mentions)
 
+        # Generate the user options for the dropdown
         user_options = [
             {
                 "text": {
