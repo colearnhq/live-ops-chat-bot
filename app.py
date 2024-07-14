@@ -336,11 +336,57 @@ def dev_ops(ack, body, client, say):
         logging.error(f"An error occurred: {str(e)}")
 
 
+@app.action("group_select_action")
+def handle_group_selection(ack, body, client):
+    ack()
+    selected_group_data = body["actions"][0]["selected_option"]["value"].split("@@")
+    selected_group = selected_group_data[0]
+    user_who_requested = selected_group_data[1]
+    response_ts = selected_group_data[2]
+    user_input = selected_group_data[3]
+    reported_at = selected_group_data[4]
+
+    channel_id = body["channel"]["id"]
+    thread_ts = body["container"]["message_ts"]
+    timestamp_utc = datetime.utcnow()
+    timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
+
+    if selected_group == "@support_team":
+        target_channel = "C05TXM41ML2"
+    elif selected_group == "@all_pms":
+        target_channel = "C05Q52ZTQ3X"
+    else:
+        logging.error(f"Unknown group selected: {selected_group}")
+        return
+
+    client.chat_update(
+        channel=channel_id,
+        ts=thread_ts,
+        text=f"<@{selected_group}> team is going to resolve this issue, starting from `{timestamp_jakarta}`.",
+    )
+
+    client.chat_postMessage(
+        channel=target_channel,
+        text=f"We have an issue reported by <@{user_who_requested}> at `{reported_at}`. Problem: `{truncate_value(user_input)}`. Please address this issue.",
+    )
+
+    client.chat_postMessage(
+        channel=user_who_requested,
+        thread_ts=response_ts,
+        text=f"<@{user_who_requested}> your issue will be handled by <@{selected_group}> team. We will check and text you asap. Please wait ya.",
+    )
+
+
 @app.action("user_select_action")
 def select_user(ack, body, client):
     ack()
     selected_user_data = body["actions"][0]["selected_option"]["value"].split("@@")
     selected_user = selected_user_data[0]
+
+    if selected_user in ["@all_pms", "@support_team"]:
+        handle_group_selection(ack, body, client)
+        return
+
     user_who_requested = selected_user_data[1]
     response_ts = selected_user_data[2]
     user_input = selected_user_data[3]
