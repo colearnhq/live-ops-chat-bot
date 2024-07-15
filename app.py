@@ -460,7 +460,7 @@ def select_user(ack, body, client):
                 },
             ]
 
-            client.chat_postMessage(
+            client.chat_update(
                 channel=channel_id,
                 ts=thread_ts,
                 blocks=updated_blocks,
@@ -468,8 +468,8 @@ def select_user(ack, body, client):
             reflected_post = client.chat_postMessage(
                 channel=reflected_cn, blocks=reflected_msg
             )
-            if reflected_cn["ok"]:
-                ts = reflected_cn["ts"]
+            if reflected_post["ok"]:
+                ts = reflected_post["ts"]
                 full_user_input = ticket_manager.get_user_input(thread_ts)
                 client.chat_postMessage(
                     channel=reflected_cn,
