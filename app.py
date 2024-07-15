@@ -375,6 +375,8 @@ def select_user(ack, body, client):
     ]
 
     if selected_user in ["S05RYHJ41C6", "S02R59UL0RH"]:
+        user_info = client.users_info(user=body["user"]["id"])
+        selected_user_name = user_info["user"]["real_name"]
         client.chat_postMessage(
             channel=user_who_requested,
             thread_ts=response_ts,
