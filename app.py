@@ -340,47 +340,6 @@ def dev_ops(ack, body, client, say):
         logging.error(f"An error occurred: {str(e)}")
 
 
-@app.action("group_select_action")
-def handle_group_selection(ack, body, client):
-    ack()
-    selected_group_data = body["actions"][0]["selected_option"]["value"].split("@@")
-    selected_group = selected_group_data[0]
-    user_who_requested = selected_group_data[1]
-    response_ts = selected_group_data[2]
-    user_input = selected_group_data[3]
-    reported_at = selected_group_data[4]
-
-    channel_id = body["channel"]["id"]
-    thread_ts = body["container"]["message_ts"]
-    timestamp_utc = datetime.utcnow()
-    timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
-
-    if selected_group == "S05RYHJ41C6":
-        target_channel = "C05TXM41ML2"
-    elif selected_group == "S02R59UL0RH":
-        target_channel = "C05Q52ZTQ3X"
-    else:
-        logging.error(f"Unknown group selected: {selected_group}")
-        return
-
-    client.chat_update(
-        channel=channel_id,
-        ts=thread_ts,
-        text=f"<!subteam^{selected_group}> team is going to resolve this issue, starting from `{timestamp_jakarta}`.",
-    )
-
-    client.chat_postMessage(
-        channel=target_channel,
-        text=f"We have an issue reported by <@{user_who_requested}> at `{reported_at}`. Problem: `{truncate_value(user_input)}`. Please address this issue.",
-    )
-
-    client.chat_postMessage(
-        channel=user_who_requested,
-        thread_ts=response_ts,
-        text=f"<@{user_who_requested}> your issue will be handled by <@{selected_group}> team. We will check and text you asap. Please wait ya.",
-    )
-
-
 @app.action("user_select_action")
 def select_user(ack, body, client):
     ack()
@@ -416,18 +375,15 @@ def select_user(ack, body, client):
     ]
 
     if selected_user in ["S05RYHJ41C6", "S02R59UL0RH"]:
-        channel_for_handover = (
-            "C05TXM41ML2" if selected_user == "S05RYHJ41C6" else "C05Q52ZTQ3X"
-        )
         client.chat_postMessage(
             channel=user_who_requested,
             thread_ts=response_ts,
-            text=f"Sorry <@{user_who_requested}>, your issue is not part of Live Ops's domain. But do not worry, your issue will be handled by <!subteam^{selected_user}>.",
+            text=f"Sorry <@{user_who_requested}>, your issue is not part of Live Ops's domain. But do not worry, your issue will be handled by <!subteam^{selected_user}> soon.",
         )
         handover_response = client.chat_postMessage(
             channel=channel_id,
             thread_ts=thread_ts,
-            text=f"We handover this issue to <!subteam^{selected_user}>",
+            text=f"We successfully handover this issue to <!subteam^{selected_user}>. Please get back to work",
         )
         if handover_response["ok"]:
             updated_blocks = [
@@ -453,39 +409,15 @@ def select_user(ack, body, client):
                             "type": "mrkdwn",
                             "text": f"*Problem:*\n`{truncate_value(user_input)}`",
                         },
-                        {
-                            "type": "mrkdwn",
-                            "text": f"*Picked up by:*\n`<!subteam^{selected_user}>`",
-                        },
                     ],
                 },
                 {"type": "divider"},
                 {
-                    "type": "actions",
-                    "elements": [
-                        {
-                            "type": "button",
-                            "text": {
-                                "type": "plain_text",
-                                "emoji": True,
-                                "text": "Resolve",
-                            },
-                            "style": "primary",
-                            "value": ticket_key_for_user,
-                            "action_id": "resolve_button",
-                        },
-                        {
-                            "type": "button",
-                            "text": {
-                                "type": "plain_text",
-                                "emoji": True,
-                                "text": "Reject",
-                            },
-                            "style": "danger",
-                            "value": ticket_key_for_user,
-                            "action_id": "reject_button",
-                        },
-                    ],
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f":handshake: Handover to <!subteam^{selected_user}>",
+                    },
                 },
             ]
 
@@ -514,7 +446,7 @@ def select_user(ack, body, client):
                         },
                         {
                             "type": "mrkdwn",
-                            "text": f"*Current Progress:*\n:pray: Handover to <!subteam{selected_user}>",
+                            "text": f"*Current Progress:*\n:handshake: Handover to <!subteam^{selected_user}>",
                         },
                     ],
                 },
@@ -529,15 +461,21 @@ def select_user(ack, body, client):
             ]
 
             client.chat_postMessage(
-                channel=channel_for_handover,
+                channel=channel_id,
                 ts=thread_ts,
                 blocks=updated_blocks,
             )
             reflected_post = client.chat_postMessage(
                 channel=reflected_cn, blocks=reflected_msg
             )
-        handle_group_selection(ack, body, client)
-        return
+            if reflected_cn["ok"]:
+                ts = reflected_cn["ts"]
+                full_user_input = ticket_manager.get_user_input(thread_ts)
+                client.chat_postMessage(
+                    channel=reflected_cn,
+                    thread_ts=ts,
+                    text=f"Hi <!sub <@{selected_user}>\nPlease help {user_who_requested} to solve this problem `{full_user_input}`.",
+                )
     else:
         user_info = client.users_info(user=selected_user)
         selected_user_name = user_info["user"]["real_name"]
