@@ -480,7 +480,7 @@ def select_user(ack, body, client):
                 client.chat_postMessage(
                     channel=reflected_cn,
                     thread_ts=ts,
-                    text=f"Hi <!subteam^{selected_user}>,\nCould you lend a hand to {user_who_requested} with the following problem: {full_user_input}? \nMuch appreciated!`.",
+                    text=f"Hi <!subteam^{selected_user}>,\nCould you lend a hand to <@{user_who_requested}> with the following problem: `{full_user_input}`? \nMuch appreciated!.",
                 )
     else:
         user_info = client.users_info(user=selected_user)
