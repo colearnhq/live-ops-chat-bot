@@ -416,7 +416,6 @@ def select_user(ack, body, client):
     ]
 
     if selected_user in ["S05RYHJ41C6", "S02R59UL0RH"]:
-        handle_group_selection(ack, body, client)
         channel_for_handover = (
             "C05TXM41ML2" if selected_user == "S05RYHJ41C6" else "C05Q52ZTQ3X"
         )
@@ -537,6 +536,7 @@ def select_user(ack, body, client):
             reflected_post = client.chat_postMessage(
                 channel=reflected_cn, blocks=reflected_msg
             )
+        handle_group_selection(ack, body, client)
         return
     else:
         user_info = client.users_info(user=selected_user)
