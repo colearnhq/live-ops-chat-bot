@@ -528,7 +528,7 @@ def select_user(ack, body, client):
                 },
             ]
 
-            client.chat_update(
+            client.chat_postMessage(
                 channel=channel_for_handover,
                 ts=thread_ts,
                 blocks=updated_blocks,
