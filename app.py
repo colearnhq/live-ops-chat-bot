@@ -28,7 +28,7 @@ creds_dict = {
 app = App(token=os.getenv("SLACK_BOT_TOKEN"))
 sheet_manager = SheetManager(creds_dict, "1dPXiGBN2dDyyQ9TnO6Hi8cQtmbkFBU4O7sI5ztbXT90")
 
-reflected_cn = "C032B89UK36"
+reflected_cn = "C0719R3NQ91"
 
 greetings_response = {
     "morning": "Good Morning",
