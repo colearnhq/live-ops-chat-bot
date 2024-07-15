@@ -378,12 +378,12 @@ def select_user(ack, body, client):
         client.chat_postMessage(
             channel=user_who_requested,
             thread_ts=response_ts,
-            text=f"Sorry <@{user_who_requested}>, your issue is not part of Live Ops's domain. But do not worry, your issue will be handled by <!subteam^{selected_user}> soon.",
+            text=f"Sorry <@{user_who_requested}>, your issue isn't within Live Ops's domain. But don't worry, <!subteam^{selected_user}> will take care of it soon.",
         )
         handover_response = client.chat_postMessage(
             channel=channel_id,
             thread_ts=thread_ts,
-            text=f"We successfully handover this issue to <!subteam^{selected_user}>. Please get back to work",
+            text=f"We've officially handed off this hot potato to <!subteam^{selected_user}>. Now, let's dive back into our awesome work!",
         )
         if handover_response["ok"]:
             updated_blocks = [
@@ -474,7 +474,7 @@ def select_user(ack, body, client):
                 client.chat_postMessage(
                     channel=reflected_cn,
                     thread_ts=ts,
-                    text=f"Hi <!sub <@{selected_user}>\nPlease help {user_who_requested} to solve this problem `{full_user_input}`.",
+                    text=f"Hi <!subteam^{selected_user}>,\nCould you lend a hand to {user_who_requested} with the following problem: {full_user_input}? \nMuch appreciated!`.",
                 )
     else:
         user_info = client.users_info(user=selected_user)
