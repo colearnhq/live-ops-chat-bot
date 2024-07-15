@@ -207,7 +207,7 @@ def dev_ops(ack, body, client, say):
         else:
             members = []
 
-        group_mentions = ["@all_pms ", "@support_team "]
+        group_mentions = ["S05RYHJ41C6", "S02R59UL0RH"]
         members.extend(group_mentions)
         members.sort()
 
@@ -215,7 +215,11 @@ def dev_ops(ack, body, client, say):
             {
                 "text": {
                     "type": "plain_text",
-                    "text": f"<@{member}>" if not member.startswith("@") else member,
+                    "text": (
+                        f"<@{member}>"
+                        if not member.startswith("S")
+                        else f"<!subteam^{member}>"
+                    ),
                 },
                 "value": f"{member}@@{user_id}@@{response_for_user['ts']}@@{truncate_value(user_input)}@@{timestamp_jakarta}",
             }
@@ -351,9 +355,9 @@ def handle_group_selection(ack, body, client):
     timestamp_utc = datetime.utcnow()
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
 
-    if selected_group == "@support_team ":
+    if selected_group == "S05RYHJ41C6":
         target_channel = "C05TXM41ML2"
-    elif selected_group == "@all_pms ":
+    elif selected_group == "S02R59UL0RH":
         target_channel = "C05Q52ZTQ3X"
     else:
         logging.error(f"Unknown group selected: {selected_group}")
@@ -362,7 +366,7 @@ def handle_group_selection(ack, body, client):
     client.chat_update(
         channel=channel_id,
         ts=thread_ts,
-        text=f"<@{selected_group}> team is going to resolve this issue, starting from `{timestamp_jakarta}`.",
+        text=f"<!subteam^{selected_group}> team is going to resolve this issue, starting from `{timestamp_jakarta}`.",
     )
 
     client.chat_postMessage(
@@ -401,34 +405,142 @@ def select_user(ack, body, client):
     ]
     timestamp_utc = datetime.utcnow()
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
+    user_info = client.users_info(user=selected_user)
+    selected_user_name = user_info["user"]["real_name"]
+    ticket_key_for_user = f"{user_who_requested}@@{response_ts}@@{truncate_value(user_input)}@@{reported_at}@@{selected_user}"
 
-    if selected_user in ["@all_pms ", "@support_team "]:
+    category_options = [
+        {
+            "text": {"type": "plain_text", "text": category},
+            "value": f"{category}@@{ticket_key_for_user}",
+        }
+        for category in categories
+    ]
+
+    if selected_user in ["S05RYHJ41C6", "S02R59UL0RH"]:
         handle_group_selection(ack, body, client)
+        channel_for_handover = (
+            "C05TXM41ML2" if selected_user == "S05RYHJ41C6" else "C05Q52ZTQ3X"
+        )
         client.chat_postMessage(
             channel=user_who_requested,
             thread_ts=response_ts,
-            text=f"Sorry <@{user_who_requested}>, your issue is not part of Live Ops's domain. But do not worry, your issue will be handled by {selected_user}.",
+            text=f"Sorry <@{user_who_requested}>, your issue is not part of Live Ops's domain. But do not worry, your issue will be handled by <!subteam^{selected_user}>.",
         )
-        client.chat_postMessage(
+        handover_response = client.chat_postMessage(
             channel=channel_id,
             thread_ts=thread_ts,
-            text=f"We handover this issue to {selected_user} and already told the user.",
+            text=f"We handover this issue to <!subteam^{selected_user}>",
         )
+        if handover_response["ok"]:
+            updated_blocks = [
+                {
+                    "type": "section",
+                    "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"We just received a ticket from <@{user_who_requested}> at `{reported_at}`",
+                    },
+                },
+                {
+                    "type": "section",
+                    "fields": [
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Ticket Number:*\nlive-ops.{thread_ts}",
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Problem:*\n`{truncate_value(user_input)}`",
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Picked up by:*\n`<!subteam^{selected_user}>`",
+                        },
+                    ],
+                },
+                {"type": "divider"},
+                {
+                    "type": "actions",
+                    "elements": [
+                        {
+                            "type": "button",
+                            "text": {
+                                "type": "plain_text",
+                                "emoji": True,
+                                "text": "Resolve",
+                            },
+                            "style": "primary",
+                            "value": ticket_key_for_user,
+                            "action_id": "resolve_button",
+                        },
+                        {
+                            "type": "button",
+                            "text": {
+                                "type": "plain_text",
+                                "emoji": True,
+                                "text": "Reject",
+                            },
+                            "style": "danger",
+                            "value": ticket_key_for_user,
+                            "action_id": "reject_button",
+                        },
+                    ],
+                },
+            ]
+
+            reflected_msg = [
+                {
+                    "type": "section",
+                    "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"We just received an issue from <@{user_who_requested}> at `{reported_at}`",
+                    },
+                },
+                {
+                    "type": "section",
+                    "fields": [
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Ticket Number:*\nlive-ops.{thread_ts}",
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Problem:*\n`{truncate_value(user_input)}`",
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Current Progress:*\n:pray: Handover to <!subteam{selected_user}>",
+                        },
+                    ],
+                },
+                {"type": "divider"},
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "Please pay attention, if this issue related to you :point_up_2:",
+                    },
+                },
+            ]
+
+            client.chat_update(
+                channel=channel_for_handover,
+                ts=thread_ts,
+                blocks=updated_blocks,
+            )
+            reflected_post = client.chat_postMessage(
+                channel=reflected_cn, blocks=reflected_msg
+            )
         return
     else:
-
-        user_info = client.users_info(user=selected_user)
-        selected_user_name = user_info["user"]["real_name"]
-        ticket_key_for_user = f"{user_who_requested}@@{response_ts}@@{truncate_value(user_input)}@@{reported_at}@@{selected_user}"
-
-        category_options = [
-            {
-                "text": {"type": "plain_text", "text": category},
-                "value": f"{category}@@{ticket_key_for_user}",
-            }
-            for category in categories
-        ]
-
         client.chat_postMessage(
             channel=user_who_requested,
             thread_ts=response_ts,
@@ -563,7 +675,11 @@ def select_user(ack, body, client):
                 },
             ]
 
-            client.chat_update(channel=channel_id, ts=thread_ts, blocks=updated_blocks)
+            client.chat_update(
+                channel=channel_id,
+                ts=thread_ts,
+                blocks=updated_blocks,
+            )
 
             reflected_post = client.chat_postMessage(
                 channel=reflected_cn, blocks=reflected_msg
