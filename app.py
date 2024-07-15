@@ -28,7 +28,7 @@ creds_dict = {
 app = App(token=os.getenv("SLACK_BOT_TOKEN"))
 sheet_manager = SheetManager(creds_dict, "1dPXiGBN2dDyyQ9TnO6Hi8cQtmbkFBU4O7sI5ztbXT90")
 
-reflected_cn = "C05Q52ZTQ3X"
+reflected_cn = "C032B89UK36"
 
 greetings_response = {
     "morning": "Good Morning",
@@ -103,7 +103,7 @@ ticket_manager = TicketManager()
 
 
 @app.event("message")
-def intial_msg(body, say, client):
+def handle_message_events(body, say, client):
     event = body.get("event", {})
     user_id = event.get("user")
     chat_timestamp = event["ts"]
@@ -157,13 +157,13 @@ def truncate_value(value, max_length=37):
     )
 
 
-@app.command("/opsdev")
-def dev_ops(ack, body, client, say):
+@app.command("/hiops")
+def handle_hiops_command(ack, body, client, say):
     ack()
     user_input = body.get("text", "No message provided.")
     user_id = body["user_id"]
     reporter_name = body["user_name"]
-    channel_id = "C0719R3NQ91"
+    channel_id = "C079J897A49"
     timestamp_utc = datetime.utcnow()
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
 
@@ -341,7 +341,7 @@ def dev_ops(ack, body, client, say):
 
 
 @app.action("user_select_action")
-def select_user(ack, body, client):
+def handle_user_selection(ack, body, client):
     ack()
     selected_user_data = body["actions"][0]["selected_option"]["value"].split("@@")
     selected_user = selected_user_data[0]
@@ -662,7 +662,7 @@ def select_user(ack, body, client):
 
 
 @app.action("category_select_action")
-def select_category(ack, body, client):
+def handle_category_selection(ack, body, client):
     ack()
     channel_id = body["channel"]["id"]
     selected_category = body["actions"][0]["selected_option"]["value"].split("@@")
@@ -804,7 +804,7 @@ def select_category(ack, body, client):
 
 
 @app.view("custom_category_modal")
-def select_custom_category(ack, body, client, view, logger):
+def handle_custom_category_modal_submission(ack, body, client, view, logger):
     ack()
     user_id = body["user"]["id"]
     custom_category = view["state"]["values"]["custom_category_block"][
@@ -931,7 +931,7 @@ def select_custom_category(ack, body, client, view, logger):
 
 
 @app.action("resolve_button")
-def resolve_button(ack, body, client):
+def handle_resolve_button(ack, body, client):
     ack()
     user_id = body["user"]["id"]
     user_info = client.users_info(user=user_id)
@@ -1070,7 +1070,7 @@ def resolve_button(ack, body, client):
 
 
 @app.action("reject_button")
-def reject_button(ack, body, client):
+def handle_reject_button(ack, body, client):
     ack()
     trigger_id = body["trigger_id"]
     message_ts = body["container"]["message_ts"]
@@ -1112,7 +1112,7 @@ def reject_button(ack, body, client):
 
 
 @app.view("modal_reject")
-def show_reject_modal(ack, body, client, view, logger):
+def handle_modal_submission(ack, body, client, view, logger):
     ack()
     try:
         user_id = body["user"]["id"]
