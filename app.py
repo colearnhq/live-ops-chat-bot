@@ -385,6 +385,10 @@ def select_user(ack, body, client):
             thread_ts=thread_ts,
             text=f"We've officially handed off this hot potato to <!subteam^{selected_user}>. Now, let's dive back into our awesome work!",
         )
+        sheet_manager.update_ticket(
+            f"live-ops.{thread_ts}",
+            {"handed_over_by": selected_user_name, "handed_over_at": timestamp_utc},
+        )
         if handover_response["ok"]:
             updated_blocks = [
                 {
