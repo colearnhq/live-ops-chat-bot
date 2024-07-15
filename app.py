@@ -228,9 +228,6 @@ def handle_hiops_command(ack, body, client, say):
 
         if response_for_user["ok"]:
             ts = response_for_user["ts"]
-            client.chat_postMessage(
-                channel=user_id, thread_ts=ts, text=f"ini thread_ts buat user {ts}"
-            )
             if len(user_input) > 37:
                 client.chat_postMessage(
                     channel=user_id,
@@ -322,12 +319,6 @@ def handle_hiops_command(ack, body, client, say):
             timestamp_utc,
         )
         if result["ok"]:
-            # we post the ts, only for development purpose
-            client.chat_postMessage(
-                channel=channel_id,
-                thread_ts=ts,
-                text=f"thread ts: {result['ts']}",
-            )
             if len(user_input) > 37:
                 client.chat_postMessage(
                     channel=channel_id,
@@ -639,11 +630,6 @@ def handle_user_selection(ack, body, client):
                         thread_ts=reflected_ts,
                         text=f"For the full details: `{full_user_input}`",
                     )
-                client.chat_postMessage(
-                    channel=reflected_cn,
-                    thread_ts=reflected_ts,
-                    text=f"thread ts: {reflected_ts}",
-                )
                 client.chat_postMessage(
                     channel=reflected_cn,
                     thread_ts=reflected_ts,
