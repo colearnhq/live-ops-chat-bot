@@ -405,8 +405,6 @@ def select_user(ack, body, client):
     ]
     timestamp_utc = datetime.utcnow()
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
-    user_info = client.users_info(user=selected_user)
-    selected_user_name = user_info["user"]["real_name"]
     ticket_key_for_user = f"{user_who_requested}@@{response_ts}@@{truncate_value(user_input)}@@{reported_at}@@{selected_user}"
 
     category_options = [
@@ -541,6 +539,8 @@ def select_user(ack, body, client):
             )
         return
     else:
+        user_info = client.users_info(user=selected_user)
+        selected_user_name = user_info["user"]["real_name"]
         client.chat_postMessage(
             channel=user_who_requested,
             thread_ts=response_ts,
