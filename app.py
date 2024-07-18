@@ -574,7 +574,7 @@ def handle_user_selection(ack, body, client):
             reflected_msg = [
                 {
                     "type": "section",
-                    "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
+                    "text": {"type": "mrkdwn", "text": "Hi Team :wave:"},
                 },
                 {
                     "type": "section",
@@ -739,7 +739,7 @@ def handle_category_selection(ack, body, client):
         reflected_msg = [
             {
                 "type": "section",
-                "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
+                "text": {"type": "mrkdwn", "text": "Hi Team :wave:"},
             },
             {
                 "type": "section",
@@ -860,7 +860,7 @@ def handle_custom_category_modal_submission(ack, body, client, view, logger):
         reflected_msg = [
             {
                 "type": "section",
-                "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
+                "text": {"type": "mrkdwn", "text": "Hi Team :wave:"},
             },
             {
                 "type": "section",
@@ -997,7 +997,7 @@ def handle_resolve_button(ack, body, client):
         reflected_msg = [
             {
                 "type": "section",
-                "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
+                "text": {"type": "mrkdwn", "text": "Hi Team :wave:"},
             },
             {
                 "type": "section",
@@ -1163,7 +1163,7 @@ def handle_modal_submission(ack, body, client, view, logger):
             reflected_msg = [
                 {
                     "type": "section",
-                    "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
+                    "text": {"type": "mrkdwn", "text": "Hi Team :wave:"},
                 },
                 {
                     "type": "section",
