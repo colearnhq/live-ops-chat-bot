@@ -421,7 +421,7 @@ def handle_user_selection(ack, body, client):
             reflected_msg = [
                 {
                     "type": "section",
-                    "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
+                    "text": {"type": "mrkdwn", "text": "Hi Team :wave:"},
                 },
                 {
                     "type": "section",
