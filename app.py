@@ -404,7 +404,6 @@ def select_user(ack, body, client):
     timestamp_utc = datetime.utcnow()
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
     ticket_key_for_user = f"{user_who_requested}@@{response_ts}@@{truncate_value(user_input)}@@{reported_at}@@{selected_user}"
-    print(body)
     category_options = [
         {
             "text": {"type": "plain_text", "text": category},
