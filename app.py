@@ -352,7 +352,6 @@ def dev_ops(ack, body, client, say):
             say("Failed to post message")
 
         reminder_time = timedelta(minutes=3)
-        schedule_reminder()
         schedule_reminder(client, channel_id, ts, reminder_time, result["ts"])
 
     except Exception as e:
