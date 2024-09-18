@@ -110,4 +110,5 @@ class SheetManager:
             "rejected_at": 12,
             "handed_over_by": 13,
             "handed_over_at": 14,
+            "assigned_by": 15,
         }
