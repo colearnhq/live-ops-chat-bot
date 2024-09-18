@@ -337,11 +337,11 @@ def dev_ops(ack, body, client, say):
         )
         if result["ok"]:
             # we post the ts, only for development purpose
-            client.chat_postMessage(
-                channel=channel_id,
-                thread_ts=ts,
-                text=f"thread ts: {result['ts']}",
-            )
+            # client.chat_postMessage(
+            #     channel=channel_id,
+            #     thread_ts=ts,
+            #     text=f"thread ts: {result['ts']}",
+            # )
             if len(user_input) > 37:
                 client.chat_postMessage(
                     channel=channel_id,
@@ -380,6 +380,8 @@ def is_ticket_assigned(ticket_ts):
 @app.action("user_select_action")
 def select_user(ack, body, client):
     ack()
+    person_who_assigns = body["user"]["id"]
+    person_who_assigns_name = body["user"]["name"]
     selected_user_data = body["actions"][0]["selected_option"]["value"].split("@@")
     selected_user = selected_user_data[0]
     user_who_requested = selected_user_data[1]
@@ -428,7 +430,11 @@ def select_user(ack, body, client):
         )
         sheet_manager.update_ticket(
             f"live-ops.{thread_ts}",
-            {"handed_over_by": selected_user_name, "handed_over_at": timestamp_utc},
+            {
+                "handed_over_by": selected_user_name,
+                "handed_over_at": timestamp_utc,
+                "assigned_by": person_who_assigns_name,
+            },
         )
         if handover_response["ok"]:
             updated_blocks = [
@@ -533,7 +539,7 @@ def select_user(ack, body, client):
         response = client.chat_postMessage(
             channel=channel_id,
             thread_ts=thread_ts,
-            text=f"<@{selected_user}> is going to resolve this issue, starting from `{timestamp_jakarta}`.",
+            text=f"<@{selected_user}> is on the case and will tackle this issue starting at `{timestamp_jakarta}`. (Assigned by: <@{person_who_assigns}>)",
         )
 
         sheet_manager.update_ticket(
