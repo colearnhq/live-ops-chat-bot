@@ -543,7 +543,11 @@ def select_user(ack, body, client):
 
         sheet_manager.update_ticket(
             f"live-ops.{thread_ts}",
-            {"handled_by": selected_user_name, "handled_at": timestamp_utc},
+            {
+                "handled_by": selected_user_name,
+                "handled_at": timestamp_utc,
+                "assigned_by": person_who_assigns_name,
+            },
         )
 
         if response["ok"]:
