@@ -361,10 +361,11 @@ def dev_ops(ack, body, client, say):
 def schedule_reminder(client, channel_id, thread_ts, reminder_time, ticket_ts):
     def remind():
         if not is_ticket_assigned(ticket_ts):
+            omar_id = "U020SH7JJF3"
             client.chat_postMessage(
                 channel=channel_id,
                 thread_ts=thread_ts,
-                text="Reminder: This ticket has not been picked up yet. Please respond within 5 minutes.",
+                text=f"Ribbit! 🐸 Pepe’s getting impatient, and this ticket's feeling lonely! Can you <@{omar_id}> hop in and rescue it within the next 2 minutes before Pepe starts croaking louder? 🐸⏳",
             )
 
     # Schedule the reminder after `reminder_time` minutes
@@ -401,7 +402,7 @@ def select_user(ack, body, client):
     timestamp_utc = datetime.utcnow()
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
     ticket_key_for_user = f"{user_who_requested}@@{response_ts}@@{truncate_value(user_input)}@@{reported_at}@@{selected_user}"
-
+    print(body)
     category_options = [
         {
             "text": {"type": "plain_text", "text": category},
