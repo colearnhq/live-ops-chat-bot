@@ -4,7 +4,8 @@ from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from dotenv import load_dotenv
 import logging
-from datetime import datetime
+import threading
+from datetime import datetime, timedelta
 from slack_sdk.errors import SlackApiError
 from database import SheetManager
 import pytz
@@ -77,6 +78,7 @@ class TicketManager:
     def __init__(self):
         self.reflected_timestamps = {}
         self.user_inputs = {}
+        self.ticket_status = {}
 
     def store_reflected_ts(self, thread_ts, reflected_ts):
         self.reflected_timestamps[thread_ts] = reflected_ts
@@ -97,6 +99,18 @@ class TicketManager:
     def clear_user_input(self, thread_ts):
         if thread_ts in self.user_inputs:
             del self.user_inputs[thread_ts]
+
+    def update_ticket_status(self, thread_ts, status):
+        self.ticket_status[thread_ts] = status
+
+    def get_ticket_status(self, thread_ts):
+        return self.ticket_status.get(
+            thread_ts, "unassigned"
+        )  # Default to 'unassigned'
+
+    def clear_ticket_status(self, thread_ts):
+        if thread_ts in self.ticket_status:
+            del self.ticket_status[thread_ts]
 
 
 ticket_manager = TicketManager()
@@ -336,8 +350,31 @@ def dev_ops(ack, body, client, say):
                 )
         else:
             say("Failed to post message")
+
+        reminder_time = timedelta(minutes=3)
+        schedule_reminder()
+        schedule_reminder(client, channel_id, ts, reminder_time, result["ts"])
+
     except Exception as e:
         logging.error(f"An error occurred: {str(e)}")
+
+
+def schedule_reminder(client, channel_id, thread_ts, reminder_time, ticket_ts):
+    def remind():
+        if not is_ticket_assigned(ticket_ts):
+            client.chat_postMessage(
+                channel=channel_id,
+                thread_ts=thread_ts,
+                text="Reminder: This ticket has not been picked up yet. Please respond within 5 minutes.",
+            )
+
+    # Schedule the reminder after `reminder_time` minutes
+    threading.Timer(reminder_time.total_seconds(), remind).start()
+
+
+def is_ticket_assigned(ticket_ts):
+    status = ticket_manager.get_ticket_status(ticket_ts)
+    return status != "unassigned"
 
 
 @app.action("user_select_action")
@@ -373,6 +410,8 @@ def select_user(ack, body, client):
         }
         for category in categories
     ]
+
+    ticket_manager.update_ticket_status(thread_ts, "assigned")
 
     if selected_user in ["S05RYHJ41C6", "S02R59UL0RH"]:
         user_info = client.users_info(user=body["user"]["id"])
