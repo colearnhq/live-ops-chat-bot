@@ -1151,6 +1151,7 @@ def reject_button(ack, body, client):
             },
             {
                 "type": "input",
+                "optional": True,
                 "block_id": "input_block_id",
                 "label": {"type": "plain_text", "text": "Upload Files"},
                 "element": {
