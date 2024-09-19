@@ -104,9 +104,7 @@ class TicketManager:
         self.ticket_status[thread_ts] = status
 
     def get_ticket_status(self, thread_ts):
-        return self.ticket_status.get(
-            thread_ts, "unassigned"
-        )  # Default to 'unassigned'
+        return self.ticket_status.get(thread_ts, "unassigned")
 
     def clear_ticket_status(self, thread_ts):
         if thread_ts in self.ticket_status:
@@ -1187,7 +1185,7 @@ def show_reject_modal(ack, body, client, view, logger):
         reason = view["state"]["values"]["reject_reason"]["reason_input"]["value"]
         timestamp_utc = datetime.utcnow()
         timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
-
+        ticket_manager.update_ticket_status(message_ts, "assigned")
         response = client.chat_postMessage(
             channel=channel_id,
             thread_ts=message_ts,
