@@ -1148,7 +1148,18 @@ def reject_button(ack, body, client):
                     "action_id": "reason_input",
                     "multiline": True,
                 },
-            }
+            },
+            {
+                "type": "input",
+                "block_id": "input_block_id",
+                "label": {"type": "plain_text", "text": "Upload Files"},
+                "element": {
+                    "type": "file_input",
+                    "action_id": "file_input_action_id_1",
+                    "filetypes": ["jpg", "png"],
+                    "max_files": 5,
+                },
+            },
         ],
         "private_metadata": f"{channel_id}@@{message_ts}@@{reject_button_value} ",
     }
