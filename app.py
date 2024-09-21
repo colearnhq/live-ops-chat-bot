@@ -240,9 +240,6 @@ def dev_ops(ack, body, client, say):
 
         if response_for_user["ok"]:
             ts = response_for_user["ts"]
-            # client.chat_postMessage(
-            #     channel=user_id, thread_ts=ts, text=f"ini thread_ts buat user {ts}"
-            # )
             if len(user_input) > 37:
                 client.chat_postMessage(
                     channel=user_id,
