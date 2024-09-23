@@ -229,7 +229,9 @@ def handle_submission(ack, body, client, logger, say):
     user_id = body["user"]["id"]
     user_name = body["user"]["name"]
     view_state = body["view"]["state"]["values"]
-
+    img_url = view_state["input_block_id"]["file_input_action_id_1"]["files"][
+        "url_private"
+    ]
     issue_description = view_state["issue_name"]["user_issue"]["value"]
 
     channel_id = body["view"]["private_metadata"]
@@ -350,6 +352,8 @@ def handle_submission(ack, body, client, logger, say):
                     },
                 },
                 {"type": "divider"},
+                {"type": "image", "image_url": img_url, "alt_text": "user_attachement"},
+                {"type": "divider"},
                 {
                     "type": "actions",
                     "elements": [
@@ -388,6 +392,7 @@ def handle_submission(ack, body, client, logger, say):
             timestamp_utc,
         )
         if result["ok"]:
+            client.chat_postMessage
             if len(issue_description) > 37:
                 client.chat_postMessage(
                     channel=channel_id,
