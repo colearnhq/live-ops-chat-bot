@@ -169,6 +169,15 @@ def truncate_value(value, max_length=37):
     )
 
 
+def inserting_img(blocks, img_url):
+    img_part_block = [
+        {"type": "divider"},
+        {"type": "image", "image_url": img_url, "alt_text": "user_attachment"},
+    ]
+
+    return blocks.insert(len(blocks) - 1, img_part_block) if img_url else blocks
+
+
 @app.command("/opsdev")
 def slash_input(ack, body, client):
     ack()
@@ -212,7 +221,6 @@ def slash_input(ack, body, client):
         "private_metadata": f"{channel_id}",
     }
 
-    # Open the modal
     try:
         client.views_open(trigger_id=trigger_id, view=modal)
     except SlackApiError as e:
@@ -230,7 +238,7 @@ def handle_submission(ack, body, client, logger, say):
     user_name = body["user"]["name"]
     view_state = body["view"]["state"]["values"]
     files = view_state["input_block_id"]["file_input_action_id_1"]["files"][0]
-    img_url = files["thumb_80"]
+    img_url = files["thumb_64"]
     issue_description = view_state["issue_name"]["user_issue"]["value"]
 
     channel_id = body["view"]["private_metadata"]
@@ -351,8 +359,6 @@ def handle_submission(ack, body, client, logger, say):
                     },
                 },
                 {"type": "divider"},
-                {"type": "image", "image_url": img_url, "alt_text": "user_attachment"},
-                {"type": "divider"},
                 {
                     "type": "actions",
                     "elements": [
@@ -382,7 +388,9 @@ def handle_submission(ack, body, client, logger, say):
                 },
             ]
 
-        result = client.chat_update(channel=channel_id, ts=ts, blocks=blocks)
+        result = client.chat_update(
+            channel=channel_id, ts=ts, blocks=inserting_img(blocks, img_url)
+        )
         sheet_manager.init_ticket_row(
             f"live-ops.{result['ts']}",
             user_id,
@@ -629,10 +637,6 @@ def select_user(ack, body, client):
     user_input = selected_user_data[3]
     reported_at = selected_user_data[4]
     img_url = selected_user_data[5]
-    img_part_block = [
-        {"type": "divider"},
-        {"type": "image", "image_url": img_url, "alt_text": "user_attachment"},
-    ]
     channel_id = body["channel"]["id"]
     thread_ts = body["container"]["message_ts"]
     categories = [
@@ -755,16 +759,13 @@ def select_user(ack, body, client):
                 },
             ]
 
-            updated_blocks.insert(4, img_part_block[0])
-            reflected_msg.insert(4, img_part_block[0])
-
             client.chat_update(
                 channel=channel_id,
                 ts=thread_ts,
-                blocks=updated_blocks,
+                blocks=inserting_img(updated_blocks),
             )
             reflected_post = client.chat_postMessage(
-                channel=reflected_cn, blocks=reflected_msg
+                channel=reflected_cn, blocks=inserting_img(reflected_msg)
             )
             if reflected_post["ok"]:
                 ts = reflected_post["ts"]
