@@ -229,9 +229,8 @@ def handle_submission(ack, body, client, logger, say):
     user_id = body["user"]["id"]
     user_name = body["user"]["name"]
     view_state = body["view"]["state"]["values"]
-    img_url = view_state["input_block_id"]["file_input_action_id_1"]["files"][
-        "url_private"
-    ]
+    files = view_state["input_block_id"]["file_input_action_id_1"]["files"][0]
+    img_url = files["url_private"]
     issue_description = view_state["issue_name"]["user_issue"]["value"]
 
     channel_id = body["view"]["private_metadata"]
