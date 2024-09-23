@@ -261,21 +261,29 @@ def slash_input(ack, body, client):
         )
 
 
-# Handler for modal submission
 @app.view("slash_input")
-def handle_submission(ack, body, client):
+def handle_submission(ack, body, client, logger):
     ack()
+
+    # Log the body to check the structure of the incoming payload
+    logger.info(f"View submission body: {body}")
 
     # Extract data from the submitted view
     user_id = body["user"]["id"]
     user_name = body["user"]["name"]
     view_state = body["view"]["state"]["values"]
 
-    # Extract issue description and selected category
+    # Safely get issue description
     issue_description = view_state["issue_name"]["user_issue"]["value"]
-    category = view_state["category_select_action"]["static_select-action"][
-        "selected_option"
-    ]["value"]
+
+    # Check if 'category_select_action' exists
+    category_block = view_state.get("category_select_action")
+    if category_block:
+        category = category_block["static_select-action"]["selected_option"]["value"]
+    else:
+        # Default to 'Others' or handle the case when the category is missing
+        category = "Others"
+        logger.warning("Category was not selected; defaulting to 'Others'.")
 
     # Extract channel from private metadata
     channel_id = body["view"]["private_metadata"]
@@ -316,7 +324,7 @@ def handle_submission(ack, body, client):
             blocks=ticket_message,
         )
     except SlackApiError as e:
-        logging.error(
+        logger.error(
             f"Error posting message: {str(e)} | Response: {e.response['error']}"
         )
 
