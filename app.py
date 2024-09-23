@@ -282,7 +282,7 @@ def handle_submission(ack, body, client, logger, say):
         ]
 
         response_for_user = client.chat_postMessage(channel=user_id, blocks=ticket)
-        ticket_key_for_user = f"{user_id}@@{response_for_user['ts']}@@{truncate_value(issue_description)}@@{timestamp_jakarta}@@{files}"
+        ticket_key_for_user = f"{user_id}@@{response_for_user['ts']}@@{truncate_value(issue_description)}@@{timestamp_jakarta}"
 
         members_result = client.conversations_members(channel=channel_id)
         if members_result["ok"]:
