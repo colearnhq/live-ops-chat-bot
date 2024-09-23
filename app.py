@@ -174,30 +174,7 @@ def slash_input(ack, body, client):
     ack()
 
     trigger_id = body["trigger_id"]
-    user_id = body["user_id"]
     channel_id = "C0719R3NQ91"
-
-    # Define categories
-    categories = [
-        "Ajar",
-        "Cuti",
-        "Data related",
-        "Observasi",
-        "Piket",
-        "Polling",
-        "Recording Video",
-        "Zoom",
-        "Others",
-    ]
-    category_options = [
-        {
-            "text": {"type": "plain_text", "text": category},
-            "value": category,
-        }
-        for category in categories
-    ]
-
-    # Modal payload with file input kept
     modal = {
         "type": "modal",
         "callback_id": "slash_input",
@@ -217,23 +194,6 @@ def slash_input(ack, body, client):
                         "type": "plain_text",
                         "text": "Describe your issue...",
                     },
-                },
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "Please select the category of the issue:",
-                },
-                "accessory": {
-                    "type": "static_select",
-                    "placeholder": {
-                        "type": "plain_text",
-                        "text": "Select category...",
-                        "emoji": True,
-                    },
-                    "options": category_options,
-                    "action_id": "category_select_action",
                 },
             },
             {
@@ -262,74 +222,189 @@ def slash_input(ack, body, client):
 
 
 @app.view("slash_input")
-def handle_submission(ack, body, client, logger):
+def handle_submission(ack, body, client, logger, say):
     ack()
+    print(f"View submission body: {body}")
 
-    # Log the body to check the structure of the incoming payload
-    logger.info(f"View submission body: {body}")
-
-    # Extract data from the submitted view
     user_id = body["user"]["id"]
     user_name = body["user"]["name"]
     view_state = body["view"]["state"]["values"]
 
-    # Safely get issue description
     issue_description = view_state["issue_name"]["user_issue"]["value"]
 
-    # Check if 'category_select_action' exists
-    category_block = view_state.get("category_select_action")
-    if category_block:
-        category = category_block["static_select-action"]["selected_option"]["value"]
-    else:
-        # Default to 'Others' or handle the case when the category is missing
-        category = "Others"
-        logger.warning("Category was not selected; defaulting to 'Others'.")
-
-    # Extract channel from private metadata
     channel_id = body["view"]["private_metadata"]
 
-    # Get timestamp for ticket creation
     timestamp_utc = datetime.utcnow()
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
 
-    # Ticket message to send to the channel and the user
-    ticket_message = [
-        {
-            "type": "section",
-            "text": {"type": "mrkdwn", "text": f"*Ticket created by:* <@{user_id}>"},
-        },
-        {
-            "type": "section",
-            "fields": [
-                {"type": "mrkdwn", "text": f"*Issue:*\n{issue_description}"},
-                {"type": "mrkdwn", "text": f"*Category:*\n{category}"},
-                {"type": "mrkdwn", "text": f"*Reported at:*\n{timestamp_jakarta}"},
-            ],
-        },
-    ]
-
-    # Post the ticket to the channel and the user
     try:
-        # Post the ticket to the channel
-        client.chat_postMessage(
-            channel=channel_id,
-            text=f"New ticket from <@{user_id}>",
-            blocks=ticket_message,
+        init_result = client.chat_postMessage(
+            channel=channel_id, text="Initializing ticket..."
         )
+        ticket_manager.store_user_input(init_result["ts"], issue_description)
 
-        # Send the ticket to the user directly
-        client.chat_postMessage(
-            channel=user_id,
-            text="Here is a copy of your ticket submission:",
-            blocks=ticket_message,
+        ticket = [
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"Your ticket number: *live-ops.{init_result['ts']}*",
+                },
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Your Name:*\n{user_name}",
+                    },
+                    {"type": "mrkdwn", "text": f"*Reported at:*\n{timestamp_jakarta}"},
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Problem:*\n`{truncate_value(issue_description)}`",
+                    },
+                ],
+            },
+        ]
+
+        response_for_user = client.chat_postMessage(channel=user_id, blocks=ticket)
+        ticket_key_for_user = f"{user_id}@@{response_for_user['ts']}@@{truncate_value(issue_description)}@@{timestamp_jakarta}"
+
+        members_result = client.conversations_members(channel=channel_id)
+        if members_result["ok"]:
+            members = members_result["members"]
+        else:
+            members = []
+
+        group_mentions = ["S05RYHJ41C6", "S02R59UL0RH"]
+        members.extend(group_mentions)
+        members.sort()
+
+        user_options = [
+            {
+                "text": {
+                    "type": "plain_text",
+                    "text": (
+                        f"<@{member}>"
+                        if not member.startswith("S")
+                        else f"<!subteam^{member}>"
+                    ),
+                },
+                "value": f"{member}@@{user_id}@@{response_for_user['ts']}@@{truncate_value(issue_description)}@@{timestamp_jakarta}",
+            }
+            for member in members
+        ]
+
+        if response_for_user["ok"]:
+            ts = response_for_user["ts"]
+            if len(issue_description) > 37:
+                client.chat_postMessage(
+                    channel=user_id,
+                    thread_ts=ts,
+                    text=f"For the problem details: `{issue_description}`",
+                )
+
+        if init_result["ok"]:
+            ts = init_result["ts"]
+            blocks = [
+                {
+                    "type": "section",
+                    "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"We just received a ticket from <@{user_id}> at `{timestamp_jakarta}`",
+                    },
+                },
+                {
+                    "type": "section",
+                    "fields": [
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Ticket Number:*\nlive-ops.{ts}",
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Problem:*\n`{truncate_value(issue_description)}`",
+                        },
+                    ],
+                },
+                {"type": "divider"},
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "Please pick a person:",
+                    },
+                    "accessory": {
+                        "type": "static_select",
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "Select a person...",
+                            "emoji": True,
+                        },
+                        "options": user_options,
+                        "action_id": "user_select_action",
+                    },
+                },
+                {"type": "divider"},
+                {
+                    "type": "actions",
+                    "elements": [
+                        {
+                            "type": "button",
+                            "text": {
+                                "type": "plain_text",
+                                "emoji": True,
+                                "text": "Resolve",
+                            },
+                            "style": "primary",
+                            "value": ticket_key_for_user,
+                            "action_id": "resolve_button",
+                        },
+                        {
+                            "type": "button",
+                            "text": {
+                                "type": "plain_text",
+                                "emoji": True,
+                                "text": "Reject",
+                            },
+                            "style": "danger",
+                            "value": ticket_key_for_user,
+                            "action_id": "reject_button",
+                        },
+                    ],
+                },
+            ]
+
+        result = client.chat_update(channel=channel_id, ts=ts, blocks=blocks)
+        sheet_manager.init_ticket_row(
+            f"live-ops.{result['ts']}",
+            user_id,
+            body["user_name"],
+            issue_description,
+            timestamp_utc,
         )
+        if result["ok"]:
+            if len(issue_description) > 37:
+                client.chat_postMessage(
+                    channel=channel_id,
+                    thread_ts=ts,
+                    text=f"For the problem details: `{issue_description}`",
+                )
+        else:
+            say("Failed to post message")
+
+        reminder_time = timedelta(minutes=3)
+        schedule_reminder(client, channel_id, ts, reminder_time, result["ts"])
     except SlackApiError as e:
         logger.error(
             f"Error posting message: {str(e)} | Response: {e.response['error']}"
         )
 
 
-# Utility function to convert UTC to Jakarta time (you'll need to implement this)
 def convert_utc_to_jakarta(utc_dt):
     # You can use pytz or another timezone library to handle this conversion
     from pytz import timezone
