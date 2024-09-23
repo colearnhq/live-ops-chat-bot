@@ -176,7 +176,7 @@ def inserting_img(blocks, img_url):
     ]
 
     if img_url:
-        blocks.insert(len(blocks) - 1, img_part_block)
+        blocks.insert(len(blocks) - 1, img_part_block[0])
 
     return blocks
 
@@ -392,8 +392,11 @@ def handle_submission(ack, body, client, logger, say):
             ]
 
         result = client.chat_update(
-            channel=channel_id, ts=ts, blocks=inserting_img(blocks, img_url)
+            channel=channel_id,
+            ts=ts,
+            blocks=inserting_img(blocks, img_url),
         )
+
         sheet_manager.init_ticket_row(
             f"live-ops.{result['ts']}",
             user_id,
