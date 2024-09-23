@@ -170,28 +170,34 @@ def truncate_value(value, max_length=37):
 
 
 def inserting_imgs_thread(client, channel_id, ts, files):
-    # Create a list to hold all image blocks
-    img_blocks = []
+    blocks = []
 
-    # Iterate over all files and add image blocks for each file
+    blocks.append(
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": "Here are the uploaded images from user:",
+            },
+        }
+    )
+
     for file in files:
         img_url = file.get("url_private", file.get("thumb_360", file.get("thumb_64")))
         if img_url:
-            # Create an image block for each file
             img_block = {
                 "type": "image",
                 "image_url": img_url,
                 "alt_text": "user_attachment",
             }
-            img_blocks.append(img_block)  # Add the image block to the list
+            blocks.append(img_block)
 
-    if img_blocks:
-        # Post all images in one message in the thread
+    if blocks:
         client.chat_postMessage(
             channel=channel_id,
-            thread_ts=ts,  # Post in the thread
-            blocks=img_blocks,  # All image blocks in one message
-            text="Here are the uploaded images",  # Fallback text
+            thread_ts=ts,
+            blocks=blocks,
+            text="Here are the uploaded images",
         )
 
 
@@ -1420,18 +1426,6 @@ def reject_button(ack, body, client):
                     "type": "plain_text_input",
                     "action_id": "reason_input",
                     "multiline": True,
-                },
-            },
-            {
-                "type": "input",
-                "optional": True,
-                "block_id": "input_block_id",
-                "label": {"type": "plain_text", "text": "Upload Files"},
-                "element": {
-                    "type": "file_input",
-                    "action_id": "file_input_action_id_1",
-                    "filetypes": ["jpg", "png"],
-                    "max_files": 5,
                 },
             },
         ],
