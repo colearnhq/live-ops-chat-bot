@@ -426,7 +426,8 @@ def handle_submission(ack, body, client, logger, say):
             timestamp_utc,
         )
         if result["ok"]:
-            inserting_imgs_thread(client, channel_id, ts, files)
+            if files:
+                inserting_imgs_thread(client, channel_id, ts, files)
             if len(issue_description) > 37:
                 client.chat_postMessage(
                     channel=channel_id,
