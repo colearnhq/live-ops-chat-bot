@@ -175,7 +175,10 @@ def inserting_img(blocks, img_url):
         {"type": "image", "image_url": img_url, "alt_text": "user_attachment"},
     ]
 
-    return blocks.insert(len(blocks) - 1, img_part_block) if img_url else blocks
+    if img_url:
+        blocks.insert(len(blocks) - 1, img_part_block)
+
+    return blocks
 
 
 @app.command("/opsdev")
