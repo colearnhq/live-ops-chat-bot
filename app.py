@@ -230,7 +230,7 @@ def handle_submission(ack, body, client, logger, say):
     user_name = body["user"]["name"]
     view_state = body["view"]["state"]["values"]
     files = view_state["input_block_id"]["file_input_action_id_1"]["files"][0]
-    img_url = files["url_private"]
+    img_url = files["thumb_80"]
     issue_description = view_state["issue_name"]["user_issue"]["value"]
 
     channel_id = body["view"]["private_metadata"]
@@ -269,7 +269,7 @@ def handle_submission(ack, body, client, logger, say):
         ]
 
         response_for_user = client.chat_postMessage(channel=user_id, blocks=ticket)
-        ticket_key_for_user = f"{user_id}@@{response_for_user['ts']}@@{truncate_value(issue_description)}@@{timestamp_jakarta}"
+        ticket_key_for_user = f"{user_id}@@{response_for_user['ts']}@@{truncate_value(issue_description)}@@{timestamp_jakarta}@@{img_url}"
 
         members_result = client.conversations_members(channel=channel_id)
         if members_result["ok"]:
@@ -351,7 +351,7 @@ def handle_submission(ack, body, client, logger, say):
                     },
                 },
                 {"type": "divider"},
-                {"type": "image", "image_url": img_url, "alt_text": "user_attachement"},
+                {"type": "image", "image_url": img_url, "alt_text": "user_attachment"},
                 {"type": "divider"},
                 {
                     "type": "actions",
@@ -628,6 +628,11 @@ def select_user(ack, body, client):
     response_ts = selected_user_data[2]
     user_input = selected_user_data[3]
     reported_at = selected_user_data[4]
+    img_url = selected_user_data[5]
+    img_part_block = [
+        {"type": "divider"},
+        {"type": "image", "image_url": img_url, "alt_text": "user_attachment"},
+    ]
     channel_id = body["channel"]["id"]
     thread_ts = body["container"]["message_ts"]
     categories = [
@@ -749,6 +754,9 @@ def select_user(ack, body, client):
                     },
                 },
             ]
+
+            updated_blocks.insert(4, img_part_block[0])
+            reflected_msg.insert(4, img_part_block[0])
 
             client.chat_update(
                 channel=channel_id,
@@ -906,6 +914,9 @@ def select_user(ack, body, client):
                     },
                 },
             ]
+
+            updated_blocks.insert(6, img_part_block[0])
+            reflected_msg.insert(4, img_part_block[0])
 
             client.chat_update(
                 channel=channel_id,
