@@ -169,17 +169,30 @@ def truncate_value(value, max_length=37):
     )
 
 
-def inserting_img(blocks, files):
-    print(f"panjang blocks {len(blocks)}")
+def inserting_imgs_thread(client, channel_id, ts, files):
+    # Create a list to hold all image blocks
+    img_blocks = []
+
+    # Iterate over all files and add image blocks for each file
     for file in files:
         img_url = file.get("url_private", file.get("thumb_360", file.get("thumb_64")))
         if img_url:
-            img_part_block = [
-                {"type": "divider"},
-                {"type": "image", "image_url": img_url, "alt_text": "user_attachment"},
-            ]
-            blocks.extend(img_part_block)
-        return blocks
+            # Create an image block for each file
+            img_block = {
+                "type": "image",
+                "image_url": img_url,
+                "alt_text": "user_attachment",
+            }
+            img_blocks.append(img_block)  # Add the image block to the list
+
+    if img_blocks:
+        # Post all images in one message in the thread
+        client.chat_postMessage(
+            channel=channel_id,
+            thread_ts=ts,  # Post in the thread
+            blocks=img_blocks,  # All image blocks in one message
+            text="Here are the uploaded images",  # Fallback text
+        )
 
 
 @app.command("/opsdev")
@@ -396,7 +409,7 @@ def handle_submission(ack, body, client, logger, say):
         result = client.chat_update(
             channel=channel_id,
             ts=ts,
-            blocks=inserting_img(blocks, files),
+            blocks=blocks,
         )
 
         sheet_manager.init_ticket_row(
@@ -407,7 +420,7 @@ def handle_submission(ack, body, client, logger, say):
             timestamp_utc,
         )
         if result["ok"]:
-            client.chat_postMessage
+            inserting_imgs_thread(client, channel_id, ts, files)
             if len(issue_description) > 37:
                 client.chat_postMessage(
                     channel=channel_id,
