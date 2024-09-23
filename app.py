@@ -386,7 +386,7 @@ def handle_submission(ack, body, client, logger, say):
         sheet_manager.init_ticket_row(
             f"live-ops.{result['ts']}",
             user_id,
-            body["user_name"],
+            user_name,
             issue_description,
             timestamp_utc,
         )
