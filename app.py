@@ -169,14 +169,17 @@ def truncate_value(value, max_length=37):
     )
 
 
-def inserting_img(blocks, img_url):
-    if img_url:
-        img_part_block = [
-            {"type": "divider"},
-            {"type": "image", "image_url": img_url, "alt_text": "user_attachment"},
-        ]
-        blocks.extend(img_part_block)
-    return blocks
+def inserting_img(blocks, files):
+    print(f"panjang blocks {len(blocks)}")
+    for file in files:
+        img_url = file.get("url_private", file.get("thumb_360", file.get("thumb_64")))
+        if img_url:
+            img_part_block = [
+                {"type": "divider"},
+                {"type": "image", "image_url": img_url, "alt_text": "user_attachment"},
+            ]
+            blocks.extend(img_part_block)
+        return blocks
 
 
 @app.command("/opsdev")
@@ -233,8 +236,6 @@ def slash_input(ack, body, client):
 @app.view("slash_input")
 def handle_submission(ack, body, client, logger, say):
     ack()
-    print(f"View submission body: {body}")
-
     user_id = body["user"]["id"]
     user_name = body["user"]["name"]
     view_state = body["view"]["state"]["values"]
@@ -243,13 +244,6 @@ def handle_submission(ack, body, client, logger, say):
         .get("file_input_action_id_1", {})
         .get("files", [])
     )
-
-    if files:
-        img_url = files[0].get(
-            "url_private", files[0].get("thumb_360", files[0]["thumb_64"])
-        )
-    else:
-        img_url = None
     issue_description = view_state["issue_name"]["user_issue"]["value"]
 
     channel_id = body["view"]["private_metadata"]
@@ -288,7 +282,7 @@ def handle_submission(ack, body, client, logger, say):
         ]
 
         response_for_user = client.chat_postMessage(channel=user_id, blocks=ticket)
-        ticket_key_for_user = f"{user_id}@@{response_for_user['ts']}@@{truncate_value(issue_description)}@@{timestamp_jakarta}@@{img_url}"
+        ticket_key_for_user = f"{user_id}@@{response_for_user['ts']}@@{truncate_value(issue_description)}@@{timestamp_jakarta}@@{files}"
 
         members_result = client.conversations_members(channel=channel_id)
         if members_result["ok"]:
@@ -402,7 +396,7 @@ def handle_submission(ack, body, client, logger, say):
         result = client.chat_update(
             channel=channel_id,
             ts=ts,
-            blocks=inserting_img(blocks, img_url),
+            blocks=inserting_img(blocks, files),
         )
 
         sheet_manager.init_ticket_row(
