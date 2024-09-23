@@ -170,14 +170,12 @@ def truncate_value(value, max_length=37):
 
 
 def inserting_img(blocks, img_url):
-    img_part_block = [
-        {"type": "divider"},
-        {"type": "image", "image_url": img_url, "alt_text": "user_attachment"},
-    ]
-
     if img_url:
-        blocks.insert(len(blocks) - 1, img_part_block[0])
-
+        img_part_block = [
+            {"type": "divider"},
+            {"type": "image", "image_url": img_url, "alt_text": "user_attachment"},
+        ]
+        blocks.extend(img_part_block)
     return blocks
 
 
@@ -240,8 +238,18 @@ def handle_submission(ack, body, client, logger, say):
     user_id = body["user"]["id"]
     user_name = body["user"]["name"]
     view_state = body["view"]["state"]["values"]
-    files = view_state["input_block_id"]["file_input_action_id_1"]["files"][0]
-    img_url = files["thumb_64"]
+    files = (
+        view_state.get("input_block_id", {})
+        .get("file_input_action_id_1", {})
+        .get("files", [])
+    )
+
+    if files:
+        img_url = files[0].get(
+            "url_private", files[0].get("thumb_360", files[0]["thumb_64"])
+        )
+    else:
+        img_url = None
     issue_description = view_state["issue_name"]["user_issue"]["value"]
 
     channel_id = body["view"]["private_metadata"]
