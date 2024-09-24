@@ -484,6 +484,10 @@ def send_the_user_input(ack, body, client, say, view):
     reporter_name = body["user"]["username"]
     timestamp_utc = datetime.utcnow()
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
+    init_result = client.chat_postMessage(
+        channel=channel_id, text="Initializing ticket..."
+    )
+    initial_ts = initial_ts
 
     if category == "Piket":
         date = view["state"]["values"]["date_block"]["date_picker_action"][
@@ -517,12 +521,13 @@ def send_the_user_input(ack, body, client, say, view):
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"*Piket Ticket Number:* live-ops.{timestamp_jakarta}",
+                    "text": f"*Piket Ticket Number:* piket.{initial_ts}",
                 },
             },
             {
                 "type": "section",
                 "fields": [
+                    {"type": "mrkdwn", "text": f"*Class Date:*\n{date}"},
                     {
                         "type": "mrkdwn",
                         "text": f"*Teacher Requested:*\n{teacher_requested}",
@@ -551,10 +556,7 @@ def send_the_user_input(ack, body, client, say, view):
             .get("files", [])
         )
         try:
-            init_result = client.chat_postMessage(
-                channel=channel_id, text="Initializing ticket..."
-            )
-            ticket_manager.store_user_input(init_result["ts"], issue_description)
+            ticket_manager.store_user_input(initial_ts, issue_description)
 
             ticket = [
                 {
@@ -578,6 +580,34 @@ def send_the_user_input(ack, body, client, say, view):
                         {
                             "type": "mrkdwn",
                             "text": f"*Problem:*\n`{truncate_value(issue_description)}`",
+                        },
+                    ],
+                },
+                {"type": "divider"},
+                {
+                    "type": "actions",
+                    "elements": [
+                        {
+                            "type": "button",
+                            "text": {
+                                "type": "plain_text",
+                                "emoji": True,
+                                "text": "Ack",
+                            },
+                            "style": "primary",
+                            "value": ticket_key_for_user,
+                            "action_id": "resolve_button",
+                        },
+                        {
+                            "type": "button",
+                            "text": {
+                                "type": "plain_text",
+                                "emoji": True,
+                                "text": "Reject",
+                            },
+                            "style": "danger",
+                            "value": ticket_key_for_user,
+                            "action_id": "reject_button",
                         },
                     ],
                 },
@@ -621,7 +651,7 @@ def send_the_user_input(ack, body, client, say, view):
                     )
 
             if init_result["ok"]:
-                ts = init_result["ts"]
+                ts = initial_ts
                 blocks = [
                     {
                         "type": "section",
@@ -967,7 +997,6 @@ def select_user(ack, body, client):
     response_ts = selected_user_data[2]
     user_input = selected_user_data[3]
     reported_at = selected_user_data[4]
-    img_url = selected_user_data[5]
     channel_id = body["channel"]["id"]
     thread_ts = body["container"]["message_ts"]
     categories = [
