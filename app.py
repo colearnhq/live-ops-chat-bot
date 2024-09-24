@@ -472,14 +472,14 @@ def handle_category_selection(ack, body, client):
 @app.view("slash_input")
 def send_the_user_input(ack, body, client, say, view):
     ack()
-
-    # Extract the selected category from the view submission
+    print(f"ini body {body}")
+    print(f"ini view {view}")
     category = view["state"]["values"]["category_block"]["category_select_action"][
         "selected_option"
     ]["value"]
 
     private_metadata = view["private_metadata"]
-    channel_id = private_metadata  # This will differ based on category
+    channel_id = private_metadata
     user_id = body["user"]["id"]
     reporter_name = body["user"]["username"]
     timestamp_utc = datetime.utcnow()
