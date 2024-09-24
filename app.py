@@ -201,10 +201,98 @@ def inserting_imgs_thread(client, channel_id, ts, files):
         )
 
 
+# @app.command("/opsdev")
+# def slash_input(ack, body, client):
+#     ack()
+#     categories = [
+#         "Piket",
+#         "Others",
+#     ]
+#     category_options = [
+#         {
+#             "text": {"type": "plain_text", "text": category},
+#             "value": f"{category}",
+#         }
+#         for category in categories
+#     ]
+#     trigger_id = body["trigger_id"]
+#     channel_id = "C0719R3NQ91"
+#     modal = {
+#         "type": "modal",
+#         "callback_id": "slash_input",
+#         "title": {"type": "plain_text", "text": "Input Your Issue"},
+#         "submit": {"type": "plain_text", "text": "Submit"},
+#         "close": {"type": "plain_text", "text": "Cancel"},
+#         "blocks": [
+#             {
+#                 "type": "section",
+#                 "text": {
+#                     "type": "mrkdwn",
+#                     "text": "Please select the category of the issue:",
+#                 },
+#                 "accessory": {
+#                     "type": "static_select",
+#                     "placeholder": {
+#                         "type": "plain_text",
+#                         "text": "Select category...",
+#                         "emoji": True,
+#                     },
+#                     "options": category_options,
+#                     "action_id": "category_select_action",
+#                 },
+#             },
+#             {
+#                 "type": "input",
+#                 "block_id": "issue_name",
+#                 "label": {"type": "plain_text", "text": "Your Issue"},
+#                 "element": {
+#                     "type": "plain_text_input",
+#                     "action_id": "user_issue",
+#                     "multiline": True,
+#                     "placeholder": {
+#                         "type": "plain_text",
+#                         "text": "Describe your issue...",
+#                     },
+#                 },
+#             },
+#             {
+#                 "type": "input",
+#                 "optional": True,
+#                 "block_id": "input_block_id",
+#                 "label": {"type": "plain_text", "text": "Upload Files"},
+#                 "element": {
+#                     "type": "file_input",
+#                     "action_id": "file_input_action_id_1",
+#                     "filetypes": ["jpg", "png"],
+#                     "max_files": 5,
+#                 },
+#             },
+#         ],
+#         "private_metadata": f"{channel_id}",
+#     }
+
+#     try:
+#         client.views_open(trigger_id=trigger_id, view=modal)
+#     except SlackApiError as e:
+#         logging.error(
+#             f"Error opening modal: {str(e)} | Response: {e.response['error']}"
+#         )
+
+
 @app.command("/opsdev")
 def slash_input(ack, body, client):
     ack()
-
+    categories = [
+        "Piket",
+        "Others",
+    ]
+    category_options = [
+        {
+            "text": {"type": "plain_text", "text": category},
+            "value": f"{category}",
+        }
+        for category in categories
+    ]
     trigger_id = body["trigger_id"]
     channel_id = "C0719R3NQ91"
     modal = {
@@ -215,29 +303,21 @@ def slash_input(ack, body, client):
         "close": {"type": "plain_text", "text": "Cancel"},
         "blocks": [
             {
-                "type": "input",
-                "block_id": "issue_name",
-                "label": {"type": "plain_text", "text": "Your Issue"},
-                "element": {
-                    "type": "plain_text_input",
-                    "action_id": "user_issue",
-                    "multiline": True,
+                "type": "section",
+                "block_id": "category_block",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "Please select the category of the issue:",
+                },
+                "accessory": {
+                    "type": "static_select",
                     "placeholder": {
                         "type": "plain_text",
-                        "text": "Describe your issue...",
+                        "text": "Select category...",
+                        "emoji": True,
                     },
-                },
-            },
-            {
-                "type": "input",
-                "optional": True,
-                "block_id": "input_block_id",
-                "label": {"type": "plain_text", "text": "Upload Files"},
-                "element": {
-                    "type": "file_input",
-                    "action_id": "file_input_action_id_1",
-                    "filetypes": ["jpg", "png"],
-                    "max_files": 5,
+                    "options": category_options,
+                    "action_id": "user_categories",
                 },
             },
         ],
@@ -252,36 +332,195 @@ def slash_input(ack, body, client):
         )
 
 
-@app.view("slash_input")
-def handle_submission(ack, body, client, logger, say):
+@app.action("user_categories")
+def handle_category_selection(ack, body, client):
     ack()
-    user_id = body["user"]["id"]
-    user_name = body["user"]["name"]
-    view_state = body["view"]["state"]["values"]
-    files = (
-        view_state.get("input_block_id", {})
-        .get("file_input_action_id_1", {})
-        .get("files", [])
-    )
-    issue_description = view_state["issue_name"]["user_issue"]["value"]
 
+    selected_category = body["actions"][0]["selected_option"]["value"]
+    trigger_id = body["trigger_id"]
     channel_id = body["view"]["private_metadata"]
 
+    if selected_category == "Piket":
+        modal_blocks = [
+            {
+                "type": "input",
+                "block_id": "date_block",
+                "label": {"type": "plain_text", "text": "Date"},
+                "element": {
+                    "type": "datepicker",
+                    "action_id": "date_picker_action",
+                    "placeholder": {"type": "plain_text", "text": "Select date"},
+                },
+            },
+            {
+                "type": "input",
+                "block_id": "teacher_request_block",
+                "label": {"type": "plain_text", "text": "Teacher who requested"},
+                "element": {
+                    "type": "plain_text_input",
+                    "action_id": "teacher_request_action",
+                },
+            },
+            {
+                "type": "input",
+                "block_id": "teacher_replace_block",
+                "label": {"type": "plain_text", "text": "Teacher who replaces"},
+                "element": {
+                    "type": "plain_text_input",
+                    "action_id": "teacher_replace_action",
+                },
+            },
+            {
+                "type": "input",
+                "block_id": "grade_block",
+                "label": {"type": "plain_text", "text": "Grade"},
+                "element": {
+                    "type": "plain_text_input",
+                    "action_id": "grade_action",
+                },
+            },
+            {
+                "type": "input",
+                "block_id": "slot_name_block",
+                "label": {"type": "plain_text", "text": "Slot Name"},
+                "element": {
+                    "type": "plain_text_input",
+                    "action_id": "slot_name_action",
+                },
+            },
+            {
+                "type": "input",
+                "block_id": "time_class_block",
+                "label": {"type": "plain_text", "text": "Time of Class"},
+                "element": {
+                    "type": "plain_text_input",
+                    "action_id": "time_class_action",
+                },
+            },
+            {
+                "type": "input",
+                "block_id": "reason_block",
+                "label": {"type": "plain_text", "text": "Reason"},
+                "element": {
+                    "type": "plain_text_input",
+                    "action_id": "reason_action",
+                },
+            },
+            {
+                "type": "input",
+                "block_id": "direct_lead_block",
+                "label": {"type": "plain_text", "text": "Direct Lead"},
+                "element": {
+                    "type": "plain_text_input",
+                    "action_id": "direct_lead_action",
+                },
+            },
+            {
+                "type": "input",
+                "block_id": "stem_lead_block",
+                "label": {"type": "plain_text", "text": "STEM Lead"},
+                "element": {
+                    "type": "plain_text_input",
+                    "action_id": "stem_lead_action",
+                },
+            },
+        ]
+    elif selected_category == "Others":
+        modal_blocks = [
+            {
+                "type": "input",
+                "block_id": "issue_description_block",
+                "label": {"type": "plain_text", "text": "Issue Description"},
+                "element": {
+                    "type": "plain_text_input",
+                    "action_id": "issue_description_action",
+                    "multiline": True,
+                },
+            },
+            {
+                "type": "input",
+                "optional": True,
+                "block_id": "file_upload_block",
+                "label": {"type": "plain_text", "text": "File Upload"},
+                "element": {
+                    "type": "file_input",
+                    "action_id": "file_input_action",
+                    "filetypes": ["jpg", "png"],
+                    "max_files": 5,
+                },
+            },
+        ]
+
+    updated_modal = {
+        "type": "modal",
+        "callback_id": "slash_input",
+        "title": {"type": "plain_text", "text": "Input Your Issue"},
+        "submit": {"type": "plain_text", "text": "Submit"},
+        "close": {"type": "plain_text", "text": "Cancel"},
+        "blocks": modal_blocks,
+        "private_metadata": f"{channel_id}",
+    }
+
+    try:
+        client.views_update(view_id=body["view"]["id"], view=updated_modal)
+    except SlackApiError as e:
+        logging.error(
+            f"Error updating modal: {str(e)} | Response: {e.response['error']}"
+        )
+
+
+@app.view("slash_input")
+def send_the_user_input(ack, body, client, say, view):
+    ack()
+
+    # Extract the selected category from the view submission
+    category = view["state"]["values"]["category_block"]["category_select_action"][
+        "selected_option"
+    ]["value"]
+
+    private_metadata = view["private_metadata"]
+    channel_id = private_metadata  # This will differ based on category
+    user_id = body["user"]["id"]
+    reporter_name = body["user"]["username"]
     timestamp_utc = datetime.utcnow()
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
 
-    try:
-        init_result = client.chat_postMessage(
-            channel=channel_id, text="Initializing ticket..."
-        )
-        ticket_manager.store_user_input(init_result["ts"], issue_description)
+    # Handle for "Piket"
+    if category == "Piket":
+        # Piket-specific fields
+        date = view["state"]["values"]["date_block"]["date_picker_action"][
+            "selected_date"
+        ]
+        teacher_requested = view["state"]["values"]["teacher_request_block"][
+            "teacher_request_action"
+        ]["value"]
+        teacher_replace = view["state"]["values"]["teacher_replace_block"][
+            "teacher_replace_action"
+        ]["value"]
+        grade = view["state"]["values"]["grade_block"]["grade_action"]["value"]
+        slot_name = view["state"]["values"]["slot_name_block"]["slot_name_action"][
+            "value"
+        ]
+        time_class = view["state"]["values"]["time_class_block"]["time_class_action"][
+            "value"
+        ]
+        reason = view["state"]["values"]["reason_block"]["reason_action"]["value"]
+        direct_lead = view["state"]["values"]["direct_lead_block"][
+            "direct_lead_action"
+        ]["value"]
+        stem_lead = view["state"]["values"]["stem_lead_block"]["stem_lead_action"][
+            "value"
+        ]
 
-        ticket = [
+        # Send the message to a specific Piket channel (you can change the channel ID here)
+        piket_channel_id = "CXXXXXXPiket"  # Example channel ID for Piket
+
+        piket_message = [
             {
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"Your ticket number: *live-ops.{init_result['ts']}*",
+                    "text": f"*Piket Ticket Number:* live-ops.{timestamp_jakarta}",
                 },
             },
             {
@@ -289,8 +528,50 @@ def handle_submission(ack, body, client, logger, say):
                 "fields": [
                     {
                         "type": "mrkdwn",
-                        "text": f"*Your Name:*\n{user_name}",
+                        "text": f"*Teacher Requested:*\n{teacher_requested}",
                     },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Teacher Replaces:*\n{teacher_replace}",
+                    },
+                    {"type": "mrkdwn", "text": f"*Grade:*\n{grade}"},
+                    {"type": "mrkdwn", "text": f"*Slot Name:*\n{slot_name}"},
+                    {"type": "mrkdwn", "text": f"*Time of Class:*\n{time_class}"},
+                    {"type": "mrkdwn", "text": f"*Reason:*\n{reason}"},
+                    {"type": "mrkdwn", "text": f"*Direct Lead:*\n{direct_lead}"},
+                    {"type": "mrkdwn", "text": f"*STEM Lead:*\n{stem_lead}"},
+                ],
+            },
+        ]
+
+        client.chat_postMessage(channel=piket_channel_id, blocks=piket_message)
+
+    # Handle for "Others"
+    elif category == "Others":
+        issue_description = view["state"]["values"]["issue_description_block"][
+            "issue_description_action"
+        ]["value"]
+        file_info = (
+            view["state"]["values"]
+            .get("file_upload_block", {})
+            .get("file_input_action", None)
+        )
+
+        # Send the message to a different channel for "Others"
+        others_channel_id = "CXXXXXXOthers"  # Example channel ID for Others
+
+        others_message = [
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"Your ticket number: *live-ops.{timestamp_jakarta}*",
+                },
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {"type": "mrkdwn", "text": f"*Your Name:*\n{reporter_name}"},
                     {"type": "mrkdwn", "text": f"*Reported at:*\n{timestamp_jakarta}"},
                     {
                         "type": "mrkdwn",
@@ -300,169 +581,47 @@ def handle_submission(ack, body, client, logger, say):
             },
         ]
 
-        response_for_user = client.chat_postMessage(channel=user_id, blocks=ticket)
-        ticket_key_for_user = f"{user_id}@@{response_for_user['ts']}@@{truncate_value(issue_description)}@@{timestamp_jakarta}"
-
-        members_result = client.conversations_members(channel=channel_id)
-        if members_result["ok"]:
-            members = members_result["members"]
-        else:
-            members = []
-
-        group_mentions = ["S05RYHJ41C6", "S02R59UL0RH"]
-        members.extend(group_mentions)
-        members.sort()
-
-        user_options = [
-            {
-                "text": {
-                    "type": "plain_text",
-                    "text": (
-                        f"<@{member}>"
-                        if not member.startswith("S")
-                        else f"<!subteam^{member}>"
-                    ),
-                },
-                "value": f"{member}@@{user_id}@@{response_for_user['ts']}@@{truncate_value(issue_description)}@@{timestamp_jakarta}",
-            }
-            for member in members
-        ]
-
-        if response_for_user["ok"]:
-            ts = response_for_user["ts"]
-            if len(issue_description) > 37:
-                client.chat_postMessage(
-                    channel=user_id,
-                    thread_ts=ts,
-                    text=f"For the problem details: `{issue_description}`",
-                )
-
-        if init_result["ok"]:
-            ts = init_result["ts"]
-            blocks = [
+        # Process file upload if available
+        if file_info:
+            file_id = file_info["id"]
+            file_url = client.files_info(file=file_id)["file"]["url_private"]
+            others_message.append(
                 {
                     "type": "section",
-                    "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": f"We just received a ticket from <@{user_id}> at `{timestamp_jakarta}`",
-                    },
-                },
-                {
-                    "type": "section",
-                    "fields": [
-                        {
-                            "type": "mrkdwn",
-                            "text": f"*Ticket Number:*\nlive-ops.{ts}",
-                        },
-                        {
-                            "type": "mrkdwn",
-                            "text": f"*Problem:*\n`{truncate_value(issue_description)}`",
-                        },
-                    ],
-                },
-                {"type": "divider"},
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "Please pick a person:",
-                    },
-                    "accessory": {
-                        "type": "static_select",
-                        "placeholder": {
-                            "type": "plain_text",
-                            "text": "Select a person...",
-                            "emoji": True,
-                        },
-                        "options": user_options,
-                        "action_id": "user_select_action",
-                    },
-                },
-                {"type": "divider"},
-                {
-                    "type": "actions",
-                    "elements": [
-                        {
-                            "type": "button",
-                            "text": {
-                                "type": "plain_text",
-                                "emoji": True,
-                                "text": "Resolve",
-                            },
-                            "style": "primary",
-                            "value": ticket_key_for_user,
-                            "action_id": "resolve_button",
-                        },
-                        {
-                            "type": "button",
-                            "text": {
-                                "type": "plain_text",
-                                "emoji": True,
-                                "text": "Reject",
-                            },
-                            "style": "danger",
-                            "value": ticket_key_for_user,
-                            "action_id": "reject_button",
-                        },
-                    ],
-                },
-            ]
+                    "text": {"type": "mrkdwn", "text": f"Uploaded file: {file_url}"},
+                }
+            )
 
-        result = client.chat_update(
-            channel=channel_id,
-            ts=ts,
-            blocks=blocks,
-        )
+        client.chat_postMessage(channel=others_channel_id, blocks=others_message)
 
+    # Other shared actions, like updating a ticket row in a sheet, can be added here
+    try:
         sheet_manager.init_ticket_row(
-            f"live-ops.{result['ts']}",
+            f"live-ops.{timestamp_utc}",
             user_id,
-            user_name,
-            issue_description,
+            reporter_name,
+            issue_description if category == "Others" else "Piket Ticket",
             timestamp_utc,
         )
-        if result["ok"]:
-            if files:
-                inserting_imgs_thread(client, channel_id, ts, files)
-            if len(issue_description) > 37:
-                client.chat_postMessage(
-                    channel=channel_id,
-                    thread_ts=ts,
-                    text=f"For the problem details: `{issue_description}`",
-                )
-        else:
-            say("Failed to post message")
-
-        reminder_time = timedelta(minutes=3)
-        schedule_reminder(client, channel_id, ts, reminder_time, result["ts"])
-    except SlackApiError as e:
-        logger.error(
-            f"Error posting message: {str(e)} | Response: {e.response['error']}"
-        )
-
-
-def convert_utc_to_jakarta(utc_dt):
-    # You can use pytz or another timezone library to handle this conversion
-    from pytz import timezone
-
-    fmt = "%Y-%m-%d %H:%M:%S %Z%z"
-    utc_dt = utc_dt.replace(tzinfo=timezone("UTC"))
-    jakarta_time = utc_dt.astimezone(timezone("Asia/Jakarta"))
-    return jakarta_time.strftime(fmt)
+    except Exception as e:
+        logging.error(f"An error occurred: {str(e)}")
 
 
 # @app.view("slash_input")
-# def send_the_user_input(ack, body, client, say, view):
+# def handle_submission(ack, body, client, logger, say):
 #     ack()
-#     private_metadata = view["private_metadata"].split("@@")
-#     channel_id = private_metadata[0]
-#     user_input = body.get("text", "No message provided.")
-#     user_id = body["user_id"]
-#     reporter_name = body["user_name"]
+#     user_id = body["user"]["id"]
+#     user_name = body["user"]["name"]
+#     view_state = body["view"]["state"]["values"]
+#     files = (
+#         view_state.get("input_block_id", {})
+#         .get("file_input_action_id_1", {})
+#         .get("files", [])
+#     )
+#     issue_description = view_state["issue_name"]["user_issue"]["value"]
+
+#     channel_id = body["view"]["private_metadata"]
+
 #     timestamp_utc = datetime.utcnow()
 #     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
 
@@ -470,8 +629,7 @@ def convert_utc_to_jakarta(utc_dt):
 #         init_result = client.chat_postMessage(
 #             channel=channel_id, text="Initializing ticket..."
 #         )
-
-#         ticket_manager.store_user_input(init_result["ts"], user_input)
+#         ticket_manager.store_user_input(init_result["ts"], issue_description)
 
 #         ticket = [
 #             {
@@ -486,19 +644,19 @@ def convert_utc_to_jakarta(utc_dt):
 #                 "fields": [
 #                     {
 #                         "type": "mrkdwn",
-#                         "text": f"*Your Name:*\n{reporter_name}",
+#                         "text": f"*Your Name:*\n{user_name}",
 #                     },
 #                     {"type": "mrkdwn", "text": f"*Reported at:*\n{timestamp_jakarta}"},
 #                     {
 #                         "type": "mrkdwn",
-#                         "text": f"*Problem:*\n`{truncate_value(user_input)}`",
+#                         "text": f"*Problem:*\n`{truncate_value(issue_description)}`",
 #                     },
 #                 ],
 #             },
 #         ]
 
 #         response_for_user = client.chat_postMessage(channel=user_id, blocks=ticket)
-#         ticket_key_for_user = f"{user_id}@@{response_for_user['ts']}@@{truncate_value(user_input)}@@{timestamp_jakarta}"
+#         ticket_key_for_user = f"{user_id}@@{response_for_user['ts']}@@{truncate_value(issue_description)}@@{timestamp_jakarta}"
 
 #         members_result = client.conversations_members(channel=channel_id)
 #         if members_result["ok"]:
@@ -520,18 +678,18 @@ def convert_utc_to_jakarta(utc_dt):
 #                         else f"<!subteam^{member}>"
 #                     ),
 #                 },
-#                 "value": f"{member}@@{user_id}@@{response_for_user['ts']}@@{truncate_value(user_input)}@@{timestamp_jakarta}",
+#                 "value": f"{member}@@{user_id}@@{response_for_user['ts']}@@{truncate_value(issue_description)}@@{timestamp_jakarta}",
 #             }
 #             for member in members
 #         ]
 
 #         if response_for_user["ok"]:
 #             ts = response_for_user["ts"]
-#             if len(user_input) > 37:
+#             if len(issue_description) > 37:
 #                 client.chat_postMessage(
 #                     channel=user_id,
 #                     thread_ts=ts,
-#                     text=f"For the problem details: `{user_input}`",
+#                     text=f"For the problem details: `{issue_description}`",
 #                 )
 
 #         if init_result["ok"]:
@@ -557,7 +715,7 @@ def convert_utc_to_jakarta(utc_dt):
 #                         },
 #                         {
 #                             "type": "mrkdwn",
-#                             "text": f"*Problem:*\n`{truncate_value(user_input)}`",
+#                             "text": f"*Problem:*\n`{truncate_value(issue_description)}`",
 #                         },
 #                     ],
 #                 },
@@ -609,29 +767,47 @@ def convert_utc_to_jakarta(utc_dt):
 #                 },
 #             ]
 
-#         result = client.chat_update(channel=channel_id, ts=ts, blocks=blocks)
+#         result = client.chat_update(
+#             channel=channel_id,
+#             ts=ts,
+#             blocks=blocks,
+#         )
+
 #         sheet_manager.init_ticket_row(
 #             f"live-ops.{result['ts']}",
 #             user_id,
-#             body["user_name"],
-#             user_input,
+#             user_name,
+#             issue_description,
 #             timestamp_utc,
 #         )
 #         if result["ok"]:
-#             if len(user_input) > 37:
+#             if files:
+#                 inserting_imgs_thread(client, channel_id, ts, files)
+#             if len(issue_description) > 37:
 #                 client.chat_postMessage(
 #                     channel=channel_id,
 #                     thread_ts=ts,
-#                     text=f"For the problem details: `{user_input}`",
+#                     text=f"For the problem details: `{issue_description}`",
 #                 )
 #         else:
 #             say("Failed to post message")
 
 #         reminder_time = timedelta(minutes=3)
 #         schedule_reminder(client, channel_id, ts, reminder_time, result["ts"])
+#     except SlackApiError as e:
+#         logger.error(
+#             f"Error posting message: {str(e)} | Response: {e.response['error']}"
+#         )
 
-#     except Exception as e:
-#         logging.error(f"An error occurred: {str(e)}")
+
+def convert_utc_to_jakarta(utc_dt):
+    # You can use pytz or another timezone library to handle this conversion
+    from pytz import timezone
+
+    fmt = "%Y-%m-%d %H:%M:%S %Z%z"
+    utc_dt = utc_dt.replace(tzinfo=timezone("UTC"))
+    jakarta_time = utc_dt.astimezone(timezone("Asia/Jakarta"))
+    return jakarta_time.strftime(fmt)
 
 
 def schedule_reminder(client, channel_id, thread_ts, reminder_time, ticket_ts):
@@ -790,10 +966,10 @@ def select_user(ack, body, client):
             client.chat_update(
                 channel=channel_id,
                 ts=thread_ts,
-                blocks=inserting_img(updated_blocks),
+                blocks=updated_blocks,
             )
             reflected_post = client.chat_postMessage(
-                channel=reflected_cn, blocks=inserting_img(reflected_msg)
+                channel=reflected_cn, blocks=reflected_msg
             )
             if reflected_post["ok"]:
                 ts = reflected_post["ts"]
@@ -943,9 +1119,6 @@ def select_user(ack, body, client):
                     },
                 },
             ]
-
-            updated_blocks.insert(6, img_part_block[0])
-            reflected_msg.insert(4, img_part_block[0])
 
             client.chat_update(
                 channel=channel_id,
