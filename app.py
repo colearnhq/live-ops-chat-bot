@@ -487,7 +487,7 @@ def send_the_user_input(ack, body, client, say, view):
     init_result = client.chat_postMessage(
         channel=channel_id, text="Initializing ticket..."
     )
-    initial_ts = initial_ts
+    initial_ts = init_result["ts"]
 
     if category == "Piket":
         date = view["state"]["values"]["date_block"]["date_picker_action"][
