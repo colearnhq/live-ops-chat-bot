@@ -485,9 +485,7 @@ def send_the_user_input(ack, body, client, say, view):
     timestamp_utc = datetime.utcnow()
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
 
-    # Handle for "Piket"
     if category == "Piket":
-        # Piket-specific fields
         date = view["state"]["values"]["date_block"]["date_picker_action"][
             "selected_date"
         ]
@@ -512,8 +510,7 @@ def send_the_user_input(ack, body, client, say, view):
             "value"
         ]
 
-        # Send the message to a specific Piket channel (you can change the channel ID here)
-        piket_channel_id = "CXXXXXXPiket"  # Example channel ID for Piket
+        piket_channel_id = "C0719R3NQ91"
 
         piket_message = [
             {
@@ -546,7 +543,6 @@ def send_the_user_input(ack, body, client, say, view):
 
         client.chat_postMessage(channel=piket_channel_id, blocks=piket_message)
 
-    # Handle for "Others"
     elif category == "Others":
         issue_description = view["state"]["values"]["issue_description_block"][
             "issue_description_action"
@@ -557,8 +553,7 @@ def send_the_user_input(ack, body, client, say, view):
             .get("file_input_action", None)
         )
 
-        # Send the message to a different channel for "Others"
-        others_channel_id = "CXXXXXXOthers"  # Example channel ID for Others
+        others_channel_id = "C0719R3NQ91"
 
         others_message = [
             {
@@ -581,7 +576,6 @@ def send_the_user_input(ack, body, client, say, view):
             },
         ]
 
-        # Process file upload if available
         if file_info:
             file_id = file_info["id"]
             file_url = client.files_info(file=file_id)["file"]["url_private"]
@@ -594,7 +588,6 @@ def send_the_user_input(ack, body, client, say, view):
 
         client.chat_postMessage(channel=others_channel_id, blocks=others_message)
 
-    # Other shared actions, like updating a ticket row in a sheet, can be added here
     try:
         sheet_manager.init_ticket_row(
             f"live-ops.{timestamp_utc}",
