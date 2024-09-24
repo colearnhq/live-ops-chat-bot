@@ -480,12 +480,6 @@ def send_the_user_input(ack, body, client, say, view):
     category = private_metadata[1]
     channel_id = private_metadata[0]
     view_state = body["view"]["state"]["values"]
-    issue_description = view_state["issue_name"]["user_issue"]["value"]
-    files = (
-        view_state.get("file_upload_block", {})
-        .get("file_input_action", {})
-        .get("files", [])
-    )
     user_id = body["user"]["id"]
     reporter_name = body["user"]["username"]
     timestamp_utc = datetime.utcnow()
@@ -550,6 +544,12 @@ def send_the_user_input(ack, body, client, say, view):
         client.chat_postMessage(channel=piket_channel_id, blocks=piket_message)
 
     elif category == "Others":
+        issue_description = view_state["issue_name"]["user_issue"]["value"]
+        files = (
+            view_state.get("file_upload_block", {})
+            .get("file_input_action", {})
+            .get("files", [])
+        )
         try:
             init_result = client.chat_postMessage(
                 channel=channel_id, text="Initializing ticket..."
