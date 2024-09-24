@@ -356,18 +356,26 @@ def handle_category_selection(ack, body, client):
                 "type": "input",
                 "block_id": "teacher_request_block",
                 "label": {"type": "plain_text", "text": "Teacher who requested"},
-                "element": {
-                    "type": "plain_text_input",
+                "accessory": {
                     "action_id": "teacher_request_action",
+                    "type": "users_select",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Select Teacher Who Requested",
+                    },
                 },
             },
             {
                 "type": "input",
                 "block_id": "teacher_replace_block",
                 "label": {"type": "plain_text", "text": "Teacher who replaces"},
-                "element": {
-                    "type": "plain_text_input",
+                "accessory": {
                     "action_id": "teacher_replace_action",
+                    "type": "users_select",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Select Teacher Who Replaces",
+                    },
                 },
             },
             {
@@ -375,7 +383,7 @@ def handle_category_selection(ack, body, client):
                 "block_id": "grade_block",
                 "label": {"type": "plain_text", "text": "Grade"},
                 "element": {
-                    "type": "plain_text_input",
+                    "type": "number_input",
                     "action_id": "grade_action",
                 },
             },
@@ -392,9 +400,11 @@ def handle_category_selection(ack, body, client):
                 "type": "input",
                 "block_id": "time_class_block",
                 "label": {"type": "plain_text", "text": "Time of Class"},
-                "element": {
-                    "type": "plain_text_input",
-                    "action_id": "time_class_action",
+                "accessory": {
+                    "type": "timepicker",
+                    "action_id": "timepicker123",
+                    "initial_time": "15:00",
+                    "placeholder": {"type": "plain_text", "text": "Select a time"},
                 },
             },
             {
@@ -403,6 +413,7 @@ def handle_category_selection(ack, body, client):
                 "label": {"type": "plain_text", "text": "Reason"},
                 "element": {
                     "type": "plain_text_input",
+                    "multiline": True,
                     "action_id": "reason_action",
                 },
             },
@@ -410,18 +421,26 @@ def handle_category_selection(ack, body, client):
                 "type": "input",
                 "block_id": "direct_lead_block",
                 "label": {"type": "plain_text", "text": "Direct Lead"},
-                "element": {
-                    "type": "plain_text_input",
+                "accessory": {
                     "action_id": "direct_lead_action",
+                    "type": "users_select",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Select Your Direct Lead",
+                    },
                 },
             },
             {
                 "type": "input",
                 "block_id": "stem_lead_block",
                 "label": {"type": "plain_text", "text": "STEM Lead"},
-                "element": {
-                    "type": "plain_text_input",
+                "accessory": {
                     "action_id": "stem_lead_action",
+                    "type": "users_select",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Select Your STEM Lead",
+                    },
                 },
             },
         ]
@@ -490,6 +509,7 @@ def send_the_user_input(ack, body, client, say, view):
     initial_ts = init_result["ts"]
 
     if category == "Piket":
+        print(f"check view {view}")
         date = view["state"]["values"]["date_block"]["date_picker_action"][
             "selected_date"
         ]
@@ -546,7 +566,9 @@ def send_the_user_input(ack, body, client, say, view):
             },
         ]
 
-        client.chat_postMessage(channel=piket_channel_id, blocks=piket_message)
+        client.chat_update(
+            channel=piket_channel_id, ts=initial_ts, blocks=piket_message
+        )
 
     elif category == "Others":
         issue_description = view_state["issue_name"]["user_issue"]["value"]
@@ -627,7 +649,7 @@ def send_the_user_input(ack, body, client, say, view):
                 blocks = [
                     {
                         "type": "section",
-                        "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
+                        "text": {"type": "mrkdwn", "text": "Hi Team :wave:"},
                     },
                     {
                         "type": "section",
