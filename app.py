@@ -356,7 +356,7 @@ def handle_category_selection(ack, body, client):
                 "type": "input",
                 "block_id": "teacher_request_block",
                 "label": {"type": "plain_text", "text": "Teacher who requested"},
-                "accessory": {
+                "element": {
                     "action_id": "teacher_request_action",
                     "type": "users_select",
                     "placeholder": {
@@ -369,7 +369,7 @@ def handle_category_selection(ack, body, client):
                 "type": "input",
                 "block_id": "teacher_replace_block",
                 "label": {"type": "plain_text", "text": "Teacher who replaces"},
-                "accessory": {
+                "element": {
                     "action_id": "teacher_replace_action",
                     "type": "users_select",
                     "placeholder": {
@@ -385,6 +385,7 @@ def handle_category_selection(ack, body, client):
                 "element": {
                     "type": "number_input",
                     "action_id": "grade_action",
+                    "is_decimal_allowed": False,
                 },
             },
             {
@@ -400,7 +401,7 @@ def handle_category_selection(ack, body, client):
                 "type": "input",
                 "block_id": "time_class_block",
                 "label": {"type": "plain_text", "text": "Time of Class"},
-                "accessory": {
+                "element": {
                     "type": "timepicker",
                     "action_id": "timepicker123",
                     "initial_time": "15:00",
@@ -421,7 +422,7 @@ def handle_category_selection(ack, body, client):
                 "type": "input",
                 "block_id": "direct_lead_block",
                 "label": {"type": "plain_text", "text": "Direct Lead"},
-                "accessory": {
+                "element": {
                     "action_id": "direct_lead_action",
                     "type": "users_select",
                     "placeholder": {
@@ -434,7 +435,7 @@ def handle_category_selection(ack, body, client):
                 "type": "input",
                 "block_id": "stem_lead_block",
                 "label": {"type": "plain_text", "text": "STEM Lead"},
-                "accessory": {
+                "element": {
                     "action_id": "stem_lead_action",
                     "type": "users_select",
                     "placeholder": {
