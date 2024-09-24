@@ -429,12 +429,16 @@ def handle_category_selection(ack, body, client):
         modal_blocks = [
             {
                 "type": "input",
-                "block_id": "issue_description_block",
-                "label": {"type": "plain_text", "text": "Issue Description"},
+                "block_id": "issue_name",
+                "label": {"type": "plain_text", "text": "Your Issue"},
                 "element": {
                     "type": "plain_text_input",
-                    "action_id": "issue_description_action",
+                    "action_id": "user_issue",
                     "multiline": True,
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Describe your issue...",
+                    },
                 },
             },
             {
@@ -475,6 +479,13 @@ def send_the_user_input(ack, body, client, say, view):
     private_metadata = view["private_metadata"].split("@@")
     category = private_metadata[1]
     channel_id = private_metadata[0]
+    view_state = body["view"]["state"]["values"]
+    issue_description = view_state["issue_name"]["user_issue"]["value"]
+    files = (
+        view_state.get("input_block_id", {})
+        .get("file_input_action_id_1", {})
+        .get("files", [])
+    )
     user_id = body["user"]["id"]
     reporter_name = body["user"]["username"]
     timestamp_utc = datetime.utcnow()
@@ -539,60 +550,188 @@ def send_the_user_input(ack, body, client, say, view):
         client.chat_postMessage(channel=piket_channel_id, blocks=piket_message)
 
     elif category == "Others":
-        issue_description = view["state"]["values"]["issue_description_block"][
-            "issue_description_action"
-        ]["value"]
-        file_info = (
-            view["state"]["values"]
-            .get("file_upload_block", {})
-            .get("file_input_action", None)
-        )
+        try:
+            init_result = client.chat_postMessage(
+                channel=channel_id, text="Initializing ticket..."
+            )
+            ticket_manager.store_user_input(init_result["ts"], issue_description)
 
-        others_channel_id = channel_id
-
-        others_message = [
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"Your ticket number: *live-ops.{timestamp_jakarta}*",
-                },
-            },
-            {
-                "type": "section",
-                "fields": [
-                    {"type": "mrkdwn", "text": f"*Your Name:*\n{reporter_name}"},
-                    {"type": "mrkdwn", "text": f"*Reported at:*\n{timestamp_jakarta}"},
-                    {
-                        "type": "mrkdwn",
-                        "text": f"*Problem:*\n`{truncate_value(issue_description)}`",
-                    },
-                ],
-            },
-        ]
-
-        if file_info:
-            file_id = file_info["id"]
-            file_url = client.files_info(file=file_id)["file"]["url_private"]
-            others_message.append(
+            ticket = [
                 {
                     "type": "section",
-                    "text": {"type": "mrkdwn", "text": f"Uploaded file: {file_url}"},
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"Your ticket number: *live-ops.{init_result['ts']}*",
+                    },
+                },
+                {
+                    "type": "section",
+                    "fields": [
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Your Name:*\n{reporter_name}",
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Reported at:*\n{timestamp_jakarta}",
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Problem:*\n`{truncate_value(issue_description)}`",
+                        },
+                    ],
+                },
+            ]
+
+            response_for_user = client.chat_postMessage(channel=user_id, blocks=ticket)
+            ticket_key_for_user = f"{user_id}@@{response_for_user['ts']}@@{truncate_value(issue_description)}@@{timestamp_jakarta}"
+
+            members_result = client.conversations_members(channel=channel_id)
+            if members_result["ok"]:
+                members = members_result["members"]
+            else:
+                members = []
+
+            group_mentions = ["S05RYHJ41C6", "S02R59UL0RH"]
+            members.extend(group_mentions)
+            members.sort()
+
+            user_options = [
+                {
+                    "text": {
+                        "type": "plain_text",
+                        "text": (
+                            f"<@{member}>"
+                            if not member.startswith("S")
+                            else f"<!subteam^{member}>"
+                        ),
+                    },
+                    "value": f"{member}@@{user_id}@@{response_for_user['ts']}@@{truncate_value(issue_description)}@@{timestamp_jakarta}",
                 }
+                for member in members
+            ]
+
+            if response_for_user["ok"]:
+                ts = response_for_user["ts"]
+                if len(issue_description) > 37:
+                    client.chat_postMessage(
+                        channel=user_id,
+                        thread_ts=ts,
+                        text=f"For the problem details: `{issue_description}`",
+                    )
+
+            if init_result["ok"]:
+                ts = init_result["ts"]
+                blocks = [
+                    {
+                        "type": "section",
+                        "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
+                    },
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": f"We just received a ticket from <@{user_id}> at `{timestamp_jakarta}`",
+                        },
+                    },
+                    {
+                        "type": "section",
+                        "fields": [
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Ticket Number:*\nlive-ops.{ts}",
+                            },
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Problem:*\n`{truncate_value(issue_description)}`",
+                            },
+                        ],
+                    },
+                    {"type": "divider"},
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": "Please pick a person:",
+                        },
+                        "accessory": {
+                            "type": "static_select",
+                            "placeholder": {
+                                "type": "plain_text",
+                                "text": "Select a person...",
+                                "emoji": True,
+                            },
+                            "options": user_options,
+                            "action_id": "user_select_action",
+                        },
+                    },
+                    {"type": "divider"},
+                    {
+                        "type": "actions",
+                        "elements": [
+                            {
+                                "type": "button",
+                                "text": {
+                                    "type": "plain_text",
+                                    "emoji": True,
+                                    "text": "Resolve",
+                                },
+                                "style": "primary",
+                                "value": ticket_key_for_user,
+                                "action_id": "resolve_button",
+                            },
+                            {
+                                "type": "button",
+                                "text": {
+                                    "type": "plain_text",
+                                    "emoji": True,
+                                    "text": "Reject",
+                                },
+                                "style": "danger",
+                                "value": ticket_key_for_user,
+                                "action_id": "reject_button",
+                            },
+                        ],
+                    },
+                ]
+
+            result = client.chat_update(
+                channel=channel_id,
+                ts=ts,
+                blocks=blocks,
             )
 
-        client.chat_postMessage(channel=others_channel_id, blocks=others_message)
+            sheet_manager.init_ticket_row(
+                f"live-ops.{result['ts']}",
+                user_id,
+                reporter_name,
+                issue_description,
+                timestamp_utc,
+            )
+            if result["ok"]:
+                if files:
+                    inserting_imgs_thread(client, channel_id, ts, files)
+                if len(issue_description) > 37:
+                    client.chat_postMessage(
+                        channel=channel_id,
+                        thread_ts=ts,
+                        text=f"For the problem details: `{issue_description}`",
+                    )
+            else:
+                say("Failed to post message")
 
-    try:
-        sheet_manager.init_ticket_row(
-            f"live-ops.{timestamp_utc}",
-            user_id,
-            reporter_name,
-            issue_description if category == "Others" else "Piket Ticket",
-            timestamp_utc,
-        )
-    except Exception as e:
-        logging.error(f"An error occurred: {str(e)}")
+            reminder_time = timedelta(minutes=3)
+            schedule_reminder(client, channel_id, ts, reminder_time, result["ts"])
+
+            sheet_manager.init_ticket_row(
+                f"live-ops.{timestamp_utc}",
+                user_id,
+                reporter_name,
+                issue_description if category == "Others" else "Piket Ticket",
+                timestamp_utc,
+            )
+        except Exception as e:
+            logging.error(f"An error occurred: {str(e)}")
 
 
 # @app.view("slash_input")
