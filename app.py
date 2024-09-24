@@ -458,7 +458,7 @@ def handle_category_selection(ack, body, client):
         "submit": {"type": "plain_text", "text": "Submit"},
         "close": {"type": "plain_text", "text": "Cancel"},
         "blocks": modal_blocks,
-        "private_metadata": f"{channel_id}",
+        "private_metadata": f"{channel_id}@@{selected_category}",
     }
 
     try:
@@ -472,14 +472,9 @@ def handle_category_selection(ack, body, client):
 @app.view("slash_input")
 def send_the_user_input(ack, body, client, say, view):
     ack()
-    print(f"ini body {body}")
-    print(f"ini view {view}")
-    category = view["state"]["values"]["category_block"]["category_select_action"][
-        "selected_option"
-    ]["value"]
-
-    private_metadata = view["private_metadata"]
-    channel_id = private_metadata
+    private_metadata = view["private_metadata"].split("@@")
+    category = private_metadata[1]
+    channel_id = private_metadata[0]
     user_id = body["user"]["id"]
     reporter_name = body["user"]["username"]
     timestamp_utc = datetime.utcnow()
@@ -510,7 +505,7 @@ def send_the_user_input(ack, body, client, say, view):
             "value"
         ]
 
-        piket_channel_id = "C0719R3NQ91"
+        piket_channel_id = channel_id
 
         piket_message = [
             {
@@ -553,7 +548,7 @@ def send_the_user_input(ack, body, client, say, view):
             .get("file_input_action", None)
         )
 
-        others_channel_id = "C0719R3NQ91"
+        others_channel_id = channel_id
 
         others_message = [
             {
