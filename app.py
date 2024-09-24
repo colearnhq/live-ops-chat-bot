@@ -583,34 +583,6 @@ def send_the_user_input(ack, body, client, say, view):
                         },
                     ],
                 },
-                {"type": "divider"},
-                {
-                    "type": "actions",
-                    "elements": [
-                        {
-                            "type": "button",
-                            "text": {
-                                "type": "plain_text",
-                                "emoji": True,
-                                "text": "Ack",
-                            },
-                            "style": "primary",
-                            "value": ticket_key_for_user,
-                            "action_id": "resolve_button",
-                        },
-                        {
-                            "type": "button",
-                            "text": {
-                                "type": "plain_text",
-                                "emoji": True,
-                                "text": "Reject",
-                            },
-                            "style": "danger",
-                            "value": ticket_key_for_user,
-                            "action_id": "reject_button",
-                        },
-                    ],
-                },
             ]
 
             response_for_user = client.chat_postMessage(channel=user_id, blocks=ticket)
