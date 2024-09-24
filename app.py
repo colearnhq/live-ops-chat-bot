@@ -482,11 +482,10 @@ def send_the_user_input(ack, body, client, say, view):
     view_state = body["view"]["state"]["values"]
     issue_description = view_state["issue_name"]["user_issue"]["value"]
     files = (
-        view_state.get("input_block_id", {})
-        .get("file_input_action_id_1", {})
+        view_state.get("file_upload_block", {})
+        .get("file_input_action", {})
         .get("files", [])
     )
-    print(f"check view state: {view_state}")
     user_id = body["user"]["id"]
     reporter_name = body["user"]["username"]
     timestamp_utc = datetime.utcnow()
@@ -710,7 +709,6 @@ def send_the_user_input(ack, body, client, say, view):
                 timestamp_utc,
             )
             if result["ok"]:
-                print(f"check files: {files}")
                 if files:
                     inserting_imgs_thread(client, channel_id, ts, files)
                 if len(issue_description) > 37:
