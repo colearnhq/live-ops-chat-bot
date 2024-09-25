@@ -1950,6 +1950,7 @@ def show_reject_modal(ack, body, client, view, logger):
     ack()
     try:
         user_id = body["user"]["id"]
+        reflected_cn = "C05Q52ZTQ3X"
         [channel_id, message_ts, *reject_button_value] = view["private_metadata"].split(
             "@@"
         )
@@ -2063,6 +2064,7 @@ def show_reject_modal(ack, body, client, view, logger):
             else:
                 logger.error("No value information available for this channel.")
         elif ticket_category == "Piket":
+            print(f"{reject_button_value[2:-1]}")
             [
                 reporter_piket,
                 response_ts,
