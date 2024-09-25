@@ -18,12 +18,13 @@ class SheetManager:
             client = gspread.authorize(creds)
             self.chat_sheet = client.open_by_key(sheet_key).worksheet("chit_chat")
             self.ticket_sheet = client.open_by_key(sheet_key).worksheet("ticket")
+            self.piket_sheet = client.open_by_key(sheet_key).worksheet("piket")
         except Exception as e:
             logging.error(f"Failed to initialize SheetManager: {str(e)}")
 
     def convert_to_local_time(self, timestamp_utc):
         utc = pytz.utc
-        local_tz = pytz.timezone("Asia/Jakarta")  # GMT+7
+        local_tz = pytz.timezone("Asia/Jakarta")
         timestamp_utc = utc.localize(timestamp_utc)
         timestamp_local = timestamp_utc.astimezone(local_tz)
         return timestamp_local.strftime("%Y-%m-%d %H:%M:%S")
@@ -52,6 +53,39 @@ class SheetManager:
             self.chat_sheet.append_row(data)
         except Exception as e:
             logging.error(f"Failed to log chat: {str(e)}")
+
+    def init_piket_row(
+        self,
+        piket_id,
+        teacher_requested,
+        teacher_replaces,
+        grade,
+        slot_name,
+        class_date,
+        class_time,
+        reason,
+        direct_lead,
+        stem_lead,
+        timestamp_utc,
+    ):
+        try:
+            timestamp_local = self.convert_to_local_time(timestamp_utc)
+            data = [
+                piket_id,
+                timestamp_local,
+                teacher_requested,
+                teacher_replaces,
+                grade,
+                slot_name,
+                class_date,
+                class_time,
+                reason,
+                direct_lead,
+                stem_lead,
+            ]
+            self.piket_sheet.append_row(data)
+        except Exception as e:
+            logging.error(f"Failed to initialize ticket row: {str(e)}")
 
     def init_ticket_row(self, ticket_id, user_id, user_name, user_input, timestamp_utc):
         try:
@@ -111,4 +145,45 @@ class SheetManager:
             "handed_over_by": 13,
             "handed_over_at": 14,
             "assigned_by": 15,
+        }
+
+    def update_piket(self, piket_id, updates):
+        try:
+            row = self.find_piket_row(piket_id)
+            if row:
+                for key, value in updates.items():
+                    col = self.piket_col_mapping[key]
+                    if "at" in key and isinstance(value, datetime):
+                        value = self.convert_to_local_time(value)
+                    self.ticket_sheet.update_cell(row, col, value)
+        except Exception as e:
+            logging.error(f"Failed to update ticket: {str(e)}")
+
+    def find_piket_row(self, ticket_id):
+        ticket_id_col = 2  # Assuming 'ticket_ids' is in the second column
+        col_values = self.ticket_sheet.col_values(ticket_id_col)
+        for i, val in enumerate(col_values):
+            if val == ticket_id:
+                return i + 1  # +1 because Sheets is 1-indexed
+        return None
+
+    @property
+    def piket_col_mapping(self):
+        return {
+            "piket_id": 1,
+            "timestamp": 2,
+            "teacher_requested": 3,
+            "teacher_replaces": 4,
+            "grade": 5,
+            "slot_name": 6,
+            "class_date": 7,
+            "class_time": 8,
+            "reason": 9,
+            "direct_lead": 10,
+            "stem_lead": 11,
+            "status": 12,
+            "approved_by": 13,
+            "approved_at": 14,
+            "rejected_by": 15,
+            "rejected_at": 16,
         }
