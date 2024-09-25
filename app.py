@@ -201,6 +201,11 @@ def inserting_imgs_thread(client, channel_id, ts, files):
         )
 
 
+def get_real_name(client, user_id):
+    user_info = client.users_info(user=user_id)
+    return user_info["user"]["real_name"]
+
+
 # @app.command("/opsdev")
 # def slash_input(ack, body, client):
 #     ack()
@@ -481,7 +486,7 @@ def handle_category_selection(ack, body, client):
     updated_modal = {
         "type": "modal",
         "callback_id": "slash_input",
-        "title": {"type": "plain_text", "text": "Input Your Issue"},
+        "title": {"type": "plain_text", "text": "Hi, How's your life?"},
         "submit": {"type": "plain_text", "text": "Submit"},
         "close": {"type": "plain_text", "text": "Cancel"},
         "blocks": modal_blocks,
@@ -537,6 +542,11 @@ def send_the_user_input(ack, body, client, say, view):
             "selected_user"
         ]
 
+        teacher_requested_name = get_real_name(teacher_requested)
+        teacher_replaces_name = get_real_name(teacher_replace)
+        direct_lead_name = get_real_name(direct_lead)
+        stem_lead_name = get_real_name(stem_lead)
+
         piket_channel_id = channel_id
 
         piket_blocks = [
@@ -544,7 +554,7 @@ def send_the_user_input(ack, body, client, say, view):
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"Hi <@{user_id}> :blob-wave:\nYour piket request have been received with this following number: `piket.{init_result['ts']}`",
+                    "text": f"Hi <@{user_id}> :blob-wave:\nYour piket request have been received with this following number: `piket.{initial_ts}`",
                 },
             },
             {
@@ -592,6 +602,7 @@ def send_the_user_input(ack, body, client, say, view):
                 "type": "section",
                 "fields": [
                     {"type": "mrkdwn", "text": f"*Class Date:*\n`{date}`"},
+                    {"type": "mrkdwn", "text": f"*Time of Class:*\n`{time_class}`"},
                     {
                         "type": "mrkdwn",
                         "text": f"*Teacher Requested:*\n<@{teacher_requested}>",
@@ -601,7 +612,6 @@ def send_the_user_input(ack, body, client, say, view):
                         "text": f"*Teacher Replaces:*\n<@{teacher_replace}>",
                     },
                     {"type": "mrkdwn", "text": f"*Slot Name:*\n`{grade}-{slot_name}`"},
-                    {"type": "mrkdwn", "text": f"*Time of Class:*\n`{time_class}`"},
                     {"type": "mrkdwn", "text": f"*Reason:*\n```{reason}```"},
                     {"type": "mrkdwn", "text": f"*Direct Lead:*\n<@{direct_lead}>"},
                     {"type": "mrkdwn", "text": f"*STEM Lead:*\n<@{stem_lead}>"},
@@ -649,7 +659,19 @@ def send_the_user_input(ack, body, client, say, view):
         result = client.chat_update(
             channel=piket_channel_id, ts=initial_ts, blocks=piket_message
         )
-
+        sheet_manager.init_piket_row(
+            f"piket.{initial_ts}",
+            teacher_requested_name,
+            teacher_replaces_name,
+            grade,
+            slot_name,
+            date,
+            time_class,
+            reason,
+            direct_lead_name,
+            stem_lead_name,
+            timestamp_utc,
+        )
         reminder_time = timedelta(minutes=3)
         schedule_reminder(client, channel_id, initial_ts, reminder_time, result["ts"])
 
@@ -931,7 +953,7 @@ def send_the_user_input(ack, body, client, say, view):
 #             blocks = [
 #                 {
 #                     "type": "section",
-#                     "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
+#                     "text": {"type": "mrkdwn", "text": "Hi Team :wave:"},
 #                 },
 #                 {
 #                     "type": "section",
@@ -1125,7 +1147,7 @@ def select_user(ack, body, client):
             updated_blocks = [
                 {
                     "type": "section",
-                    "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
+                    "text": {"type": "mrkdwn", "text": "Hi Team :wave:"},
                 },
                 {
                     "type": "section",
@@ -1160,7 +1182,7 @@ def select_user(ack, body, client):
             reflected_msg = [
                 {
                     "type": "section",
-                    "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
+                    "text": {"type": "mrkdwn", "text": "Hi Team :wave:"},
                 },
                 {
                     "type": "section",
@@ -1240,7 +1262,7 @@ def select_user(ack, body, client):
             updated_blocks = [
                 {
                     "type": "section",
-                    "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
+                    "text": {"type": "mrkdwn", "text": "Hi Team :wave:"},
                 },
                 {
                     "type": "section",
@@ -1317,7 +1339,7 @@ def select_user(ack, body, client):
             reflected_msg = [
                 {
                     "type": "section",
-                    "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
+                    "text": {"type": "mrkdwn", "text": "Hi Team :wave:"},
                 },
                 {
                     "type": "section",
@@ -1440,7 +1462,7 @@ def select_category(ack, body, client):
         updated_blocks = [
             {
                 "type": "section",
-                "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
+                "text": {"type": "mrkdwn", "text": "Hi Team :wave:"},
             },
             {
                 "type": "section",
@@ -1489,7 +1511,7 @@ def select_category(ack, body, client):
         reflected_msg = [
             {
                 "type": "section",
-                "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
+                "text": {"type": "mrkdwn", "text": "Hi Team :wave:"},
             },
             {
                 "type": "section",
@@ -1563,7 +1585,7 @@ def select_custom_category(ack, body, client, view, logger):
         updated_blocks = [
             {
                 "type": "section",
-                "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
+                "text": {"type": "mrkdwn", "text": "Hi Team :wave:"},
             },
             {
                 "type": "section",
@@ -1612,7 +1634,7 @@ def select_custom_category(ack, body, client, view, logger):
         reflected_msg = [
             {
                 "type": "section",
-                "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
+                "text": {"type": "mrkdwn", "text": "Hi Team :wave:"},
             },
             {
                 "type": "section",
@@ -1715,6 +1737,10 @@ def resolve_button(ack, body, client, logger):
                         {"type": "mrkdwn", "text": f"*Class Date:*\n`{date}`"},
                         {
                             "type": "mrkdwn",
+                            "text": f"*Time of Class:*\n`{time_class}`",
+                        },
+                        {
+                            "type": "mrkdwn",
                             "text": f"*Teacher Requested:*\n<@{teacher_requested}>",
                         },
                         {
@@ -1725,9 +1751,11 @@ def resolve_button(ack, body, client, logger):
                             "type": "mrkdwn",
                             "text": f"*Slot Name:*\n`{grade}-{slot_name}`",
                         },
-                        {"type": "mrkdwn", "text": f"*Time of Class:*\n`{time_class}`"},
                         {"type": "mrkdwn", "text": f"*Reason:*\n```{reason}```"},
-                        {"type": "mrkdwn", "text": f"*Direct Lead:*\n<@{direct_lead}>"},
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Direct Lead:*\n<@{direct_lead}>",
+                        },
                         {"type": "mrkdwn", "text": f"*STEM Lead:*\n<@{stem_lead}>"},
                     ],
                 },
@@ -1769,6 +1797,15 @@ def resolve_button(ack, body, client, logger):
                     thread_ts=response_ts,
                     text=f"<@{reporter_piket}> your piket request has been approved at `{timestamp_jakarta}`. Thank you :blob-bear-dance:",
                 )
+
+            sheet_manager.update_piket(
+                f"piket.{response_ts}",
+                {
+                    "status": "Approved",
+                    "approved_by": user_name,
+                    "approved_at": timestamp_utc,
+                },
+            )
         elif category_ticket == "Others":
             user_who_requested_ticket_id = resolve_button_value[0]
             user_message_ts = resolve_button_value[1]
@@ -1784,7 +1821,7 @@ def resolve_button(ack, body, client, logger):
                 blocks=[
                     {
                         "type": "section",
-                        "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
+                        "text": {"type": "mrkdwn", "text": "Hi Team :wave:"},
                     },
                     {
                         "type": "section",
@@ -1839,7 +1876,7 @@ def resolve_button(ack, body, client, logger):
                 reflected_msg = [
                     {
                         "type": "section",
-                        "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
+                        "text": {"type": "mrkdwn", "text": "Hi Team :wave:"},
                     },
                     {
                         "type": "section",
@@ -1918,6 +1955,10 @@ def reject_button(ack, body, client):
         f"live-ops.{message_ts}",
         {"rejected_by": user_name, "rejected_at": timestamp_utc},
     )
+    sheet_manager.update_piket(
+        f"piket.{message_ts}",
+        {"status": "Rejected", "rejected_by": user_name, "rejected_at": timestamp_utc},
+    )
     modal = {
         "type": "modal",
         "callback_id": "modal_reject",
@@ -1981,7 +2022,7 @@ def show_reject_modal(ack, body, client, view, logger):
                     blocks=[
                         {
                             "type": "section",
-                            "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
+                            "text": {"type": "mrkdwn", "text": "Hi Team :wave:"},
                         },
                         {
                             "type": "section",
@@ -2017,7 +2058,7 @@ def show_reject_modal(ack, body, client, view, logger):
                 reflected_msg = [
                     {
                         "type": "section",
-                        "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
+                        "text": {"type": "mrkdwn", "text": "Hi Team :wave:"},
                     },
                     {
                         "type": "section",
@@ -2064,7 +2105,6 @@ def show_reject_modal(ack, body, client, view, logger):
             else:
                 logger.error("No value information available for this channel.")
         elif ticket_category == "Piket":
-            print(f"{reject_button_value}")
             [
                 reporter_piket,
                 response_ts,
@@ -2078,83 +2118,74 @@ def show_reject_modal(ack, body, client, view, logger):
                 reason,
                 direct_lead,
                 stem_lead,
-                tiket,
-            ] = reject_button_value[:-1]
+            ] = reject_button_value[:-2]
             response = client.chat_postMessage(
                 channel=channel_id,
                 thread_ts=message_ts,
                 text=f"<@{user_id}> has rejected the request at `{timestamp_jakarta}` due to: `{reason}`.",
             )
             if response["ok"]:
-                piket_message = (
-                    [
-                        {
-                            "type": "section",
-                            "text": {
+                piket_message = [
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": f"Hi @tim_ajar\nWe've got a request from <@{teacher_requested}> with detail as below:",
+                        },
+                    },
+                    {
+                        "type": "section",
+                        "fields": [
+                            {"type": "mrkdwn", "text": f"*Class Date:*\n`{date}`"},
+                            {
                                 "type": "mrkdwn",
-                                "text": f"Hi @tim_ajar\nWe've got a request from <@{teacher_requested}> with detail as below:",
+                                "text": f"*Time of Class:*\n`{time_class}`",
                             },
-                        },
-                        {
-                            "type": "section",
-                            "fields": [
-                                {"type": "mrkdwn", "text": f"*Class Date:*\n`{date}`"},
-                                {
-                                    "type": "mrkdwn",
-                                    "text": f"*Teacher Requested:*\n<@{teacher_requested}>",
-                                },
-                                {
-                                    "type": "mrkdwn",
-                                    "text": f"*Teacher Replaces:*\n<@{teacher_replace}>",
-                                },
-                                {
-                                    "type": "mrkdwn",
-                                    "text": f"*Slot Name:*\n`{grade}-{slot_name}`",
-                                },
-                                {
-                                    "type": "mrkdwn",
-                                    "text": f"*Time of Class:*\n`{time_class}`",
-                                },
-                                {
-                                    "type": "mrkdwn",
-                                    "text": f"*Reason:*\n```{reason}```",
-                                },
-                                {
-                                    "type": "mrkdwn",
-                                    "text": f"*Direct Lead:*\n<@{direct_lead}>",
-                                },
-                                {
-                                    "type": "mrkdwn",
-                                    "text": f"*STEM Lead:*\n<@{stem_lead}>",
-                                },
-                            ],
-                        },
-                        {"type": "divider"},
-                        {
-                            "type": "context",
-                            "elements": [
-                                {
-                                    "type": "mrkdwn",
-                                    "text": f"*Piket Ticket Number:* piket.{response_ts}",
-                                }
-                            ],
-                        },
-                        {
-                            "type": "section",
-                            "text": {
+                            {
                                 "type": "mrkdwn",
-                                "text": f":x: This request was rejected by <@{user_id}>. Please ignore this",
+                                "text": f"*Teacher Requested:*\n<@{teacher_requested}>",
                             },
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Teacher Replaces:*\n<@{teacher_replace}>",
+                            },
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Slot Name:*\n`{grade}-{slot_name}`",
+                            },
+                            {"type": "mrkdwn", "text": f"*Reason:*\n```{reason}```"},
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Direct Lead:*\n<@{direct_lead}>",
+                            },
+                            {"type": "mrkdwn", "text": f"*STEM Lead:*\n<@{stem_lead}>"},
+                        ],
+                    },
+                    {"type": "divider"},
+                    {
+                        "type": "context",
+                        "elements": [
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Piket Ticket Number:* piket.{response_ts}",
+                            }
+                        ],
+                    },
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": f":x: This request was rejected by <@{user_id}>. Please ignore this",
                         },
-                    ],
-                )
+                    },
+                ]
                 client.chat_update(
                     channel=channel_id, ts=message_ts, text=None, blocks=piket_message
                 )
 
                 client.chat_postMessage(
                     channel=reporter_piket,
-                    thread_ts=user_message_ts,
+                    thread_ts=response_ts,
                     text=f"We are sorry :smiling_face_with_tear: your request was rejected due to `{reason}` at {timestamp_jakarta}. Let's put another piket request later.",
                 )
 
