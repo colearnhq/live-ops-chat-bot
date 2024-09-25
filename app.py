@@ -161,7 +161,7 @@ def intial_msg(body, say, client):
         logging.error(f"Error handling message: {str(e)}")
 
 
-def truncate_value(value, max_length=37):
+def truncate_value(value, max_length=25):
     return (
         value
         if len(value) <= max_length
