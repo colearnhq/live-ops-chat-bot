@@ -306,7 +306,7 @@ def slash_input(ack, body, client):
         "callback_id": "slash_input",
         "title": {
             "type": "plain_text",
-            "text": "Pick Something, But Don't Overthink It, Ygy!",
+            "text": "Pick, It’s Easy!",
         },
         "submit": {"type": "plain_text", "text": "Submit"},
         "close": {"type": "plain_text", "text": "Cancel"},
@@ -491,7 +491,7 @@ def handle_category_selection(ack, body, client):
         "callback_id": "slash_input",
         "title": {
             "type": "plain_text",
-            "text": "Ready to Conquer the World? Or Just This Form?",
+            "text": "Feeling Lucky Today?",
         },
         "submit": {"type": "plain_text", "text": "Submit"},
         "close": {"type": "plain_text", "text": "Cancel"},
