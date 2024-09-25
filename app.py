@@ -2014,7 +2014,7 @@ def show_reject_modal(ack, body, client, view, logger):
                 user_message_ts,
                 user_input,
                 ticket_reported_at,
-            ] = reject_button_value[:-2]
+            ] = reject_button_value[0:4]
             response = client.chat_postMessage(
                 channel=channel_id,
                 thread_ts=message_ts,
