@@ -2003,6 +2003,7 @@ def show_reject_modal(ack, body, client, view, logger):
         ticket_manager.update_ticket_status(message_ts, "assigned")
 
         if ticket_category == "Others":
+            print(f"ini reject value on other: {reject_button_value}")
             [
                 user_requested_id,
                 user_message_ts,
