@@ -2064,7 +2064,7 @@ def show_reject_modal(ack, body, client, view, logger):
             else:
                 logger.error("No value information available for this channel.")
         elif ticket_category == "Piket":
-            print(f"{reject_button_value[2:-1]}")
+            print(f"{reject_button_value[:-1]}")
             [
                 reporter_piket,
                 response_ts,
@@ -2078,7 +2078,7 @@ def show_reject_modal(ack, body, client, view, logger):
                 reason,
                 direct_lead,
                 stem_lead,
-            ] = reject_button_value[2:-1]
+            ] = reject_button_value[:-1]
             response = client.chat_postMessage(
                 channel=channel_id,
                 thread_ts=message_ts,
