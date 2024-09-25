@@ -286,10 +286,11 @@ def slash_input(ack, body, client):
         "Piket",
         "Others",
     ]
+    user_input = body.get("text", "No message provided.")
     category_options = [
         {
             "text": {"type": "plain_text", "text": category},
-            "value": f"{category}",
+            "value": f"{category}@@{user_input}",
         }
         for category in categories
     ]
@@ -335,8 +336,9 @@ def slash_input(ack, body, client):
 @app.action("user_categories")
 def handle_category_selection(ack, body, client):
     ack()
-
-    selected_category = body["actions"][0]["selected_option"]["value"]
+    [selected_category, user_input] = body["actions"][0]["selected_option"][
+        "value"
+    ].split("@@")
     trigger_id = body["trigger_id"]
     channel_id = body["view"]["private_metadata"]
 
@@ -455,6 +457,7 @@ def handle_category_selection(ack, body, client):
                     "type": "plain_text_input",
                     "action_id": "user_issue",
                     "multiline": True,
+                    "initial_value": user_input,
                     "placeholder": {
                         "type": "plain_text",
                         "text": "Describe your issue...",
