@@ -304,7 +304,10 @@ def slash_input(ack, body, client):
     modal = {
         "type": "modal",
         "callback_id": "slash_input",
-        "title": {"type": "plain_text", "text": "Input Your Issue"},
+        "title": {
+            "type": "plain_text",
+            "text": "Pick Something, But Don't Overthink It, Ygy!",
+        },
         "submit": {"type": "plain_text", "text": "Submit"},
         "close": {"type": "plain_text", "text": "Cancel"},
         "blocks": [
@@ -486,7 +489,10 @@ def handle_category_selection(ack, body, client):
     updated_modal = {
         "type": "modal",
         "callback_id": "slash_input",
-        "title": {"type": "plain_text", "text": "Hi, How's your life?"},
+        "title": {
+            "type": "plain_text",
+            "text": "Ready to Conquer the World? Or Just This Form?",
+        },
         "submit": {"type": "plain_text", "text": "Submit"},
         "close": {"type": "plain_text", "text": "Cancel"},
         "blocks": modal_blocks,
@@ -2003,13 +2009,12 @@ def show_reject_modal(ack, body, client, view, logger):
         ticket_manager.update_ticket_status(message_ts, "assigned")
 
         if ticket_category == "Others":
-            print(f"ini reject value on other: {reject_button_value}")
             [
                 user_requested_id,
                 user_message_ts,
                 user_input,
                 ticket_reported_at,
-            ] = reject_button_value[2:-2]
+            ] = reject_button_value[:-2]
             response = client.chat_postMessage(
                 channel=channel_id,
                 thread_ts=message_ts,
