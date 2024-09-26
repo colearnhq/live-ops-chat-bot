@@ -1491,7 +1491,7 @@ def resolve_button(ack, body, client, logger):
                     "elements": [
                         {
                             "type": "mrkdwn",
-                            "text": f"*Piket Ticket Number:* piket.{response_ts}",
+                            "text": f"*Piket Ticket Number:* piket.{thread_ts}",
                         }
                     ],
                 },
@@ -1524,6 +1524,7 @@ def resolve_button(ack, body, client, logger):
                     text=f"<@{reporter_piket}> your piket request has been approved at `{timestamp_jakarta}`. Thank you :blob-bear-dance:",
                 )
 
+            print(f"cek thread ts : {thread_ts}")
             sheet_manager.update_piket(
                 f"piket.{thread_ts}",
                 {
@@ -1893,7 +1894,7 @@ def show_reject_modal(ack, body, client, view, logger):
                         "elements": [
                             {
                                 "type": "mrkdwn",
-                                "text": f"*Piket Ticket Number:* piket.{response_ts}",
+                                "text": f"*Piket Ticket Number:* piket.{message_ts}",
                             }
                         ],
                     },
