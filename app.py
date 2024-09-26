@@ -114,51 +114,31 @@ class TicketManager:
 ticket_manager = TicketManager()
 
 
-@app.event("message")
-def intial_msg(body, say, client):
-    event = body.get("event", {})
-    user_id = event.get("user")
-    chat_timestamp = event["ts"]
-    timestamp_utc = datetime.utcnow()
+def convert_utc_to_jakarta(utc_dt):
+    from pytz import timezone
 
-    try:
-        user_info = client.users_info(user=user_id)
-        text = event.get("text", "").strip().lower()
-        email = user_info["user"].get("name", "unknown") + "@colearn.id"
-        full_name = user_info["user"]["profile"].get("real_name", "unknown")
-        phone_number = user_info["user"]["profile"].get("phone", "unknown")
-        match_greeting = greeting_pattern.search(text)
-        match_thank_you = thank_you_pattern.search(text)
+    fmt = "%Y-%m-%d %H:%M:%S %Z%z"
+    utc_dt = utc_dt.replace(tzinfo=timezone("UTC"))
+    jakarta_time = utc_dt.astimezone(timezone("Asia/Jakarta"))
+    return jakarta_time.strftime(fmt)
 
-        if match_greeting:
-            greeting = match_greeting.group(1)
-            if greeting in greetings_response:
-                response = greetings_response[greeting]
-                say(f"{response} <@{event['user']}>, Pepe is ready to help :frog:")
-                say(
-                    f"Please type your issue with the following pattern: `/hiops [write your issue/inquiry]`"
-                )
-        elif match_thank_you:
-            thank_you = match_thank_you.group(1)
-            if thank_you in thank_you_response:
-                response = thank_you_response[thank_you]
-                say(response)
-        else:
-            say(f"Hi <@{event['user']}>, Pepe is ready to help :frog:")
-            say(
-                f"Please type your issue with this following pattern: `/hiops [write your issue/inquiry]`"
+
+def schedule_reminder(client, channel_id, thread_ts, reminder_time, ticket_ts):
+    def remind():
+        if not is_ticket_assigned(ticket_ts):
+            omar_id = "U020SH7JJF3"
+            client.chat_postMessage(
+                channel=channel_id,
+                thread_ts=thread_ts,
+                text=f"Ribbit! 🐸 Pepe’s getting impatient, and this ticket's feeling lonely! Can you <@{omar_id}> hop in and rescue it within the next 2 minutes before Pepe starts croaking louder? 🐸⏳",
             )
-        sheet_manager.log_ticket(
-            chat_timestamp,
-            timestamp_utc,
-            user_id,
-            full_name,
-            email,
-            phone_number,
-            text,
-        )
-    except Exception as e:
-        logging.error(f"Error handling message: {str(e)}")
+
+    threading.Timer(reminder_time.total_seconds(), remind).start()
+
+
+def is_ticket_assigned(ticket_ts):
+    status = ticket_manager.get_ticket_status(ticket_ts)
+    return status != "unassigned"
 
 
 def truncate_value(value, max_length=25):
@@ -206,82 +186,51 @@ def get_real_name(client, user_id):
     return user_info["user"]["real_name"]
 
 
-# @app.command("/opsdev")
-# def slash_input(ack, body, client):
-#     ack()
-#     categories = [
-#         "Piket",
-#         "Others",
-#     ]
-#     category_options = [
-#         {
-#             "text": {"type": "plain_text", "text": category},
-#             "value": f"{category}",
-#         }
-#         for category in categories
-#     ]
-#     trigger_id = body["trigger_id"]
-#     channel_id = "C0719R3NQ91"
-#     modal = {
-#         "type": "modal",
-#         "callback_id": "slash_input",
-#         "title": {"type": "plain_text", "text": "Input Your Issue"},
-#         "submit": {"type": "plain_text", "text": "Submit"},
-#         "close": {"type": "plain_text", "text": "Cancel"},
-#         "blocks": [
-#             {
-#                 "type": "section",
-#                 "text": {
-#                     "type": "mrkdwn",
-#                     "text": "Please select the category of the issue:",
-#                 },
-#                 "accessory": {
-#                     "type": "static_select",
-#                     "placeholder": {
-#                         "type": "plain_text",
-#                         "text": "Select category...",
-#                         "emoji": True,
-#                     },
-#                     "options": category_options,
-#                     "action_id": "category_select_action",
-#                 },
-#             },
-#             {
-#                 "type": "input",
-#                 "block_id": "issue_name",
-#                 "label": {"type": "plain_text", "text": "Your Issue"},
-#                 "element": {
-#                     "type": "plain_text_input",
-#                     "action_id": "user_issue",
-#                     "multiline": True,
-#                     "placeholder": {
-#                         "type": "plain_text",
-#                         "text": "Describe your issue...",
-#                     },
-#                 },
-#             },
-#             {
-#                 "type": "input",
-#                 "optional": True,
-#                 "block_id": "input_block_id",
-#                 "label": {"type": "plain_text", "text": "Upload Files"},
-#                 "element": {
-#                     "type": "file_input",
-#                     "action_id": "file_input_action_id_1",
-#                     "filetypes": ["jpg", "png"],
-#                     "max_files": 5,
-#                 },
-#             },
-#         ],
-#         "private_metadata": f"{channel_id}",
-#     }
+@app.event("message")
+def intial_msg(body, say, client):
+    event = body.get("event", {})
+    user_id = event.get("user")
+    chat_timestamp = event["ts"]
+    timestamp_utc = datetime.utcnow()
 
-#     try:
-#         client.views_open(trigger_id=trigger_id, view=modal)
-#     except SlackApiError as e:
-#         logging.error(
-#             f"Error opening modal: {str(e)} | Response: {e.response['error']}"
-#         )
+    try:
+        user_info = client.users_info(user=user_id)
+        text = event.get("text", "").strip().lower()
+        email = user_info["user"].get("name", "unknown") + "@colearn.id"
+        full_name = user_info["user"]["profile"].get("real_name", "unknown")
+        phone_number = user_info["user"]["profile"].get("phone", "unknown")
+        match_greeting = greeting_pattern.search(text)
+        match_thank_you = thank_you_pattern.search(text)
+
+        if match_greeting:
+            greeting = match_greeting.group(1)
+            if greeting in greetings_response:
+                response = greetings_response[greeting]
+                say(f"{response} <@{event['user']}>, Pepe is ready to help :frog:")
+                say(
+                    f"Please type your issue with the following pattern: `/hiops [write your issue/inquiry]`"
+                )
+        elif match_thank_you:
+            thank_you = match_thank_you.group(1)
+            if thank_you in thank_you_response:
+                response = thank_you_response[thank_you]
+                say(response)
+        else:
+            say(f"Hi <@{event['user']}>, Pepe is ready to help :frog:")
+            say(
+                f"Please type your issue with this following pattern: `/hiops [write your issue/inquiry]`"
+            )
+        sheet_manager.log_ticket(
+            chat_timestamp,
+            timestamp_utc,
+            user_id,
+            full_name,
+            email,
+            phone_number,
+            text,
+        )
+    except Exception as e:
+        logging.error(f"Error handling message: {str(e)}")
 
 
 @app.command("/opsdev")
@@ -666,7 +615,7 @@ def send_the_user_input(ack, body, client, say, view):
             channel=piket_channel_id, ts=initial_ts, blocks=piket_message
         )
         sheet_manager.init_piket_row(
-            f"piket.{response_for_user['ts']}",
+            f"piket.{result['ts']}",
             teacher_requested_name,
             teacher_replaces_name,
             grade,
@@ -859,227 +808,6 @@ def send_the_user_input(ack, body, client, say, view):
             schedule_reminder(client, channel_id, ts, reminder_time, result["ts"])
         except Exception as e:
             logging.error(f"An error occurred: {str(e)}")
-
-
-# @app.view("slash_input")
-# def handle_submission(ack, body, client, logger, say):
-#     ack()
-#     user_id = body["user"]["id"]
-#     user_name = body["user"]["name"]
-#     view_state = body["view"]["state"]["values"]
-#     files = (
-#         view_state.get("input_block_id", {})
-#         .get("file_input_action_id_1", {})
-#         .get("files", [])
-#     )
-#     issue_description = view_state["issue_name"]["user_issue"]["value"]
-
-#     channel_id = body["view"]["private_metadata"]
-
-#     timestamp_utc = datetime.utcnow()
-#     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
-
-#     try:
-#         init_result = client.chat_postMessage(
-#             channel=channel_id, text="Initializing ticket..."
-#         )
-#         ticket_manager.store_user_input(init_result["ts"], issue_description)
-
-#         ticket = [
-#             {
-#                 "type": "section",
-#                 "text": {
-#                     "type": "mrkdwn",
-#                     "text": f"Your ticket number: *live-ops.{init_result['ts']}*",
-#                 },
-#             },
-#             {
-#                 "type": "section",
-#                 "fields": [
-#                     {
-#                         "type": "mrkdwn",
-#                         "text": f"*Your Name:*\n{user_name}",
-#                     },
-#                     {"type": "mrkdwn", "text": f"*Reported at:*\n{timestamp_jakarta}"},
-#                     {
-#                         "type": "mrkdwn",
-#                         "text": f"*Problem:*\n`{truncate_value(issue_description)}`",
-#                     },
-#                 ],
-#             },
-#         ]
-
-#         response_for_user = client.chat_postMessage(channel=user_id, blocks=ticket)
-#         ticket_key_for_user = f"{user_id}@@{response_for_user['ts']}@@{truncate_value(issue_description)}@@{timestamp_jakarta}"
-
-#         members_result = client.conversations_members(channel=channel_id)
-#         if members_result["ok"]:
-#             members = members_result["members"]
-#         else:
-#             members = []
-
-#         group_mentions = ["S05RYHJ41C6", "S02R59UL0RH"]
-#         members.extend(group_mentions)
-#         members.sort()
-
-#         user_options = [
-#             {
-#                 "text": {
-#                     "type": "plain_text",
-#                     "text": (
-#                         f"<@{member}>"
-#                         if not member.startswith("S")
-#                         else f"<!subteam^{member}>"
-#                     ),
-#                 },
-#                 "value": f"{member}@@{user_id}@@{response_for_user['ts']}@@{truncate_value(issue_description)}@@{timestamp_jakarta}",
-#             }
-#             for member in members
-#         ]
-
-#         if response_for_user["ok"]:
-#             ts = response_for_user["ts"]
-#             if len(issue_description) > 37:
-#                 client.chat_postMessage(
-#                     channel=user_id,
-#                     thread_ts=ts,
-#                     text=f"For the problem details: `{issue_description}`",
-#                 )
-
-#         if init_result["ok"]:
-#             ts = init_result["ts"]
-#             blocks = [
-#                 {
-#                     "type": "section",
-#                     "text": {"type": "mrkdwn", "text": "Hi Team :wave:"},
-#                 },
-#                 {
-#                     "type": "section",
-#                     "text": {
-#                         "type": "mrkdwn",
-#                         "text": f"We just received a ticket from <@{user_id}> at `{timestamp_jakarta}`",
-#                     },
-#                 },
-#                 {
-#                     "type": "section",
-#                     "fields": [
-#                         {
-#                             "type": "mrkdwn",
-#                             "text": f"*Ticket Number:*\nlive-ops.{ts}",
-#                         },
-#                         {
-#                             "type": "mrkdwn",
-#                             "text": f"*Problem:*\n`{truncate_value(issue_description)}`",
-#                         },
-#                     ],
-#                 },
-#                 {"type": "divider"},
-#                 {
-#                     "type": "section",
-#                     "text": {
-#                         "type": "mrkdwn",
-#                         "text": "Please pick a person:",
-#                     },
-#                     "accessory": {
-#                         "type": "static_select",
-#                         "placeholder": {
-#                             "type": "plain_text",
-#                             "text": "Select a person...",
-#                             "emoji": True,
-#                         },
-#                         "options": user_options,
-#                         "action_id": "user_select_action",
-#                     },
-#                 },
-#                 {"type": "divider"},
-#                 {
-#                     "type": "actions",
-#                     "elements": [
-#                         {
-#                             "type": "button",
-#                             "text": {
-#                                 "type": "plain_text",
-#                                 "emoji": True,
-#                                 "text": "Resolve",
-#                             },
-#                             "style": "primary",
-#                             "value": ticket_key_for_user,
-#                             "action_id": "resolve_button",
-#                         },
-#                         {
-#                             "type": "button",
-#                             "text": {
-#                                 "type": "plain_text",
-#                                 "emoji": True,
-#                                 "text": "Reject",
-#                             },
-#                             "style": "danger",
-#                             "value": ticket_key_for_user,
-#                             "action_id": "reject_button",
-#                         },
-#                     ],
-#                 },
-#             ]
-
-#         result = client.chat_update(
-#             channel=channel_id,
-#             ts=ts,
-#             blocks=blocks,
-#         )
-
-#         sheet_manager.init_ticket_row(
-#             f"live-ops.{result['ts']}",
-#             user_id,
-#             user_name,
-#             issue_description,
-#             timestamp_utc,
-#         )
-#         if result["ok"]:
-#             if files:
-#                 inserting_imgs_thread(client, channel_id, ts, files)
-#             if len(issue_description) > 37:
-#                 client.chat_postMessage(
-#                     channel=channel_id,
-#                     thread_ts=ts,
-#                     text=f"For the problem details: `{issue_description}`",
-#                 )
-#         else:
-#             say("Failed to post message")
-
-#         reminder_time = timedelta(minutes=3)
-#         schedule_reminder(client, channel_id, ts, reminder_time, result["ts"])
-#     except SlackApiError as e:
-#         logger.error(
-#             f"Error posting message: {str(e)} | Response: {e.response['error']}"
-#         )
-
-
-def convert_utc_to_jakarta(utc_dt):
-    # You can use pytz or another timezone library to handle this conversion
-    from pytz import timezone
-
-    fmt = "%Y-%m-%d %H:%M:%S %Z%z"
-    utc_dt = utc_dt.replace(tzinfo=timezone("UTC"))
-    jakarta_time = utc_dt.astimezone(timezone("Asia/Jakarta"))
-    return jakarta_time.strftime(fmt)
-
-
-def schedule_reminder(client, channel_id, thread_ts, reminder_time, ticket_ts):
-    def remind():
-        if not is_ticket_assigned(ticket_ts):
-            omar_id = "U020SH7JJF3"
-            client.chat_postMessage(
-                channel=channel_id,
-                thread_ts=thread_ts,
-                text=f"Ribbit! 🐸 Pepe’s getting impatient, and this ticket's feeling lonely! Can you <@{omar_id}> hop in and rescue it within the next 2 minutes before Pepe starts croaking louder? 🐸⏳",
-            )
-
-    threading.Timer(reminder_time.total_seconds(), remind).start()
-
-
-def is_ticket_assigned(ticket_ts):
-    status = ticket_manager.get_ticket_status(ticket_ts)
-    return status != "unassigned"
 
 
 @app.action("user_select_action")
@@ -1797,7 +1525,7 @@ def resolve_button(ack, body, client, logger):
                 )
 
             sheet_manager.update_piket(
-                f"piket.{response_ts}",
+                f"piket.{thread_ts}",
                 {
                     "status": "Approved",
                     "approved_by": user_name,
