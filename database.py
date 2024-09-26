@@ -148,6 +148,7 @@ class SheetManager:
         }
 
     def update_piket(self, piket_id, updates):
+        print(f"check piket id: {piket_id}")
         try:
             row = self.find_piket_row(piket_id)
             if row:
@@ -156,6 +157,7 @@ class SheetManager:
                     if "at" in key and isinstance(value, datetime):
                         value = self.convert_to_local_time(value)
                     self.piket_sheet.update_cell(row, col, value)
+                    print(f"row ke {row}, col ke {col}, dengan value {value}")
         except Exception as e:
             logging.error(f"Failed to update ticket: {str(e)}")
 
