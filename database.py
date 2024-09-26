@@ -155,13 +155,13 @@ class SheetManager:
                     col = self.piket_col_mapping[key]
                     if "at" in key and isinstance(value, datetime):
                         value = self.convert_to_local_time(value)
-                    self.ticket_sheet.update_cell(row, col, value)
+                    self.piket_sheet.update_cell(row, col, value)
         except Exception as e:
             logging.error(f"Failed to update ticket: {str(e)}")
 
     def find_piket_row(self, piket_id):
         piket_id = 1
-        col_values = self.ticket_sheet.col_values(piket_id)
+        col_values = self.piket_sheet.col_values(piket_id)
         for i, val in enumerate(col_values):
             if val == piket_id:
                 return i + 1
