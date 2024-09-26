@@ -120,11 +120,11 @@ class SheetManager:
             logging.error(f"Failed to update ticket: {str(e)}")
 
     def find_ticket_row(self, ticket_id):
-        ticket_id_col = 2  # Assuming 'ticket_ids' is in the second column
+        ticket_id_col = 2
         col_values = self.ticket_sheet.col_values(ticket_id_col)
         for i, val in enumerate(col_values):
             if val == ticket_id:
-                return i + 1  # +1 because Sheets is 1-indexed
+                return i + 1
         return None
 
     @property
@@ -160,11 +160,11 @@ class SheetManager:
             logging.error(f"Failed to update ticket: {str(e)}")
 
     def find_piket_row(self, ticket_id):
-        ticket_id_col = 2  # Assuming 'ticket_ids' is in the second column
+        ticket_id_col = 1
         col_values = self.ticket_sheet.col_values(ticket_id_col)
         for i, val in enumerate(col_values):
             if val == ticket_id:
-                return i + 1  # +1 because Sheets is 1-indexed
+                return i + 1
         return None
 
     @property
