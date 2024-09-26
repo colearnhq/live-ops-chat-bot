@@ -19,8 +19,22 @@ class SheetManager:
             self.chat_sheet = client.open_by_key(sheet_key).worksheet("chit_chat")
             self.ticket_sheet = client.open_by_key(sheet_key).worksheet("ticket")
             self.piket_sheet = client.open_by_key(sheet_key).worksheet("piket")
+            self.slot_data = client.open_by_key(sheet_key).worksheet("slot_data")
         except Exception as e:
             logging.error(f"Failed to initialize SheetManager: {str(e)}")
+
+    def get_slot_from_grade(self, grade):
+        try:
+            grade_col = self.slot_data_sheet.col_values(1)
+            slot_name_col = self.slot_data_sheet.col_values(3)
+            slot_names = []
+            for i, g in enumerate(grade_col):
+                if str(grade) == g:
+                    slot_names.append(slot_name_col[i])
+            return slot_names if slot_names else None
+        except Exception as e:
+            logging.error(f"Failed to fetch slot names for grade {grade}: {str(e)}")
+            return None
 
     def convert_to_local_time(self, timestamp_utc):
         utc = pytz.utc

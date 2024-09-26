@@ -456,6 +456,69 @@ def handle_category_selection(ack, body, client):
         )
 
 
+@app.action("grade_action")
+def handle_grade_input(ack, body, client, view, logger):
+    ack()
+    grade = body["actions"][0]["value"]
+    slot_names = sheet_manager.get_slot_names_by_grade(grade)
+
+    if slot_names:
+        slot_name_options = [
+            {"text": {"type": "plain_text", "text": slot_name}, "value": slot_name}
+            for slot_name in slot_names
+        ]
+
+        updated_modal = {
+            "type": "modal",
+            "callback_id": "slash_input",
+            "title": {
+                "type": "plain_text",
+                "text": "Select Slot Name",
+            },
+            "submit": {"type": "plain_text", "text": "Submit"},
+            "close": {"type": "plain_text", "text": "Cancel"},
+            "blocks": [
+                {
+                    "type": "input",
+                    "block_id": "grade_block",
+                    "label": {"type": "plain_text", "text": "Grade"},
+                    "element": {
+                        "type": "number_input",
+                        "action_id": "grade_action",
+                        "is_decimal_allowed": False,
+                        "initial_value": str(grade),
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "slot_name_block",
+                    "label": {"type": "plain_text", "text": "Slot Name"},
+                    "element": {
+                        "type": "static_select",
+                        "action_id": "slot_name_action",
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "Select Slot Name",
+                        },
+                        "options": slot_name_options,
+                    },
+                },
+                # Other modal blocks...
+            ],
+            "private_metadata": body["view"]["private_metadata"],
+        }
+
+        try:
+            client.views_update(view_id=body["view"]["id"], view=updated_modal)
+        except SlackApiError as e:
+            logger.error(
+                f"Error updating modal: {str(e)} | Response: {e.response['error']}"
+            )
+    else:
+        # If no slot name found for the grade, log or show an error message to the user
+        logger.error(f"No slot names found for grade {grade}")
+
+
 @app.view("slash_input")
 def send_the_user_input(ack, body, client, say, view):
     ack()
