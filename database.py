@@ -23,30 +23,6 @@ class SheetManager:
         except Exception as e:
             logging.error(f"Failed to initialize SheetManager: {str(e)}")
 
-    def get_slot_names_by_grade(self, grade):
-        try:
-            grade_col = self.slot_data_sheet.col_values(1)  # Kolom 1 untuk grades
-            slot_name_col = self.slot_data_sheet.col_values(
-                3
-            )  # Kolom 3 untuk slot names
-            slot_names = []
-            for i, g in enumerate(grade_col):
-                if str(grade) == g:  # Cocokkan grade
-                    slot_names.append(
-                        slot_name_col[i]
-                    )  # Tambahkan slot name yang cocok
-
-            # Tambahkan log untuk memeriksa apakah slot names ditemukan
-            if slot_names:
-                logging.info(f"Slot names ditemukan untuk grade {grade}: {slot_names}")
-            else:
-                logging.info(f"Tidak ada slot names untuk grade {grade}")
-
-            return slot_names if slot_names else None
-        except Exception as e:
-            logging.error(f"Failed to fetch slot names for grade {grade}: {str(e)}")
-            return None
-
     def convert_to_local_time(self, timestamp_utc):
         utc = pytz.utc
         local_tz = pytz.timezone("Asia/Jakarta")
