@@ -306,7 +306,7 @@ def slash_input(ack, body, client):
         "callback_id": "slash_input",
         "title": {
             "type": "plain_text",
-            "text": "Pick, It’s Easy!",
+            "text": "Don’t Overthink It!",
         },
         "submit": {"type": "plain_text", "text": "Submit"},
         "close": {"type": "plain_text", "text": "Cancel"},
@@ -594,7 +594,9 @@ def send_the_user_input(ack, body, client, say, view):
         )
 
         piket_data = f"{date}@@{teacher_requested}@@{teacher_replace}@@{grade}@@{slot_name}@@{time_class}@@{reason}@@{direct_lead}@@{stem_lead}"
-        ticket_key_for_user = f"{user_id}@@{response_for_user['ts']}@@{timestamp_jakarta}@@{piket_data}@@{category}"
+        ticket_key_for_user = (
+            f"{user_id}@@{initial_ts}@@{timestamp_jakarta}@@{piket_data}@@{category}"
+        )
 
         piket_message = [
             {
@@ -1086,7 +1088,7 @@ def is_ticket_assigned(ticket_ts):
 def select_user(ack, body, client):
     ack()
     person_who_assigns = body["user"]["id"]
-    person_who_assigns_name = body["user"]["name"]
+    person_who_assigns_name = get_real_name(client, person_who_assigns)
     [
         selected_user,
         user_who_requested,
