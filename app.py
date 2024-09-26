@@ -595,7 +595,7 @@ def send_the_user_input(ack, body, client, say, view):
 
         piket_data = f"{date}@@{teacher_requested}@@{teacher_replace}@@{grade}@@{slot_name}@@{time_class}@@{reason}@@{direct_lead}@@{stem_lead}"
         ticket_key_for_user = (
-            f"{user_id}@@{initial_ts}@@{timestamp_jakarta}@@{piket_data}@@{category}"
+            f"{user_id}@@{response_for_user["ts"]}@@{timestamp_jakarta}@@{piket_data}@@{category}"
         )
 
         piket_message = [
@@ -668,7 +668,7 @@ def send_the_user_input(ack, body, client, say, view):
             channel=piket_channel_id, ts=initial_ts, blocks=piket_message
         )
         sheet_manager.init_piket_row(
-            f"piket.{initial_ts}",
+            f"piket.{response_for_user["ts"]}",
             teacher_requested_name,
             teacher_replaces_name,
             grade,
@@ -2186,7 +2186,7 @@ def show_reject_modal(ack, body, client, view, logger):
                 client.chat_postMessage(
                     channel=reporter_piket,
                     thread_ts=response_ts,
-                    text=f"We are sorry :smiling_face_with_tear: your request was rejected due to `{reason}` at {timestamp_jakarta}. Let's put another piket request later.",
+                    text=f"Uh-oh! :smiling_face_with_tear: Your request got the boot due to `{reason}` at `{timestamp_jakarta}`. But hey, no worries! You can always throw another piket request our way soon!",
                 )
 
             else:
