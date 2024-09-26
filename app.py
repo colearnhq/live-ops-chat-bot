@@ -1682,7 +1682,6 @@ def reject_button(ack, body, client):
         f"live-ops.{message_ts}",
         {"rejected_by": user_name, "rejected_at": timestamp_utc},
     )
-    print(f"on reject: piket.{message_ts}")
     sheet_manager.update_piket(
         f"piket.{message_ts}",
         {"status": "Rejected", "rejected_by": user_name, "rejected_at": timestamp_utc},
