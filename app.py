@@ -857,14 +857,6 @@ def send_the_user_input(ack, body, client, say, view):
 
             reminder_time = timedelta(minutes=3)
             schedule_reminder(client, channel_id, ts, reminder_time, result["ts"])
-
-            sheet_manager.init_ticket_row(
-                f"live-ops.{timestamp_utc}",
-                user_id,
-                reporter_name,
-                issue_description if category == "Others" else "Piket Ticket",
-                timestamp_utc,
-            )
         except Exception as e:
             logging.error(f"An error occurred: {str(e)}")
 
@@ -2095,7 +2087,7 @@ def show_reject_modal(ack, body, client, view, logger):
                 client.chat_postMessage(
                     channel=user_requested_id,
                     thread_ts=user_message_ts,
-                    text=f"We are sorry :smiling_face_with_tear: your issue was rejected due to `{reason}` at {timestamp_jakarta}. Let's put another question.",
+                    text=f"We are sorry :smiling_face_with_tear: your issue was rejected due to `{reason}` at `{timestamp_jakarta}`. Let's put another question.",
                 )
 
                 client.chat_update(
