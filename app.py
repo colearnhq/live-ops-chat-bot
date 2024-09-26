@@ -457,23 +457,38 @@ def handle_category_selection(ack, body, client):
 
 
 @app.action("grade_action")
-def handle_grade_input(ack, body, client, view, logger):
+def handle_grade_input(ack, body, client, logger):
     ack()
+
+    # Ambil grade yang diinput oleh pengguna
     grade = body["actions"][0]["value"]
-    slot_names = sheet_manager.get_slot_from_grade(grade)
+
+    # Tambahkan log untuk memeriksa nilai grade yang diinput
+    logger.info(f"Grade yang diinput: {grade}")
+
+    # Ambil nama slot berdasarkan grade dari SheetManager
+    slot_names = sheet_manager.get_slot_names_by_grade(grade)
+
+    # Tambahkan log untuk memeriksa apakah slot_names ditemukan
+    if slot_names:
+        logger.info(f"Slot names ditemukan: {slot_names}")
+    else:
+        logger.info(f"Tidak ada slot names untuk grade: {grade}")
 
     if slot_names:
+        # Buat opsi untuk dropdown static_select
         slot_name_options = [
             {"text": {"type": "plain_text", "text": slot_name}, "value": slot_name}
             for slot_name in slot_names
         ]
 
+        # Perbarui modal dengan dropdown slot names
         updated_modal = {
             "type": "modal",
             "callback_id": "slash_input",
             "title": {
                 "type": "plain_text",
-                "text": "Select Slot Name",
+                "text": "Feeling Lucky Today?",
             },
             "submit": {"type": "plain_text", "text": "Submit"},
             "close": {"type": "plain_text", "text": "Cancel"},
@@ -486,7 +501,7 @@ def handle_grade_input(ack, body, client, view, logger):
                         "type": "number_input",
                         "action_id": "grade_action",
                         "is_decimal_allowed": False,
-                        "initial_value": str(grade),
+                        "initial_value": str(grade),  # Tampilkan grade yang diinput
                     },
                 },
                 {
@@ -500,23 +515,23 @@ def handle_grade_input(ack, body, client, view, logger):
                             "type": "plain_text",
                             "text": "Select Slot Name",
                         },
-                        "options": slot_name_options,
+                        "options": slot_name_options,  # Isi dengan slot names
                     },
                 },
-                # Other modal blocks...
+                # Tambahkan blok lainnya di sini...
             ],
             "private_metadata": body["view"]["private_metadata"],
         }
 
         try:
+            # Perbarui modal secara dinamis dengan opsi slot names baru
             client.views_update(view_id=body["view"]["id"], view=updated_modal)
         except SlackApiError as e:
             logger.error(
                 f"Error updating modal: {str(e)} | Response: {e.response['error']}"
             )
     else:
-        # If no slot name found for the grade, log or show an error message to the user
-        logger.error(f"No slot names found for grade {grade}")
+        logger.error(f"Tidak ada slot names ditemukan untuk grade {grade}")
 
 
 @app.view("slash_input")
