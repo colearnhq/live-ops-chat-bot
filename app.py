@@ -548,10 +548,10 @@ def send_the_user_input(ack, body, client, say, view):
             "selected_user"
         ]
 
-        teacher_requested_name = get_real_name(teacher_requested)
-        teacher_replaces_name = get_real_name(teacher_replace)
-        direct_lead_name = get_real_name(direct_lead)
-        stem_lead_name = get_real_name(stem_lead)
+        teacher_requested_name = get_real_name(client, teacher_requested)
+        teacher_replaces_name = get_real_name(client, teacher_replace)
+        direct_lead_name = get_real_name(client, direct_lead)
+        stem_lead_name = get_real_name(client, stem_lead)
 
         piket_channel_id = channel_id
 
