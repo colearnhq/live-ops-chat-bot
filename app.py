@@ -668,7 +668,7 @@ def send_the_user_input(ack, body, client, say, view):
             channel=piket_channel_id, ts=initial_ts, blocks=piket_message
         )
         sheet_manager.init_piket_row(
-            f"piket.{response_for_user["ts"]}",
+            f"piket.{response_for_user['ts']}",
             teacher_requested_name,
             teacher_replaces_name,
             grade,
