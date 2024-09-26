@@ -460,7 +460,7 @@ def handle_category_selection(ack, body, client):
 def handle_grade_input(ack, body, client, view, logger):
     ack()
     grade = body["actions"][0]["value"]
-    slot_names = sheet_manager.get_slot_names_by_grade(grade)
+    slot_names = sheet_manager.get_slot_from_grade(grade)
 
     if slot_names:
         slot_name_options = [
