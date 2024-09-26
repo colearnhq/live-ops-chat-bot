@@ -594,9 +594,7 @@ def send_the_user_input(ack, body, client, say, view):
         )
 
         piket_data = f"{date}@@{teacher_requested}@@{teacher_replace}@@{grade}@@{slot_name}@@{time_class}@@{reason}@@{direct_lead}@@{stem_lead}"
-        ticket_key_for_user = (
-            f"{user_id}@@{response_for_user["ts"]}@@{timestamp_jakarta}@@{piket_data}@@{category}"
-        )
+        ticket_key_for_user = f"{user_id}@@{response_for_user['ts']}@@{timestamp_jakarta}@@{piket_data}@@{category}"
 
         piket_message = [
             {
