@@ -244,14 +244,13 @@ def slash_input(ack, body, client):
     category_options = [
         {
             "text": {"type": "plain_text", "text": category},
-            "value": f"{category}@@{user_input}",
+            "value": f"{category}",
         }
         for category in categories
     ]
     trigger_id = body["trigger_id"]
     channel_id = "C0719R3NQ91"
 
-    # Build modal with larger buttons and no submit/cancel
     modal = {
         "type": "modal",
         "callback_id": "slash_input",
@@ -276,24 +275,22 @@ def slash_input(ack, body, client):
                         "type": "button",
                         "text": {
                             "type": "plain_text",
-                            "text": category["text"][
-                                "text"
-                            ],  # Text for the button (category name)
+                            "text": category["text"]["text"],
                             "emoji": True,
                         },
-                        "value": category["value"],  # Value associated with the button
+                        "value": category["value"],
                         "action_id": f"button_{category['value']}",
                         "style": (
                             "primary"
                             if category["text"]["text"] == "Piket"
                             else "danger"
-                        ),  # Making Piket primary and Others danger styled
+                        ),
                     }
                     for category in category_options
                 ],
             },
         ],
-        "private_metadata": f"{channel_id}",
+        "private_metadata": f"{channel_id}@@{user_input}",
     }
 
     try:
@@ -304,14 +301,13 @@ def slash_input(ack, body, client):
         )
 
 
-@app.action("user_categories")
+@app.action("button_Piket")
+@app.action("button_Others")
 def handle_category_selection(ack, body, client):
     ack()
-    [selected_category, user_input] = body["actions"][0]["selected_option"][
-        "value"
-    ].split("@@")
+    selected_category = body["actions"][0]["value"]
     trigger_id = body["trigger_id"]
-    channel_id = body["view"]["private_metadata"]
+    [channel_id, user_input] = body["view"]["private_metadata"].split("@@")
 
     if selected_category == "Piket":
         modal_blocks = [
