@@ -267,16 +267,25 @@ def slash_input(ack, body, client):
                     "type": "mrkdwn",
                     "text": "Please select the category of the issue:",
                 },
-                "accessory": {
-                    "type": "static_select",
-                    "placeholder": {
-                        "type": "plain_text",
-                        "text": "Select category...",
-                        "emoji": True,
-                    },
-                    "options": category_options,
-                    "action_id": "user_categories",
-                },
+            },
+            {
+                "type": "actions",
+                "block_id": "category_buttons",
+                "elements": [
+                    {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "text": category[
+                                "text"
+                            ],  # Text for the button (category name)
+                            "emoji": True,
+                        },
+                        "value": category["value"],  # Value associated with the button
+                        "action_id": f"button_{category['value']}",
+                    }
+                    for category in category_options
+                ],
             },
         ],
         "private_metadata": f"{channel_id}",
@@ -1524,7 +1533,6 @@ def resolve_button(ack, body, client, logger):
                     text=f"<@{reporter_piket}> your piket request has been approved at `{timestamp_jakarta}`. Thank you :blob-bear-dance:",
                 )
 
-            print(f"cek thread ts on resolve : piket.{thread_ts}")
             sheet_manager.update_piket(
                 f"piket.{thread_ts}",
                 {
@@ -1842,7 +1850,7 @@ def show_reject_modal(ack, body, client, view, logger):
                 grade,
                 slot_name,
                 time_class,
-                reason,
+                reason_on_piket_replacement,
                 direct_lead,
                 stem_lead,
             ] = reject_button_value[:-2]
@@ -1880,7 +1888,10 @@ def show_reject_modal(ack, body, client, view, logger):
                                 "type": "mrkdwn",
                                 "text": f"*Slot Name:*\n`{grade}-{slot_name}`",
                             },
-                            {"type": "mrkdwn", "text": f"*Reason:*\n```{reason}```"},
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Reason:*\n```{reason_on_piket_replacement}```",
+                            },
                             {
                                 "type": "mrkdwn",
                                 "text": f"*Direct Lead:*\n<@{direct_lead}>",
