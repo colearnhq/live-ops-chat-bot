@@ -251,7 +251,7 @@ def slash_input(ack, body, client):
     trigger_id = body["trigger_id"]
     channel_id = "C0719R3NQ91"
 
-    # Build modal with buttons instead of dropdown
+    # Build modal with larger buttons and no submit/cancel
     modal = {
         "type": "modal",
         "callback_id": "slash_input",
@@ -259,8 +259,6 @@ def slash_input(ack, body, client):
             "type": "plain_text",
             "text": "Don’t Overthink It!",
         },
-        "submit": {"type": "plain_text", "text": "Submit"},
-        "close": {"type": "plain_text", "text": "Cancel"},
         "blocks": [
             {
                 "type": "section",
@@ -285,6 +283,11 @@ def slash_input(ack, body, client):
                         },
                         "value": category["value"],  # Value associated with the button
                         "action_id": f"button_{category['value']}",
+                        "style": (
+                            "primary"
+                            if category["text"]["text"] == "Piket"
+                            else "danger"
+                        ),  # Making Piket primary and Others danger styled
                     }
                     for category in category_options
                 ],
