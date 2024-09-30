@@ -250,6 +250,8 @@ def slash_input(ack, body, client):
     ]
     trigger_id = body["trigger_id"]
     channel_id = "C0719R3NQ91"
+
+    # Build modal with buttons instead of dropdown
     modal = {
         "type": "modal",
         "callback_id": "slash_input",
@@ -276,7 +278,7 @@ def slash_input(ack, body, client):
                         "type": "button",
                         "text": {
                             "type": "plain_text",
-                            "text": category[
+                            "text": category["text"][
                                 "text"
                             ],  # Text for the button (category name)
                             "emoji": True,
