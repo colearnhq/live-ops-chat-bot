@@ -369,7 +369,10 @@ def handle_category_selection(ack, body, client):
             {
                 "type": "input",
                 "block_id": "time_class_block",
-                "label": {"type": "plain_text", "text": "Time of Class"},
+                "label": {
+                    "type": "plain_text",
+                    "text": "Time of Class\n*Note:* Gunakan `:` sebagai pemisah jam dan pastikan dalam standar 24 jam.",
+                },
                 "element": {
                     "type": "timepicker",
                     "action_id": "time_class_action",
