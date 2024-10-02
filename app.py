@@ -434,7 +434,6 @@ def handle_category_selection(ack, body, client):
                         if selected_category != "I have had a replacement"
                         else {}
                     ),
-                    "dispatch_action": True,
                     "placeholder": {
                         "type": "plain_text",
                         "text": "Select Teacher Who Replaces",
@@ -828,7 +827,6 @@ def handle_generate_slot_list(ack, body, client):
                             if selected_cat_on_piket != "I have had a replacement"
                             else {}
                         ),
-                        "dispatch_action": True,
                         "placeholder": {
                             "type": "plain_text",
                             "text": "Select Teacher Who Replaces",
