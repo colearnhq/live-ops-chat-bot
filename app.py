@@ -312,115 +312,6 @@ def handle_category_selection(ack, body, client):
 
     modal_blocks = []
 
-    # Conditional check for "Piket" category
-    if selected_category == "Piket":
-        modal_blocks = [
-            {
-                "type": "input",
-                "block_id": "replacement_option_block",
-                "label": {"type": "plain_text", "text": "Replacement Options"},
-                "element": {
-                    "type": "static_select",
-                    "action_id": "replacement_option_action",
-                    "placeholder": {
-                        "type": "plain_text",
-                        "text": "Do you need a teacher replacement?",
-                        "emoji": True,
-                    },
-                    "options": [
-                        {
-                            "text": {
-                                "type": "plain_text",
-                                "text": "I need help finding a replacement",
-                                "emoji": True,
-                            },
-                            "value": "need_help",
-                        },
-                        {
-                            "text": {
-                                "type": "plain_text",
-                                "text": "No Mentor",
-                                "emoji": True,
-                            },
-                            "value": "no_mentor",
-                        },
-                        {
-                            "text": {
-                                "type": "plain_text",
-                                "text": "I have already the replacement",
-                                "emoji": True,
-                            },
-                            "value": "teacher_selection",
-                        },
-                    ],
-                },
-            },
-        ]
-
-    elif selected_category == "Others":
-        modal_blocks = [
-            {
-                "type": "input",
-                "block_id": "issue_name",
-                "label": {"type": "plain_text", "text": "Your Issue"},
-                "element": {
-                    "type": "plain_text_input",
-                    "action_id": "user_issue",
-                    "multiline": True,
-                    "initial_value": user_input,
-                    "placeholder": {
-                        "type": "plain_text",
-                        "text": "Describe your issue...",
-                    },
-                },
-            },
-            {
-                "type": "input",
-                "optional": True,
-                "block_id": "file_upload_block",
-                "label": {"type": "plain_text", "text": "File Upload"},
-                "element": {
-                    "type": "file_input",
-                    "action_id": "file_input_action",
-                    "filetypes": ["jpg", "png"],
-                    "max_files": 5,
-                },
-            },
-        ]
-
-    # Check if "I have already the replacement" is selected
-    if selected_category == "teacher_selection":
-        # Update modal with the existing blocks provided
-        modal_blocks = existing_blocks
-
-    updated_modal = {
-        "type": "modal",
-        "callback_id": "slash_input",
-        "title": {
-            "type": "plain_text",
-            "text": "Feeling Lucky Today?",
-        },
-        "submit": {"type": "plain_text", "text": "Submit"},
-        "close": {"type": "plain_text", "text": "Cancel"},
-        "blocks": modal_blocks,
-        "private_metadata": f"{channel_id}@@{selected_category}",
-    }
-
-    try:
-        client.views_update(view_id=body["view"]["id"], view=updated_modal)
-    except SlackApiError as e:
-        logging.error(
-            f"Error updating modal: {str(e)} | Response: {e.response['error']}"
-        )
-
-
-@app.action("replacement_option_action")
-def handle_replacement_option_action(ack, body, client, logger):
-    ack()
-
-    selected_option = body["actions"][0]["selected_option"]["value"]
-    view_id = body["view"]["id"]
-
     existing_blocks = [
         {
             "type": "input",
@@ -538,46 +429,256 @@ def handle_replacement_option_action(ack, body, client, logger):
         },
     ]
 
-    if selected_option == "teacher_selection":
-        # Update the replacement option block to allow selecting a replacement teacher
-        for block in existing_blocks:
-            if block["block_id"] == "replacement_option_block":
-                block.update(
-                    {
-                        "block_id": "find_teacher_block",
-                        "label": {
-                            "type": "plain_text",
-                            "text": "Select a Replacement Teacher",
-                        },
-                        "element": {
-                            "action_id": "replacement_teacher_action",
-                            "type": "users_select",
-                            "placeholder": {
+    if selected_category == "Piket":
+        modal_blocks = [
+            {
+                "type": "input",
+                "block_id": "replacement_option_block",
+                "label": {"type": "plain_text", "text": "Replacement Options"},
+                "element": {
+                    "type": "static_select",
+                    "action_id": "replacement_option_action",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Do you need a teacher replacement?",
+                        "emoji": True,
+                    },
+                    "options": [
+                        {
+                            "text": {
                                 "type": "plain_text",
-                                "text": "Select the replacement teacher",
+                                "text": "I need help finding a replacement",
+                                "emoji": True,
                             },
+                            "value": "need_help",
                         },
-                    }
-                )
-
-    # Update the modal with the new block
-    try:
-        client.views_update(
-            view_id=view_id,
-            view={
-                "type": "modal",
-                "callback_id": "slash_input",
-                "title": {
-                    "type": "plain_text",
-                    "text": "Feeling Lucky Today?",
+                        {
+                            "text": {
+                                "type": "plain_text",
+                                "text": "No Mentor",
+                                "emoji": True,
+                            },
+                            "value": "no_mentor",
+                        },
+                        {
+                            "text": {
+                                "type": "plain_text",
+                                "text": "I have already the replacement",
+                                "emoji": True,
+                            },
+                            "value": "teacher_selection",
+                        },
+                    ],
                 },
-                "blocks": existing_blocks,
             },
-        )
+        ]
+
+    elif selected_category == "Others":
+        modal_blocks = [
+            {
+                "type": "input",
+                "block_id": "issue_name",
+                "label": {"type": "plain_text", "text": "Your Issue"},
+                "element": {
+                    "type": "plain_text_input",
+                    "action_id": "user_issue",
+                    "multiline": True,
+                    "initial_value": user_input,
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Describe your issue...",
+                    },
+                },
+            },
+            {
+                "type": "input",
+                "optional": True,
+                "block_id": "file_upload_block",
+                "label": {"type": "plain_text", "text": "File Upload"},
+                "element": {
+                    "type": "file_input",
+                    "action_id": "file_input_action",
+                    "filetypes": ["jpg", "png"],
+                    "max_files": 5,
+                },
+            },
+        ]
+
+    # Check if "I have already the replacement" is selected
+    if selected_category == "teacher_selection":
+        # Update modal with the existing blocks provided
+        modal_blocks = existing_blocks
+
+    updated_modal = {
+        "type": "modal",
+        "callback_id": "slash_input",
+        "title": {
+            "type": "plain_text",
+            "text": "Feeling Lucky Today?",
+        },
+        "submit": {"type": "plain_text", "text": "Submit"},
+        "close": {"type": "plain_text", "text": "Cancel"},
+        "blocks": modal_blocks,
+        "private_metadata": f"{channel_id}@@{selected_category}",
+    }
+
+    try:
+        client.views_update(view_id=body["view"]["id"], view=updated_modal)
     except SlackApiError as e:
-        logger.error(
+        logging.error(
             f"Error updating modal: {str(e)} | Response: {e.response['error']}"
         )
+
+
+@app.action("replacement_option_action")
+def handle_replacement_selection(ack, body, client):
+    ack()
+
+    selected_option = body["actions"][0]["selected_option"]["value"]
+    trigger_id = body["trigger_id"]
+    [channel_id, user_input] = body["view"]["private_metadata"].split("@@")
+
+    # Check if the selected option is "I have already the replacement"
+    if selected_option == "teacher_selection":
+        # Define the existing blocks (for the replacement form)
+        existing_blocks = [
+            {
+                "type": "input",
+                "block_id": "date_block",
+                "label": {"type": "plain_text", "text": "Date"},
+                "element": {
+                    "type": "datepicker",
+                    "action_id": "date_picker_action",
+                    "placeholder": {"type": "plain_text", "text": "Select date"},
+                },
+            },
+            {
+                "type": "input",
+                "block_id": "teacher_request_block",
+                "label": {"type": "plain_text", "text": "Teacher who requested"},
+                "element": {
+                    "action_id": "teacher_request_action",
+                    "type": "users_select",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Select Teacher Who Requested",
+                    },
+                },
+            },
+            {
+                "type": "input",
+                "block_id": "teacher_replace_block",
+                "label": {"type": "plain_text", "text": "Teacher who replaces"},
+                "element": {
+                    "action_id": "teacher_replace_action",
+                    "type": "users_select",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Select Teacher Who Replaces",
+                    },
+                },
+            },
+            {
+                "type": "input",
+                "block_id": "grade_block",
+                "label": {"type": "plain_text", "text": "Grade"},
+                "element": {
+                    "type": "number_input",
+                    "action_id": "grade_action",
+                    "is_decimal_allowed": False,
+                },
+            },
+            {
+                "type": "input",
+                "block_id": "slot_name_block",
+                "label": {"type": "plain_text", "text": "Input grade first.."},
+                "element": {
+                    "type": "plain_text_input",
+                    "action_id": "slot_name_action",
+                },
+            },
+            {
+                "type": "actions",
+                "elements": [
+                    {
+                        "type": "button",
+                        "text": {"type": "plain_text", "text": "Generate slot"},
+                        "action_id": "generate_slot_list",
+                    }
+                ],
+            },
+            {
+                "type": "input",
+                "block_id": "time_class_block",
+                "label": {"type": "plain_text", "text": "Time of Class"},
+                "element": {
+                    "type": "plain_text_input",
+                    "action_id": "time_class_action",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "contoh: 19:15",
+                    },
+                },
+            },
+            {
+                "type": "input",
+                "block_id": "reason_block",
+                "label": {"type": "plain_text", "text": "Reason"},
+                "element": {
+                    "type": "plain_text_input",
+                    "multiline": True,
+                    "action_id": "reason_action",
+                },
+            },
+            {
+                "type": "input",
+                "block_id": "direct_lead_block",
+                "label": {"type": "plain_text", "text": "Direct Lead"},
+                "element": {
+                    "action_id": "direct_lead_action",
+                    "type": "users_select",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Select Your Direct Lead",
+                    },
+                },
+            },
+            {
+                "type": "input",
+                "block_id": "stem_lead_block",
+                "label": {"type": "plain_text", "text": "STEM Lead"},
+                "element": {
+                    "action_id": "stem_lead_action",
+                    "type": "users_select",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Select Your STEM Lead",
+                    },
+                },
+            },
+        ]
+
+        # Update modal with the existing blocks for teacher selection
+        updated_modal = {
+            "type": "modal",
+            "callback_id": "slash_input",
+            "title": {
+                "type": "plain_text",
+                "text": "Replacement Form",
+            },
+            "submit": {"type": "plain_text", "text": "Submit"},
+            "close": {"type": "plain_text", "text": "Cancel"},
+            "blocks": existing_blocks,
+            "private_metadata": f"{channel_id}@@{selected_option}",
+        }
+
+        # Update the modal dynamically
+        try:
+            client.views_update(view_id=body["view"]["id"], view=updated_modal)
+        except SlackApiError as e:
+            logging.error(
+                f"Error updating modal: {str(e)} | Response: {e.response['error']}"
+            )
 
 
 # @app.action("button_Piket")
