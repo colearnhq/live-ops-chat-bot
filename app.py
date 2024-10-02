@@ -373,7 +373,7 @@ def handling_replacement(ack, body, client):
 def handle_category_selection(ack, body, client):
     ack()
     print(f"selected category {body}")
-    selected_category = body["state"]["values"]["category_block"][
+    selected_category = body["view"]["state"]["values"]["category_block"][
         "handle_category_selection"
     ]["selected_option"]["value"]
     print(f"check selected category: {selected_category}")
