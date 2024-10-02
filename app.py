@@ -309,6 +309,9 @@ def handle_category_selection(ack, body, client):
     trigger_id = body["trigger_id"]
     [channel_id, user_input] = body["view"]["private_metadata"].split("@@")
 
+    modal_blocks = []
+
+    # Blocks for "Piket" category
     if selected_category == "Piket":
         modal_blocks = [
             {
@@ -336,19 +339,6 @@ def handle_category_selection(ack, body, client):
             },
             {
                 "type": "input",
-                "block_id": "teacher_replace_block",
-                "label": {"type": "plain_text", "text": "Teacher Replacing"},
-                "element": {
-                    "type": "users_select",
-                    "action_id": "teacher_replace_action",
-                    "placeholder": {
-                        "type": "plain_text",
-                        "text": "Select a teacher who will replace",
-                    },
-                },
-            },
-            {
-                "type": "input",
                 "block_id": "replacement_option_block",
                 "label": {"type": "plain_text", "text": "Replacement Options"},
                 "element": {
@@ -363,7 +353,15 @@ def handle_category_selection(ack, body, client):
                         {
                             "text": {
                                 "type": "plain_text",
-                                "text": "No replacement needed",
+                                "text": "I need help finding a replacement",
+                                "emoji": True,
+                            },
+                            "value": "find_teacher",
+                        },
+                        {
+                            "text": {
+                                "type": "plain_text",
+                                "text": "No Mentor",
                                 "emoji": True,
                             },
                             "value": "no_mentor",
@@ -371,7 +369,7 @@ def handle_category_selection(ack, body, client):
                         {
                             "text": {
                                 "type": "plain_text",
-                                "text": "I need help finding a replacement",
+                                "text": "I need your help, Ops!",
                                 "emoji": True,
                             },
                             "value": "need_help",
@@ -463,6 +461,29 @@ def handle_category_selection(ack, body, client):
             },
         ]
 
+        replacement_option = body["actions"][0]["selected_option"]["value"]
+
+        if replacement_option == "find_teacher":
+            for block in modal_blocks:
+                if block["block_id"] == "replacement_option_block":
+                    block.update(
+                        {
+                            "block_id": "find_teacher_block",
+                            "label": {
+                                "type": "plain_text",
+                                "text": "Select a Replacement Teacher",
+                            },
+                            "element": {
+                                "action_id": "replacement_teacher_action",
+                                "type": "users_select",
+                                "placeholder": {
+                                    "type": "plain_text",
+                                    "text": "Select the replacement teacher",
+                                },
+                            },
+                        }
+                    )
+
     elif selected_category == "Others":
         modal_blocks = [
             {
@@ -494,6 +515,7 @@ def handle_category_selection(ack, body, client):
             },
         ]
 
+    # Create and update the modal
     updated_modal = {
         "type": "modal",
         "callback_id": "slash_input",
@@ -513,6 +535,215 @@ def handle_category_selection(ack, body, client):
         logging.error(
             f"Error updating modal: {str(e)} | Response: {e.response['error']}"
         )
+
+
+# @app.action("button_Piket")
+# @app.action("button_Others")
+# def handle_category_selection(ack, body, client):
+#     ack()
+#     selected_category = body["actions"][0]["value"]
+#     trigger_id = body["trigger_id"]
+#     [channel_id, user_input] = body["view"]["private_metadata"].split("@@")
+
+#     if selected_category == "Piket":
+#         modal_blocks = [
+#             {
+#                 "type": "input",
+#                 "block_id": "date_block",
+#                 "label": {"type": "plain_text", "text": "Date"},
+#                 "element": {
+#                     "type": "datepicker",
+#                     "action_id": "date_picker_action",
+#                     "placeholder": {"type": "plain_text", "text": "Select the date"},
+#                 },
+#             },
+#             {
+#                 "type": "input",
+#                 "block_id": "teacher_request_block",
+#                 "label": {"type": "plain_text", "text": "Requesting Teacher"},
+#                 "element": {
+#                     "action_id": "teacher_request_action",
+#                     "type": "users_select",
+#                     "placeholder": {
+#                         "type": "plain_text",
+#                         "text": "Select the teacher who is requesting",
+#                     },
+#                 },
+#             },
+#             {
+#                 "type": "input",
+#                 "block_id": "replacement_option_block",
+#                 "label": {"type": "plain_text", "text": "Replacement Options"},
+#                 "element": {
+#                     "type": "static_select",
+#                     "action_id": "replacement_option_action",
+#                     "placeholder": {
+#                         "type": "plain_text",
+#                         "text": "Do you need a replacement?",
+#                         "emoji": True,
+#                     },
+#                     "options": [
+#                         {
+#                             "text": {
+#                                 "type": "plain_text",
+#                                 "text": "I need help finding a replacement",
+#                                 "emoji": True,
+#                             },
+#                             "value": "find_teacher",
+#                         },
+#                         {
+#                             "text": {
+#                                 "type": "plain_text",
+#                                 "text": "No Mentor",
+#                                 "emoji": True,
+#                             },
+#                             "value": "no_mentor",
+#                         },
+#                         {
+#                             "text": {
+#                                 "type": "plain_text",
+#                                 "text": "I need your help, Ops!",
+#                                 "emoji": True,
+#                             },
+#                             "value": "need_help",
+#                         },
+#                     ],
+#                 },
+#             },
+#             {
+#                 "type": "input",
+#                 "block_id": "grade_block",
+#                 "label": {"type": "plain_text", "text": "Grade"},
+#                 "element": {
+#                     "type": "number_input",
+#                     "action_id": "grade_action",
+#                     "is_decimal_allowed": False,
+#                 },
+#             },
+#             {
+#                 "type": "input",
+#                 "block_id": "slot_name_block",
+#                 "label": {"type": "plain_text", "text": "Slot Name"},
+#                 "element": {
+#                     "type": "plain_text_input",
+#                     "action_id": "slot_name_action",
+#                     "placeholder": {
+#                         "type": "plain_text",
+#                         "text": "Enter the grade first",
+#                     },
+#                 },
+#             },
+#             {
+#                 "type": "actions",
+#                 "elements": [
+#                     {
+#                         "type": "button",
+#                         "text": {"type": "plain_text", "text": "Generate Slot"},
+#                         "action_id": "generate_slot_list",
+#                     }
+#                 ],
+#             },
+#             {
+#                 "type": "input",
+#                 "block_id": "time_class_block",
+#                 "label": {"type": "plain_text", "text": "Class Time"},
+#                 "element": {
+#                     "type": "plain_text_input",
+#                     "action_id": "time_class_action",
+#                     "placeholder": {
+#                         "type": "plain_text",
+#                         "text": "Example: 19:15",
+#                     },
+#                 },
+#             },
+#             {
+#                 "type": "input",
+#                 "block_id": "reason_block",
+#                 "label": {"type": "plain_text", "text": "Reason for Replacement"},
+#                 "element": {
+#                     "type": "plain_text_input",
+#                     "multiline": True,
+#                     "action_id": "reason_action",
+#                 },
+#             },
+#             {
+#                 "type": "input",
+#                 "block_id": "direct_lead_block",
+#                 "label": {"type": "plain_text", "text": "Direct Lead Approval"},
+#                 "element": {
+#                     "action_id": "direct_lead_action",
+#                     "type": "users_select",
+#                     "placeholder": {
+#                         "type": "plain_text",
+#                         "text": "Select your direct lead",
+#                     },
+#                 },
+#             },
+#             {
+#                 "type": "input",
+#                 "block_id": "stem_lead_block",
+#                 "label": {"type": "plain_text", "text": "STEM Lead Approval"},
+#                 "element": {
+#                     "action_id": "stem_lead_action",
+#                     "type": "users_select",
+#                     "placeholder": {
+#                         "type": "plain_text",
+#                         "text": "Select your STEM lead",
+#                     },
+#                 },
+#             },
+#         ]
+
+#     elif selected_category == "Others":
+#         modal_blocks = [
+#             {
+#                 "type": "input",
+#                 "block_id": "issue_name",
+#                 "label": {"type": "plain_text", "text": "Your Issue"},
+#                 "element": {
+#                     "type": "plain_text_input",
+#                     "action_id": "user_issue",
+#                     "multiline": True,
+#                     "initial_value": user_input,
+#                     "placeholder": {
+#                         "type": "plain_text",
+#                         "text": "Describe your issue...",
+#                     },
+#                 },
+#             },
+#             {
+#                 "type": "input",
+#                 "optional": True,
+#                 "block_id": "file_upload_block",
+#                 "label": {"type": "plain_text", "text": "File Upload"},
+#                 "element": {
+#                     "type": "file_input",
+#                     "action_id": "file_input_action",
+#                     "filetypes": ["jpg", "png"],
+#                     "max_files": 5,
+#                 },
+#             },
+#         ]
+
+#     updated_modal = {
+#         "type": "modal",
+#         "callback_id": "slash_input",
+#         "title": {
+#             "type": "plain_text",
+#             "text": "Feeling Lucky Today?",
+#         },
+#         "submit": {"type": "plain_text", "text": "Submit"},
+#         "close": {"type": "plain_text", "text": "Cancel"},
+#         "blocks": modal_blocks,
+#         "private_metadata": f"{channel_id}@@{selected_category}",
+#     }
+
+#     try:
+#         client.views_update(view_id=body["view"]["id"], view=updated_modal)
+#     except SlackApiError as e:
+#         logging.error(
+#             f"Error updating modal: {str(e)} | Response: {e.response['error']}"
+#         )
 
 
 @app.action("generate_slot_list")
