@@ -304,20 +304,22 @@ def slash_input(ack, body, client):
 @app.action("button_Piket")
 def handling_replacement(ack, body, client):
     ack()
-    print(f"Handling replacement for Piket: {body}")
+
     categories = [
         "I need help finding a replacement",
         "No Mentor",
         "I have had a replacement",
     ]
+
     category_options = [
         {
             "text": {"type": "plain_text", "text": category},
-            "value": f"{category}",
+            "value": category,
         }
         for category in categories
     ]
-    trigger_id = body["trigger_id"]
+
+    view_id = body["view"]["id"]
 
     modal = {
         "type": "modal",
@@ -357,10 +359,10 @@ def handling_replacement(ack, body, client):
     }
 
     try:
-        client.views_update(trigger_id=trigger_id, view=modal)
+        client.views_update(view_id=view_id, view=modal)
     except SlackApiError as e:
         logging.error(
-            f"Error opening modal: {str(e)} | Response: {e.response['error']}"
+            f"Error updating modal: {str(e)} | Response: {e.response['error']}"
         )
 
 
