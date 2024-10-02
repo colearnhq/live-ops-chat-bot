@@ -373,7 +373,7 @@ def handling_replacement(ack, body, client):
 def handle_category_selection(ack, body, client):
     ack()
     selected_category = body["actions"][0]["value"]
-    print(f"selected category {select_category}")
+    print(f"selected category {body}")
     trigger_id = body["trigger_id"]
     [channel_id, user_input] = body["view"]["private_metadata"].split("@@")
 
