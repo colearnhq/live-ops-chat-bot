@@ -360,7 +360,7 @@ def handle_category_selection(ack, body, client):
             {
                 "type": "input",
                 "block_id": "slot_name_block",
-                "label": {"type": "plain_text", "text": "Slot Name"},
+                "label": {"type": "plain_text", "text": "Input grade first.."},
                 "element": {
                     "type": "plain_text_input",
                     "action_id": "slot_name_action",
@@ -385,7 +385,7 @@ def handle_category_selection(ack, body, client):
                     "action_id": "time_class_action",
                     "placeholder": {
                         "type": "plain_text",
-                        "text": "Gunakan ':' sebagai pemisah dan dalam format waktu 24 jam.",
+                        "text": "contoh: 19:15",
                     },
                 },
             },
@@ -482,7 +482,6 @@ def handle_category_selection(ack, body, client):
 def handle_generate_slot_list(ack, body, client):
     ack()
     grade = body["view"]["state"]["values"]["grade_block"]["grade_action"]["value"]
-    print(f"cek grade {grade}")
     slots = sheet_manager.get_slots_by_grade(grade)
     dropdown_options = [
         {"text": {"type": "plain_text", "text": slot}, "value": slot} for slot in slots
@@ -563,7 +562,7 @@ def handle_generate_slot_list(ack, body, client):
                         "action_id": "time_class_action",
                         "placeholder": {
                             "type": "plain_text",
-                            "text": "Gunakan ':' sebagai pemisah dan dalam format waktu 24 jam.",
+                            "text": "contoh: 19:15",
                         },
                     },
                 },
@@ -640,7 +639,7 @@ def send_the_user_input(ack, body, client, say, view):
             "value"
         ]
         time_class = view["state"]["values"]["time_class_block"]["time_class_action"][
-            "selected_time"
+            "value"
         ]
         reason = view["state"]["values"]["reason_block"]["reason_action"]["value"]
         direct_lead = view["state"]["values"]["direct_lead_block"][
