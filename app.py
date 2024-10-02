@@ -335,52 +335,40 @@ def handle_category_selection(ack, body, client):
                 },
             },
             {
-                "type": "modal",
-                "callback_id": "teacher_selection_modal",
-                "title": {"type": "plain_text", "text": "Teacher Selection"},
-                "blocks": [
+                "type": "context",
+                "elements": [
                     {
-                        "type": "section",
-                        "text": {
-                            "type": "plain_text",
-                            "text": "Select a teacher or choose an alternative option:",
+                        "type": "input",
+                        "block_id": "teacher_replace_block",
+                        "label": {"type": "plain_text", "text": "Teacher who replaces"},
+                        "element": {
+                            "action_id": "teacher_replace_action",
+                            "type": "users_select",
+                            "placeholder": {
+                                "type": "plain_text",
+                                "text": "Select Teacher Who Replaces",
+                            },
                         },
                     },
                     {
+                        "type": "image",
+                        "image_url": "https://api.slack.com/img/blocks/bkb_template_images/task-icon.png",
+                        "alt_text": "Task Icon",
+                    },
+                    {
                         "type": "actions",
-                        "block_id": "teacher_picker_block",
                         "elements": [
                             {
-                                "type": "users_select",
-                                "action_id": "teacher_select",
-                                "placeholder": {
-                                    "type": "plain_text",
-                                    "text": "Select a teacher",
-                                },
+                                "type": "button",
+                                "text": {"type": "plain_text", "text": "Option 1"},
+                                "value": "A1",
+                                "action_id": "option_1",
                             },
                             {
-                                "type": "static_select",
-                                "action_id": "alternative_select",
-                                "placeholder": {
-                                    "type": "plain_text",
-                                    "text": "Or select an alternative",
-                                },
-                                "options": [
-                                    {
-                                        "text": {
-                                            "type": "plain_text",
-                                            "text": "No Teacher",
-                                        },
-                                        "value": "no_teacher",
-                                    },
-                                    {
-                                        "text": {
-                                            "type": "plain_text",
-                                            "text": "Please Help",
-                                        },
-                                        "value": "please_help",
-                                    },
-                                ],
+                                "type": "button",
+                                "text": {"type": "plain_text", "text": "Option 2"},
+                                "value": "A2",
+                                "action_id": "option_2",
                             },
                         ],
                     },
