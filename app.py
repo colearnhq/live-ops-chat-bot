@@ -357,7 +357,7 @@ def handling_replacement(ack, body, client):
     }
 
     try:
-        client.views_open(trigger_id=trigger_id, view=modal)
+        client.views_update(trigger_id=trigger_id, view=modal)
     except SlackApiError as e:
         logging.error(
             f"Error opening modal: {str(e)} | Response: {e.response['error']}"
