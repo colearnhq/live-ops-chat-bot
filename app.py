@@ -360,9 +360,13 @@ def handle_category_selection(ack, body, client):
             {
                 "type": "input",
                 "block_id": "slot_name_block",
-                "label": {"type": "plain_text", "text": "Input grade first.."},
+                "label": {"type": "plain_text", "text": "Slot Name"},
                 "element": {
                     "type": "plain_text_input",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "please input grade first and click generate button",
+                    },
                     "action_id": "slot_name_action",
                 },
             },
