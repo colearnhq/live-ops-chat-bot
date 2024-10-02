@@ -371,10 +371,21 @@ def handle_category_selection(ack, body, client):
                 "block_id": "time_class_block",
                 "label": {"type": "plain_text", "text": "Time of Class"},
                 "element": {
-                    "type": "timepicker",
-                    "action_id": "time_class_action",
-                    "initial_time": "15:00",
-                    "placeholder": {"type": "plain_text", "text": "Select a time"},
+                    "type": "plain_text_input",
+                    "action_id": "hours_input_action",
+                    "placeholder": {"type": "plain_text", "text": "HH"},
+                    "multiline": False,
+                },
+            },
+            {
+                "type": "input",
+                "block_id": "time_separator_block",
+                "label": {"type": "plain_text", "text": ":"},
+                "element": {
+                    "type": "plain_text_input",
+                    "action_id": "minutes_input_action",
+                    "placeholder": {"type": "plain_text", "text": "MM"},
+                    "multiline": False,
                 },
             },
             {
