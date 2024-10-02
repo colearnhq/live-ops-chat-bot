@@ -30,9 +30,22 @@ class SheetManager:
 
             slots_for_grade = [
                 slot_values[i] for i, g in enumerate(grade_values) if g == str(grade)
-            ].sort()
+            ]
 
-            return slots_for_grade
+            # Define a sorting key function
+            def sorting_key(slot):
+                match = re.search(r"(\D+)\s(\d+)", slot)
+                if match:
+                    subject = match.group(1).strip()
+                    number = int(match.group(2))
+                    return (subject, number)
+                else:
+                    return (slot, 0)
+
+            sorted_slots = sorted(slots_for_grade, key=sorting_key)
+
+            return sorted_slots
+
         except Exception as e:
             logging.error(f"Failed to fetch slots for grade {grade}: {str(e)}")
             return []
