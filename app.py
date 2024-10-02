@@ -434,6 +434,7 @@ def handle_category_selection(ack, body, client):
                         if selected_category != "I have had a replacement"
                         else {}
                     ),
+                    "dispatch_action": True,
                     "placeholder": {
                         "type": "plain_text",
                         "text": "Select Teacher Who Replaces",
@@ -761,7 +762,7 @@ def handle_category_selection(ack, body, client):
 @app.action("generate_slot_list")
 def handle_generate_slot_list(ack, body, client):
     ack()
-    print(f"cek body {body}")
+    [channel_id, selected_cat_on_piket] = body["view"]["private_metadata"].split("@@")
     grade = body["view"]["state"]["values"]["grade_block"]["grade_action"]["value"]
     slots = sheet_manager.get_slots_by_grade(grade)
     dropdown_options = [
@@ -806,7 +807,28 @@ def handle_generate_slot_list(ack, body, client):
                     "label": {"type": "plain_text", "text": "Teacher who replaces"},
                     "element": {
                         "action_id": "teacher_replace_action",
-                        "type": "users_select",
+                        "type": (
+                            "users_select"
+                            if selected_cat_on_piket == "I have had a replacement"
+                            else "plain_text_input"
+                        ),
+                        **(
+                            {
+                                "initial_value": (
+                                    "I need a help finding a replacement"
+                                    if selected_cat_on_piket
+                                    == "I need a help finding a replacement"
+                                    else (
+                                        "No Mentor"
+                                        if selected_cat_on_piket == "No Mentor"
+                                        else None
+                                    )
+                                )
+                            }
+                            if selected_cat_on_piket != "I have had a replacement"
+                            else {}
+                        ),
+                        "dispatch_action": True,
                         "placeholder": {
                             "type": "plain_text",
                             "text": "Select Teacher Who Replaces",
