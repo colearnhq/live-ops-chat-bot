@@ -357,7 +357,7 @@ def handling_replacement(ack, body, client):
                 },
             },
         ],
-        "private_metadata": f"{channel_id}@@{category_options}",
+        "private_metadata": f"{channel_id}@@Piket",
     }
 
     try:
@@ -372,15 +372,17 @@ def handling_replacement(ack, body, client):
 @app.action("button_Others")
 def handle_category_selection(ack, body, client):
     ack()
-    print(f"selected category {body}")
-    selected_category = body["view"]["state"]["values"]["category_block"][
-        "handle_category_selection"
-    ]["selected_option"]["value"]
-    print(f"check selected category: {selected_category}")
-    trigger_id = body["trigger_id"]
     [channel_id, user_input] = body["view"]["private_metadata"].split("@@")
+    selected_category = (
+        body["view"]["state"]["values"]["category_block"]["handle_category_selection"][
+            "selected_option"
+        ]["value"]
+        if user_input == "Piket"
+        else body["actions"][0]["value"]
+    )
+    trigger_id = body["trigger_id"]
 
-    if selected_category == "Piket":
+    if user_input == "Piket":
         modal_blocks = [
             {
                 "type": "input",
@@ -411,7 +413,16 @@ def handle_category_selection(ack, body, client):
                 "label": {"type": "plain_text", "text": "Teacher who replaces"},
                 "element": {
                     "action_id": "teacher_replace_action",
-                    "type": "users_select",
+                    "type": (
+                        "users_select"
+                        if selected_category == "I have had a replacement"
+                        else "plain_text_input"
+                    ),
+                    "initial_value": (
+                        "I need help finding a replacement"
+                        if selected_category == "I need help finding a replacement"
+                        else "No Mentor" if selected_category == "No Mentor" else None
+                    ),
                     "placeholder": {
                         "type": "plain_text",
                         "text": "Select Teacher Who Replaces",
