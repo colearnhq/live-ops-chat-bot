@@ -369,35 +369,13 @@ def handle_category_selection(ack, body, client):
             {
                 "type": "input",
                 "block_id": "time_class_block",
-                "label": {"type": "plain_text", "text": "Time of Class (HH:MM)"},
+                "label": {"type": "plain_text", "text": "Time of Class"},
                 "element": {
-                    "type": "plain_text_input",
-                    "action_id": "hours_input_action",
-                    "placeholder": {"type": "plain_text", "text": "HH"},
-                    "multiline": False,
-                    "max_length": 2,  # Limit input length for hours
+                    "type": "timepicker",
+                    "action_id": "time_class_action",
+                    "initial_time": "15:00",
+                    "placeholder": {"type": "plain_text", "text": "Select a time"},
                 },
-            },
-            {
-                "type": "actions",
-                "block_id": "time_actions_block",
-                "elements": [
-                    {
-                        "type": "plain_text_input",
-                        "action_id": "separator_action",
-                        "placeholder": {"type": "plain_text", "text": ":"},
-                        "multiline": False,
-                        "max_length": 1,
-                        "initial_value": ":",
-                    },
-                    {
-                        "type": "plain_text_input",
-                        "action_id": "minutes_input_action",
-                        "placeholder": {"type": "plain_text", "text": "MM"},
-                        "multiline": False,
-                        "max_length": 2,  # Limit input length for minutes
-                    },
-                ],
             },
             {
                 "type": "input",
@@ -518,11 +496,9 @@ def send_the_user_input(ack, body, client, say, view):
         slot_name = view["state"]["values"]["slot_name_block"]["slot_name_action"][
             "value"
         ]
-        hours = view["state"]["values"]["hours_block"]["hours_input_action"]["value"]
-        minutes = view["state"]["values"]["minutes_block"]["minutes_input_action"][
-            "value"
+        time_class = view["state"]["values"]["time_class_block"]["time_class_action"][
+            "selected_time"
         ]
-        time_class = f"{int(hours):02}:{int(minutes):02}"
         reason = view["state"]["values"]["reason_block"]["reason_action"]["value"]
         direct_lead = view["state"]["values"]["direct_lead_block"][
             "direct_lead_action"
@@ -530,8 +506,6 @@ def send_the_user_input(ack, body, client, say, view):
         stem_lead = view["state"]["values"]["stem_lead_block"]["stem_lead_action"][
             "selected_user"
         ]
-
-        print(f"cetakan waktu {time_class}")
 
         teacher_requested_name = get_real_name(client, teacher_requested)
         teacher_replaces_name = get_real_name(client, teacher_replace)
