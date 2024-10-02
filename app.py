@@ -304,6 +304,7 @@ def slash_input(ack, body, client):
 @app.action("button_Piket")
 def handling_replacement(ack, body, client):
     ack()
+    logging.info(f"Handling replacement for Piket: {body}")
     categories = [
         "I need help finding a replacement",
         "No Mentor",
