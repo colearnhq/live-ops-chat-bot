@@ -375,18 +375,24 @@ def handle_category_selection(ack, body, client):
                     "action_id": "hours_input_action",
                     "placeholder": {"type": "plain_text", "text": "HH"},
                     "multiline": False,
+                    "max_length": 2,
                 },
             },
             {
-                "type": "input",
-                "block_id": "time_separator_block",
-                "label": {"type": "plain_text", "text": ":"},
-                "element": {
-                    "type": "plain_text_input",
-                    "action_id": "minutes_input_action",
-                    "placeholder": {"type": "plain_text", "text": "MM"},
-                    "multiline": False,
-                },
+                "type": "context",
+                "elements": [
+                    {
+                        "type": "plain_text",
+                        "text": " : ",
+                    },
+                    {
+                        "type": "plain_text_input",
+                        "action_id": "minutes_input_action",
+                        "placeholder": {"type": "plain_text", "text": "MM"},
+                        "multiline": False,
+                        "max_length": 2,
+                    },
+                ],
             },
             {
                 "type": "input",
