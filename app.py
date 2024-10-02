@@ -335,39 +335,17 @@ def handle_category_selection(ack, body, client):
                 },
             },
             {
-                "type": "context",
-                "elements": [
-                    {
-                        "type": "input",
-                        "block_id": "teacher_replace_block",
-                        "label": {"type": "plain_text", "text": "Teacher who replaces"},
-                        "element": {
-                            "action_id": "teacher_replace_action",
-                            "type": "users_select",
-                            "placeholder": {
-                                "type": "plain_text",
-                                "text": "Select Teacher Who Replaces",
-                            },
-                        },
+                "type": "input",
+                "block_id": "teacher_replace_block",
+                "label": {"type": "plain_text", "text": "Teacher who replaces"},
+                "element": {
+                    "action_id": "teacher_replace_action",
+                    "type": "users_select",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Select Teacher Who Replaces",
                     },
-                    {
-                        "type": "actions",
-                        "elements": [
-                            {
-                                "type": "button",
-                                "text": {"type": "plain_text", "text": "Option 1"},
-                                "value": "A1",
-                                "action_id": "option_1",
-                            },
-                            {
-                                "type": "button",
-                                "text": {"type": "plain_text", "text": "Option 2"},
-                                "value": "A2",
-                                "action_id": "option_2",
-                            },
-                        ],
-                    },
-                ],
+                },
             },
             {
                 "type": "input",
