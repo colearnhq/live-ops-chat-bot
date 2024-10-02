@@ -319,6 +319,7 @@ def handling_replacement(ack, body, client):
         for category in categories
     ]
 
+    channel_id = "C0719R3NQ91"
     view_id = body["view"]["id"]
 
     modal = {
@@ -338,7 +339,7 @@ def handling_replacement(ack, body, client):
                 },
                 "accessory": {
                     "type": "static_select",
-                    "action_id": "category_select_action",
+                    "action_id": "handle_category_selection",
                     "placeholder": {
                         "type": "plain_text",
                         "text": "Select a category",
@@ -356,7 +357,9 @@ def handling_replacement(ack, body, client):
                 },
             },
         ],
+        "private_metadata": f"{channel_id}@@{category_options}",
     }
+    print(f"cek category {category_options}")
 
     try:
         client.views_update(view_id=view_id, view=modal)
@@ -371,7 +374,7 @@ def handle_category_selection(ack, body, client):
     ack()
     selected_category = body["actions"][0]["value"]
     trigger_id = body["trigger_id"]
-    [channel_id, user_input] = body["view"]["private_metadata"].split("@@")
+    [channel_id, piket_category] = body["view"]["private_metadata"].split("@@")
 
     if selected_category == "Piket":
         modal_blocks = [
