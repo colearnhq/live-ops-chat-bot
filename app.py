@@ -612,6 +612,7 @@ def handle_generate_slot_list(ack, body, client):
 def send_the_user_input(ack, body, client, say, view):
     ack()
     private_metadata = view["private_metadata"].split("@@")
+    print(f"check view {view}")
     category = private_metadata[1]
     channel_id = private_metadata[0]
     view_state = body["view"]["state"]["values"]
