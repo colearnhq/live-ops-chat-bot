@@ -483,6 +483,8 @@ def handle_generate_slot_list(ack, body, client):
     ack()
     grade = body["state"]["values"]["grade_block"]["grade_action"]["value"]
     slots = sheet_manager.get_slots_by_grade(grade)
+
+    print(f"kumpulan slot {slots}")
     dropdown_options = [
         {"text": {"type": "plain_text", "text": slot}, "value": slot} for slot in slots
     ]
