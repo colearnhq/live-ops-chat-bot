@@ -637,8 +637,8 @@ def send_the_user_input(ack, body, client, say, view):
         ]["selected_user"]
         grade = view["state"]["values"]["grade_block"]["grade_action"]["value"]
         slot_name = view["state"]["values"]["slot_name_block"]["slot_name_action"][
-            "value"
-        ]
+            "selected_option"
+        ]["value"]
         time_class = view["state"]["values"]["time_class_block"]["time_class_action"][
             "value"
         ]
