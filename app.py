@@ -482,6 +482,7 @@ def handle_category_selection(ack, body, client):
 def handle_generate_slot_list(ack, body, client):
     ack()
     grade = body["view"]["state"]["values"]["grade_block"]["grade_action"]["value"]
+    print(f"cek grade {grade}")
     slots = sheet_manager.get_slots_by_grade(grade)
     dropdown_options = [
         {"text": {"type": "plain_text", "text": slot}, "value": slot} for slot in slots
