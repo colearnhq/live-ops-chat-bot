@@ -372,8 +372,8 @@ def handling_replacement(ack, body, client):
 @app.action("button_Others")
 def handle_category_selection(ack, body, client):
     ack()
-    selected_category = body["actions"][0]["value"]
     print(f"selected category {body}")
+    selected_category = body["actions"][0]["value"]
     trigger_id = body["trigger_id"]
     [channel_id, user_input] = body["view"]["private_metadata"].split("@@")
 
