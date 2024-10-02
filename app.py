@@ -335,17 +335,56 @@ def handle_category_selection(ack, body, client):
                 },
             },
             {
-                "type": "input",
-                "block_id": "teacher_replace_block",
-                "label": {"type": "plain_text", "text": "Teacher who replaces"},
-                "element": {
-                    "action_id": "teacher_replace_action",
-                    "type": "users_select",
-                    "placeholder": {
-                        "type": "plain_text",
-                        "text": "Select Teacher Who Replaces",
+                "type": "modal",
+                "callback_id": "teacher_selection_modal",
+                "title": {"type": "plain_text", "text": "Teacher Selection"},
+                "blocks": [
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "plain_text",
+                            "text": "Select a teacher or choose an alternative option:",
+                        },
                     },
-                },
+                    {
+                        "type": "actions",
+                        "block_id": "teacher_picker_block",
+                        "elements": [
+                            {
+                                "type": "users_select",
+                                "action_id": "teacher_select",
+                                "placeholder": {
+                                    "type": "plain_text",
+                                    "text": "Select a teacher",
+                                },
+                            },
+                            {
+                                "type": "static_select",
+                                "action_id": "alternative_select",
+                                "placeholder": {
+                                    "type": "plain_text",
+                                    "text": "Or select an alternative",
+                                },
+                                "options": [
+                                    {
+                                        "text": {
+                                            "type": "plain_text",
+                                            "text": "No Teacher",
+                                        },
+                                        "value": "no_teacher",
+                                    },
+                                    {
+                                        "text": {
+                                            "type": "plain_text",
+                                            "text": "Please Help",
+                                        },
+                                        "value": "please_help",
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                ],
             },
             {
                 "type": "input",
