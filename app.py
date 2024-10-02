@@ -418,12 +418,23 @@ def handle_category_selection(ack, body, client):
                     "type": (
                         "users_select"
                         if selected_category == "I have had a replacement"
-                        else "plain_text_input"
+                        else "plain_text"
                     ),
-                    "initial_value": (
-                        "I need help finding a replacement"
-                        if selected_category == "I need help finding a replacement"
-                        else "No Mentor" if selected_category == "No Mentor" else None
+                    **(
+                        {
+                            "initial_value": (
+                                "I need help finding a replacement"
+                                if selected_category
+                                == "I need help finding a replacement"
+                                else (
+                                    "No Mentor"
+                                    if selected_category == "No Mentor"
+                                    else None
+                                )
+                            )
+                        }
+                        if selected_category != "I have had a replacement"
+                        else {}
                     ),
                     "placeholder": {
                         "type": "plain_text",
