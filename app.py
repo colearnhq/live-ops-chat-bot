@@ -418,7 +418,7 @@ def handle_category_selection(ack, body, client):
                     "type": (
                         "users_select"
                         if selected_category == "I have had a replacement"
-                        else "plain_text"
+                        else "plain_text_input"
                     ),
                     **(
                         {
