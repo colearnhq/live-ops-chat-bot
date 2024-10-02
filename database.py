@@ -25,12 +25,12 @@ class SheetManager:
 
     def get_slots_by_grade(self, grade):
         try:
-            grade_values = self.slot_data.col_values(1)  # Column A
-            slot_values = self.slot_data.col_values(3)  # Column C
+            grade_values = self.slot_data.col_values(1)
+            slot_values = self.slot_data.col_values(3)
 
             slots_for_grade = [
                 slot_values[i] for i, g in enumerate(grade_values) if g == str(grade)
-            ]
+            ].sort()
 
             return slots_for_grade
         except Exception as e:
