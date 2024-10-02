@@ -3,6 +3,7 @@ import logging
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 import pytz
+import re
 
 
 class SheetManager:
