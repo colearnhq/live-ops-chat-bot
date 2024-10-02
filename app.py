@@ -371,8 +371,8 @@ def handle_category_selection(ack, body, client):
                 "elements": [
                     {
                         "type": "button",
-                        "text": {"type": "plain_text", "text": "Add Slot"},
-                        "action_id": "add_slot_action",
+                        "text": {"type": "plain_text", "text": "Generate slot"},
+                        "action_id": "generate_slot_list",
                     }
                 ],
             },
@@ -476,6 +476,136 @@ def handle_category_selection(ack, body, client):
         logging.error(
             f"Error updating modal: {str(e)} | Response: {e.response['error']}"
         )
+
+
+@app.action("generate_slot_list")
+def handle_generate_slot_list(ack, body, client):
+    ack()
+    grade = body["state"]["values"]["grade_block"]["grade_action"]["value"]
+    slots = sheet_manager.get_slots_by_grade(grade)
+    dropdown_options = [
+        {"text": {"type": "plain_text", "text": slot}, "value": slot} for slot in slots
+    ]
+
+    client.views_update(
+        view_id=body["view"]["id"],
+        view={
+            "type": "modal",
+            "callback_id": "slash_input",
+            "title": {"type": "plain_text", "text": "Feeling Lucky Today?"},
+            "submit": {"type": "plain_text", "text": "Submit"},
+            "close": {"type": "plain_text", "text": "Cancel"},
+            "blocks": [
+                {
+                    "type": "input",
+                    "block_id": "date_block",
+                    "label": {"type": "plain_text", "text": "Date"},
+                    "element": {
+                        "type": "datepicker",
+                        "action_id": "date_picker_action",
+                        "placeholder": {"type": "plain_text", "text": "Select date"},
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "teacher_request_block",
+                    "label": {"type": "plain_text", "text": "Teacher who requested"},
+                    "element": {
+                        "action_id": "teacher_request_action",
+                        "type": "users_select",
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "Select Teacher Who Requested",
+                        },
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "teacher_replace_block",
+                    "label": {"type": "plain_text", "text": "Teacher who replaces"},
+                    "element": {
+                        "action_id": "teacher_replace_action",
+                        "type": "users_select",
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "Select Teacher Who Replaces",
+                        },
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "grade_block",
+                    "label": {"type": "plain_text", "text": "Grade"},
+                    "element": {
+                        "type": "number_input",
+                        "action_id": "grade_action",
+                        "is_decimal_allowed": False,
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "slot_name_block",
+                    "label": {"type": "plain_text", "text": "Slot Name"},
+                    "element": {
+                        "type": "static_select",
+                        "action_id": "slot_name_action",
+                        "placeholder": {"type": "plain_text", "text": "Select a slot"},
+                        "options": dropdown_options,
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "time_class_block",
+                    "label": {"type": "plain_text", "text": "Time of Class"},
+                    "element": {
+                        "type": "plain_text_input",
+                        "action_id": "time_class_action",
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "Gunakan ':' sebagai pemisah dan dalam format waktu 24 jam.",
+                        },
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "reason_block",
+                    "label": {"type": "plain_text", "text": "Reason"},
+                    "element": {
+                        "type": "plain_text_input",
+                        "multiline": True,
+                        "action_id": "reason_action",
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "direct_lead_block",
+                    "label": {"type": "plain_text", "text": "Direct Lead"},
+                    "element": {
+                        "action_id": "direct_lead_action",
+                        "type": "users_select",
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "Select Your Direct Lead",
+                        },
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "stem_lead_block",
+                    "label": {"type": "plain_text", "text": "STEM Lead"},
+                    "element": {
+                        "action_id": "stem_lead_action",
+                        "type": "users_select",
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "Select Your STEM Lead",
+                        },
+                    },
+                },
+            ],
+            "private_metadata": body["view"]["private_metadata"],
+        },
+    )
 
 
 @app.view("slash_input")
