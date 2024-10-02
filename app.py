@@ -366,10 +366,9 @@ def handle_category_selection(ack, body, client):
                     "action_id": "slot_name_action",
                 },
             },
-            # First input block for hours
             {
                 "type": "input",
-                "block_id": "hours_block",
+                "block_id": "time_class_block",
                 "label": {"type": "plain_text", "text": "Time of Class (HH:MM)"},
                 "element": {
                     "type": "plain_text_input",
@@ -379,37 +378,26 @@ def handle_category_selection(ack, body, client):
                     "max_length": 2,  # Limit input length for hours
                 },
             },
-            # Context block for separator
             {
-                "type": "input",
-                "block_id": "separator_block",
-                "label": {
-                    "type": "plain_text",
-                    "text": " ",
-                },  # Empty label for separation
-                "element": {
-                    "type": "plain_text_input",
-                    "action_id": "separator_action",
-                    "placeholder": {"type": "plain_text", "text": ":"},
-                    "multiline": False,
-                    "max_length": 1,  # Limit input length for the separator
-                    "initial_value": ":",  # Default to ":"
-                },
-            },
-            {
-                "type": "input",
-                "block_id": "minutes_block",
-                "label": {
-                    "type": "plain_text",
-                    "text": " ",
-                },  # Empty label for alignment
-                "element": {
-                    "type": "plain_text_input",
-                    "action_id": "minutes_input_action",
-                    "placeholder": {"type": "plain_text", "text": "MM"},
-                    "multiline": False,
-                    "max_length": 2,  # Limit input length for minutes
-                },
+                "type": "actions",
+                "block_id": "time_actions_block",
+                "elements": [
+                    {
+                        "type": "plain_text_input",
+                        "action_id": "separator_action",
+                        "placeholder": {"type": "plain_text", "text": ":"},
+                        "multiline": False,
+                        "max_length": 1,
+                        "initial_value": ":",
+                    },
+                    {
+                        "type": "plain_text_input",
+                        "action_id": "minutes_input_action",
+                        "placeholder": {"type": "plain_text", "text": "MM"},
+                        "multiline": False,
+                        "max_length": 2,  # Limit input length for minutes
+                    },
+                ],
             },
             {
                 "type": "input",
