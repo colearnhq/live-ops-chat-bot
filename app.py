@@ -305,6 +305,7 @@ def slash_input(ack, body, client):
 @app.action("button_Others")
 def handle_category_selection(ack, body, client):
     ack()
+
     selected_category = body["actions"][0]["value"]
     trigger_id = body["trigger_id"]
     [channel_id, user_input] = body["view"]["private_metadata"].split("@@")
@@ -460,29 +461,6 @@ def handle_category_selection(ack, body, client):
             },
         ]
 
-        replacement_option = body["actions"][0]["value"]
-
-        if replacement_option == "find_teacher":
-            for block in modal_blocks:
-                if block["block_id"] == "replacement_option_block":
-                    block.update(
-                        {
-                            "block_id": "find_teacher_block",
-                            "label": {
-                                "type": "plain_text",
-                                "text": "Select a Replacement Teacher",
-                            },
-                            "element": {
-                                "action_id": "replacement_teacher_action",
-                                "type": "users_select",
-                                "placeholder": {
-                                    "type": "plain_text",
-                                    "text": "Select the replacement teacher",
-                                },
-                            },
-                        }
-                    )
-
     elif selected_category == "Others":
         modal_blocks = [
             {
@@ -532,6 +510,60 @@ def handle_category_selection(ack, body, client):
         client.views_update(view_id=body["view"]["id"], view=updated_modal)
     except SlackApiError as e:
         logging.error(
+            f"Error updating modal: {str(e)} | Response: {e.response['error']}"
+        )
+
+
+# Action listener for the replacement option dropdown
+@app.action("replacement_option_action")
+def handle_replacement_option_action(ack, body, client, logger):
+    ack()
+
+    selected_option = body["actions"][0]["selected_option"]["value"]
+    view_id = body["view"]["id"]
+
+    # Retrieve existing modal blocks
+    existing_blocks = body["view"]["blocks"]
+
+    # If the user selects "find_teacher", update the modal
+    if selected_option == "find_teacher":
+        # Update the replacement option block to allow selecting a replacement teacher
+        for block in existing_blocks:
+            if block["block_id"] == "replacement_option_block":
+                block.update(
+                    {
+                        "block_id": "find_teacher_block",
+                        "label": {
+                            "type": "plain_text",
+                            "text": "Select a Replacement Teacher",
+                        },
+                        "element": {
+                            "action_id": "replacement_teacher_action",
+                            "type": "users_select",
+                            "placeholder": {
+                                "type": "plain_text",
+                                "text": "Select the replacement teacher",
+                            },
+                        },
+                    }
+                )
+
+    # Update the modal with the new block
+    try:
+        client.views_update(
+            view_id=view_id,
+            view={
+                "type": "modal",
+                "callback_id": "slash_input",
+                "title": {
+                    "type": "plain_text",
+                    "text": "Feeling Lucky Today?",
+                },
+                "blocks": existing_blocks,
+            },
+        )
+    except SlackApiError as e:
+        logger.error(
             f"Error updating modal: {str(e)} | Response: {e.response['error']}"
         )
 
