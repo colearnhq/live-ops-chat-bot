@@ -460,7 +460,7 @@ def handle_category_selection(ack, body, client):
             },
         ]
 
-        replacement_option = body["actions"][0]["selected_option"]["value"]
+        replacement_option = body["actions"][0]["value"]
 
         if replacement_option == "find_teacher":
             for block in modal_blocks:
