@@ -311,7 +311,6 @@ def handle_category_selection(ack, body, client):
 
     modal_blocks = []
 
-    # Blocks for "Piket" category
     if selected_category == "Piket":
         modal_blocks = [
             {
