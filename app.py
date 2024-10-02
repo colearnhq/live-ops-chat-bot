@@ -367,6 +367,16 @@ def handle_category_selection(ack, body, client):
                 },
             },
             {
+                "type": "actions",
+                "elements": [
+                    {
+                        "type": "button",
+                        "text": {"type": "plain_text", "text": "Add Slot"},
+                        "action_id": "add_slot_action",
+                    }
+                ],
+            },
+            {
                 "type": "input",
                 "block_id": "time_class_block",
                 "label": {"type": "plain_text", "text": "Time of Class"},
@@ -375,7 +385,7 @@ def handle_category_selection(ack, body, client):
                     "action_id": "time_class_action",
                     "placeholder": {
                         "type": "plain_text",
-                        "text": "Gunakan ':' sebagai pemisah jam dan pastikan dalam standar 24 jam.",
+                        "text": "Gunakan ':' sebagai pemisah dan dalam format waktu 24 jam.",
                     },
                 },
             },
