@@ -306,7 +306,7 @@ def handling_replacement(ack, body, client):
     ack()
 
     categories = [
-        "I need help finding a replacement",
+        "I need a help finding a replacement",
         "No Mentor",
         "I have had a replacement",
     ]
@@ -380,8 +380,6 @@ def handle_category_selection(ack, body, client):
         if user_input == "Piket"
         else body["actions"][0]["value"]
     )
-    print(f"we check selected category: {selected_category}")
-    print(f"we check user input: {user_input}")
     trigger_id = body["trigger_id"]
 
     if user_input == "Piket":
@@ -423,7 +421,7 @@ def handle_category_selection(ack, body, client):
                     **(
                         {
                             "initial_value": (
-                                "I need help finding a replacement"
+                                "I need a help finding a replacement"
                                 if selected_category
                                 == "I need help finding a replacement"
                                 else (
@@ -763,6 +761,7 @@ def handle_category_selection(ack, body, client):
 @app.action("generate_slot_list")
 def handle_generate_slot_list(ack, body, client):
     ack()
+    print(f"cek body {body}")
     grade = body["view"]["state"]["values"]["grade_block"]["grade_action"]["value"]
     slots = sheet_manager.get_slots_by_grade(grade)
     dropdown_options = [
