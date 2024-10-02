@@ -23,6 +23,20 @@ class SheetManager:
         except Exception as e:
             logging.error(f"Failed to initialize SheetManager: {str(e)}")
 
+    def get_slots_by_grade(self, grade):
+        try:
+            grade_values = self.slot_data.col_values(1)  # Column A
+            slot_values = self.slot_data.col_values(3)  # Column C
+
+            slots_for_grade = [
+                slot_values[i] for i, g in enumerate(grade_values) if g == str(grade)
+            ]
+
+            return slots_for_grade
+        except Exception as e:
+            logging.error(f"Failed to fetch slots for grade {grade}: {str(e)}")
+            return []
+
     def convert_to_local_time(self, timestamp_utc):
         utc = pytz.utc
         local_tz = pytz.timezone("Asia/Jakarta")
