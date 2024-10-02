@@ -565,7 +565,7 @@ def handle_category_selection(ack, body, client):
         "submit": {"type": "plain_text", "text": "Submit"},
         "close": {"type": "plain_text", "text": "Cancel"},
         "blocks": modal_blocks,
-        "private_metadata": f"{channel_id}@@{selected_category}",
+        "private_metadata": f"{channel_id}@@{'Piket' if selected_category != 'Others' else 'Others'}",
     }
 
     try:
@@ -913,6 +913,7 @@ def handle_generate_slot_list(ack, body, client):
 def send_the_user_input(ack, body, client, say, view):
     ack()
     private_metadata = view["private_metadata"].split("@@")
+    print(f"we got this: {private_metadata}")
     category = private_metadata[1]
     channel_id = private_metadata[0]
     view_state = body["view"]["state"]["values"]
