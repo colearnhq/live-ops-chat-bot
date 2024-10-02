@@ -366,33 +366,50 @@ def handle_category_selection(ack, body, client):
                     "action_id": "slot_name_action",
                 },
             },
+            # First input block for hours
             {
                 "type": "input",
-                "block_id": "time_class_block",
-                "label": {"type": "plain_text", "text": "Time of Class"},
+                "block_id": "hours_block",
+                "label": {"type": "plain_text", "text": "Time of Class (HH:MM)"},
                 "element": {
                     "type": "plain_text_input",
                     "action_id": "hours_input_action",
                     "placeholder": {"type": "plain_text", "text": "HH"},
                     "multiline": False,
-                    "max_length": 2,
+                    "max_length": 2,  # Limit input length for hours
+                },
+            },
+            # Context block for separator
+            {
+                "type": "input",
+                "block_id": "separator_block",
+                "label": {
+                    "type": "plain_text",
+                    "text": " ",
+                },  # Empty label for separation
+                "element": {
+                    "type": "plain_text_input",
+                    "action_id": "separator_action",
+                    "placeholder": {"type": "plain_text", "text": ":"},
+                    "multiline": False,
+                    "max_length": 1,  # Limit input length for the separator
+                    "initial_value": ":",  # Default to ":"
                 },
             },
             {
-                "type": "context",
-                "elements": [
-                    {
-                        "type": "plain_text",
-                        "text": " : ",
-                    },
-                    {
-                        "type": "plain_text_input",
-                        "action_id": "minutes_input_action",
-                        "placeholder": {"type": "plain_text", "text": "MM"},
-                        "multiline": False,
-                        "max_length": 2,
-                    },
-                ],
+                "type": "input",
+                "block_id": "minutes_block",
+                "label": {
+                    "type": "plain_text",
+                    "text": " ",
+                },  # Empty label for alignment
+                "element": {
+                    "type": "plain_text_input",
+                    "action_id": "minutes_input_action",
+                    "placeholder": {"type": "plain_text", "text": "MM"},
+                    "multiline": False,
+                    "max_length": 2,  # Limit input length for minutes
+                },
             },
             {
                 "type": "input",
@@ -513,9 +530,11 @@ def send_the_user_input(ack, body, client, say, view):
         slot_name = view["state"]["values"]["slot_name_block"]["slot_name_action"][
             "value"
         ]
-        time_class = view["state"]["values"]["time_class_block"]["time_class_action"][
-            "selected_time"
+        hours = view["state"]["values"]["hours_block"]["hours_input_action"]["value"]
+        minutes = view["state"]["values"]["minutes_block"]["minutes_input_action"][
+            "value"
         ]
+        time_class = f"{int(hours):02}:{int(minutes):02}"
         reason = view["state"]["values"]["reason_block"]["reason_action"]["value"]
         direct_lead = view["state"]["values"]["direct_lead_block"][
             "direct_lead_action"
@@ -523,6 +542,8 @@ def send_the_user_input(ack, body, client, say, view):
         stem_lead = view["state"]["values"]["stem_lead_block"]["stem_lead_action"][
             "selected_user"
         ]
+
+        print(f"cetakan waktu {time_class}")
 
         teacher_requested_name = get_real_name(client, teacher_requested)
         teacher_replaces_name = get_real_name(client, teacher_replace)
