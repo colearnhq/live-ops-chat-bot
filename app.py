@@ -335,17 +335,44 @@ def handle_category_selection(ack, body, client):
                 },
             },
             {
-                "type": "input",
-                "block_id": "teacher_replace_block",
+                "type": "actions",
                 "label": {"type": "plain_text", "text": "Teacher who replaces"},
-                "element": {
-                    "action_id": "teacher_replace_action",
-                    "type": "users_select",
-                    "placeholder": {
-                        "type": "plain_text",
-                        "text": "Select Teacher Who Replaces",
-                    },
-                },
+                "elements": [
+                    {
+                        "type": "static_select",
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "Do you need a teacher replacement?",
+                            "emoji": True,
+                        },
+                        "options": [
+                            {
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": "Going",
+                                    "emoji": True,
+                                },
+                                "value": "I Wanna Pick The Teacher",
+                            },
+                            {
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": "Maybe",
+                                    "emoji": True,
+                                },
+                                "value": "I Wanna Pick The Teacher",
+                            },
+                            {
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": "Not going",
+                                    "emoji": True,
+                                },
+                                "value": "I Need Your Help, Ops!",
+                            },
+                        ],
+                    }
+                ],
             },
             {
                 "type": "input",
