@@ -423,7 +423,7 @@ def handle_category_selection(ack, body, client):
                             "initial_value": (
                                 "I need a help finding a replacement"
                                 if selected_category
-                                == "I need help finding a replacement"
+                                == "I need a help finding a replacement"
                                 else (
                                     "No Mentor"
                                     if selected_category == "No Mentor"
