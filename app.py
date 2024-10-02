@@ -380,6 +380,8 @@ def handle_category_selection(ack, body, client):
         if user_input == "Piket"
         else body["actions"][0]["value"]
     )
+    print(f"we check selected category: {selected_category}")
+    print(f"we check user input: {user_input}")
     trigger_id = body["trigger_id"]
 
     if user_input == "Piket":
