@@ -351,11 +351,6 @@ def handle_category_selection(ack, body, client):
                         },
                     },
                     {
-                        "type": "image",
-                        "image_url": "https://api.slack.com/img/blocks/bkb_template_images/task-icon.png",
-                        "alt_text": "Task Icon",
-                    },
-                    {
                         "type": "actions",
                         "elements": [
                             {
