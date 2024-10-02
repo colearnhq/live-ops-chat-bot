@@ -359,7 +359,6 @@ def handling_replacement(ack, body, client):
         ],
         "private_metadata": f"{channel_id}@@{category_options}",
     }
-    print(f"cek category {category_options}")
 
     try:
         client.views_update(view_id=view_id, view=modal)
@@ -369,12 +368,14 @@ def handling_replacement(ack, body, client):
         )
 
 
+@app.action("handle_category_selection")
 @app.action("button_Others")
 def handle_category_selection(ack, body, client):
     ack()
     selected_category = body["actions"][0]["value"]
+    print(f"selected category {select_category}")
     trigger_id = body["trigger_id"]
-    [channel_id, piket_category] = body["view"]["private_metadata"].split("@@")
+    [channel_id, user_input] = body["view"]["private_metadata"].split("@@")
 
     if selected_category == "Piket":
         modal_blocks = [
