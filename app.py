@@ -318,61 +318,66 @@ def handle_category_selection(ack, body, client):
                 "element": {
                     "type": "datepicker",
                     "action_id": "date_picker_action",
-                    "placeholder": {"type": "plain_text", "text": "Select date"},
+                    "placeholder": {"type": "plain_text", "text": "Select the date"},
                 },
             },
             {
                 "type": "input",
                 "block_id": "teacher_request_block",
-                "label": {"type": "plain_text", "text": "Teacher who requested"},
+                "label": {"type": "plain_text", "text": "Requesting Teacher"},
                 "element": {
                     "action_id": "teacher_request_action",
                     "type": "users_select",
                     "placeholder": {
                         "type": "plain_text",
-                        "text": "Select Teacher Who Requested",
+                        "text": "Select the teacher who is requesting",
                     },
                 },
             },
             {
-                "type": "actions",
-                "label": {"type": "plain_text", "text": "Teacher who replaces"},
-                "elements": [
-                    {
-                        "type": "static_select",
-                        "placeholder": {
-                            "type": "plain_text",
-                            "text": "Do you need a teacher replacement?",
-                            "emoji": True,
+                "type": "input",
+                "block_id": "teacher_replace_block",
+                "label": {"type": "plain_text", "text": "Teacher Replacing"},
+                "element": {
+                    "type": "users_select",
+                    "action_id": "teacher_replace_action",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Select a teacher who will replace",
+                    },
+                },
+            },
+            {
+                "type": "input",
+                "block_id": "replacement_option_block",
+                "label": {"type": "plain_text", "text": "Replacement Options"},
+                "element": {
+                    "type": "static_select",
+                    "action_id": "replacement_option_action",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Do you need a replacement?",
+                        "emoji": True,
+                    },
+                    "options": [
+                        {
+                            "text": {
+                                "type": "plain_text",
+                                "text": "No replacement needed",
+                                "emoji": True,
+                            },
+                            "value": "no_mentor",
                         },
-                        "options": [
-                            {
-                                "text": {
-                                    "type": "plain_text",
-                                    "text": "Going",
-                                    "emoji": True,
-                                },
-                                "value": "I Wanna Pick The Teacher",
+                        {
+                            "text": {
+                                "type": "plain_text",
+                                "text": "I need help finding a replacement",
+                                "emoji": True,
                             },
-                            {
-                                "text": {
-                                    "type": "plain_text",
-                                    "text": "Maybe",
-                                    "emoji": True,
-                                },
-                                "value": "I Wanna Pick The Teacher",
-                            },
-                            {
-                                "text": {
-                                    "type": "plain_text",
-                                    "text": "Not going",
-                                    "emoji": True,
-                                },
-                                "value": "I Need Your Help, Ops!",
-                            },
-                        ],
-                    }
-                ],
+                            "value": "need_help",
+                        },
+                    ],
+                },
             },
             {
                 "type": "input",
@@ -387,10 +392,14 @@ def handle_category_selection(ack, body, client):
             {
                 "type": "input",
                 "block_id": "slot_name_block",
-                "label": {"type": "plain_text", "text": "Input grade first.."},
+                "label": {"type": "plain_text", "text": "Slot Name"},
                 "element": {
                     "type": "plain_text_input",
                     "action_id": "slot_name_action",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Enter the grade first",
+                    },
                 },
             },
             {
@@ -398,7 +407,7 @@ def handle_category_selection(ack, body, client):
                 "elements": [
                     {
                         "type": "button",
-                        "text": {"type": "plain_text", "text": "Generate slot"},
+                        "text": {"type": "plain_text", "text": "Generate Slot"},
                         "action_id": "generate_slot_list",
                     }
                 ],
@@ -406,20 +415,20 @@ def handle_category_selection(ack, body, client):
             {
                 "type": "input",
                 "block_id": "time_class_block",
-                "label": {"type": "plain_text", "text": "Time of Class"},
+                "label": {"type": "plain_text", "text": "Class Time"},
                 "element": {
                     "type": "plain_text_input",
                     "action_id": "time_class_action",
                     "placeholder": {
                         "type": "plain_text",
-                        "text": "contoh: 19:15",
+                        "text": "Example: 19:15",
                     },
                 },
             },
             {
                 "type": "input",
                 "block_id": "reason_block",
-                "label": {"type": "plain_text", "text": "Reason"},
+                "label": {"type": "plain_text", "text": "Reason for Replacement"},
                 "element": {
                     "type": "plain_text_input",
                     "multiline": True,
@@ -429,30 +438,31 @@ def handle_category_selection(ack, body, client):
             {
                 "type": "input",
                 "block_id": "direct_lead_block",
-                "label": {"type": "plain_text", "text": "Direct Lead"},
+                "label": {"type": "plain_text", "text": "Direct Lead Approval"},
                 "element": {
                     "action_id": "direct_lead_action",
                     "type": "users_select",
                     "placeholder": {
                         "type": "plain_text",
-                        "text": "Select Your Direct Lead",
+                        "text": "Select your direct lead",
                     },
                 },
             },
             {
                 "type": "input",
                 "block_id": "stem_lead_block",
-                "label": {"type": "plain_text", "text": "STEM Lead"},
+                "label": {"type": "plain_text", "text": "STEM Lead Approval"},
                 "element": {
                     "action_id": "stem_lead_action",
                     "type": "users_select",
                     "placeholder": {
                         "type": "plain_text",
-                        "text": "Select Your STEM Lead",
+                        "text": "Select your STEM lead",
                     },
                 },
             },
         ]
+
     elif selected_category == "Others":
         modal_blocks = [
             {
