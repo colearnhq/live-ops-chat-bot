@@ -767,9 +767,8 @@ def handle_generate_slot_list(ack, body, client):
     ]
     selected_cat_on_piket = (
         teacher_who_replaces_val
-        if teacher_who_replaces_val
-        == "No Mentor" | teacher_who_replaces_val
-        == "I need a help finding a replacement"
+        if teacher_who_replaces_val == "No Mentor"
+        or teacher_who_replaces_val == "I need a help finding a replacement"
         else "I have had a replacement"
     )
     grade = state["grade_block"]["grade_action"]["value"]
