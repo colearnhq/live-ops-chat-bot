@@ -1106,8 +1106,6 @@ def send_the_user_input(ack, body, client, say, view):
             stem_lead_name,
             timestamp_utc,
         )
-        reminder_time = timedelta(minutes=3)
-        schedule_reminder(client, channel_id, initial_ts, reminder_time, result["ts"])
 
     elif category == "Others":
         issue_description = view_state["issue_name"]["user_issue"]["value"]
@@ -1928,6 +1926,12 @@ def resolve_button(ack, body, client, logger):
                 stem_lead,
             ] = resolve_button_value[:-1]
             ticket_manager.update_ticket_status(thread_ts, "assigned")
+            teacher_replace_state = (
+                f"<@{teacher_replace}>"
+                if teacher_replace != "No Mentor"
+                and teacher_replace != "I need a help finding a replacement"
+                else f"`{teacher_replace}`"
+            )
             piket_message = [
                 {
                     "type": "section",
@@ -1950,7 +1954,7 @@ def resolve_button(ack, body, client, logger):
                         },
                         {
                             "type": "mrkdwn",
-                            "text": f"*Teacher Replaces:*\n<@{teacher_replace}>",
+                            "text": f"*Teacher Replaces:*\n{teacher_replace_state}",
                         },
                         {
                             "type": "mrkdwn",
@@ -2329,6 +2333,12 @@ def show_reject_modal(ack, body, client, view, logger):
                 thread_ts=message_ts,
                 text=f"<@{user_id}> has rejected the request at `{timestamp_jakarta}` due to: `{reason}`.",
             )
+            teacher_replace_state = (
+                f"<@{teacher_replace}>"
+                if teacher_replace != "No Mentor"
+                and teacher_replace != "I need a help finding a replacement"
+                else f"`{teacher_replace}`"
+            )
             if response["ok"]:
                 piket_message = [
                     {
@@ -2352,7 +2362,7 @@ def show_reject_modal(ack, body, client, view, logger):
                             },
                             {
                                 "type": "mrkdwn",
-                                "text": f"*Teacher Replaces:*\n<@{teacher_replace}>",
+                                "text": f"*Teacher Replaces:*\n{teacher_replace_state}",
                             },
                             {
                                 "type": "mrkdwn",
