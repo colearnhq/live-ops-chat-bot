@@ -1605,6 +1605,7 @@ def select_user(ack, body, client):
 
             if reflected_post["ok"]:
                 reflected_ts = reflected_post["ts"]
+                print(f"we check the files : {files}")
                 ticket_manager.store_reflected_ts(thread_ts, reflected_ts)
                 if files:
                     inserting_imgs_thread(client, reflected_cn, reflected_ts, files)
@@ -1615,11 +1616,6 @@ def select_user(ack, body, client):
                         thread_ts=reflected_ts,
                         text=f"For the full details: `{full_user_input}`",
                     )
-                client.chat_postMessage(
-                    channel=reflected_cn,
-                    thread_ts=reflected_ts,
-                    text=f"thread ts: {reflected_ts}",
-                )
                 client.chat_postMessage(
                     channel=reflected_cn,
                     thread_ts=reflected_ts,
