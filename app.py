@@ -762,6 +762,7 @@ def handle_category_selection(ack, body, client):
 def handle_generate_slot_list(ack, body, client):
     ack()
     [channel_id, selected_cat_on_piket] = body["view"]["private_metadata"].split("@@")
+    print(f"cek {selected_cat_on_piket}")
     grade = body["view"]["state"]["values"]["grade_block"]["grade_action"]["value"]
     slots = sheet_manager.get_slots_by_grade(grade)
     dropdown_options = [
