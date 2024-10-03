@@ -1220,6 +1220,7 @@ def send_the_user_input(ack, body, client, say, view):
                                 "emoji": True,
                             },
                             "options": user_options,
+                            "value": files,
                             "action_id": "user_select_action",
                         },
                     },
@@ -1287,6 +1288,7 @@ def send_the_user_input(ack, body, client, say, view):
 @app.action("user_select_action")
 def select_user(ack, body, client):
     ack()
+    print(f"check {body}")
     person_who_assigns = body["user"]["id"]
     person_who_assigns_name = get_real_name(client, person_who_assigns)
     [
