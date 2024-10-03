@@ -1123,9 +1123,6 @@ def send_the_user_input(ack, body, client, say, view):
             ticket_manager.store_user_input(initial_ts, issue_description)
             if files:
                 ticket_manager.store_files(initial_ts, files)
-                print(
-                    f"we check the file {files} and the ts {initial_ts} on send_the_user_input"
-                )
 
             ticket = [
                 {
@@ -1605,7 +1602,6 @@ def select_user(ack, body, client):
 
             if reflected_post["ok"]:
                 reflected_ts = reflected_post["ts"]
-                print(f"we check the files : {files}")
                 ticket_manager.store_reflected_ts(thread_ts, reflected_ts)
                 if files:
                     inserting_imgs_thread(client, reflected_cn, reflected_ts, files)
