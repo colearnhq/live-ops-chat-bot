@@ -1291,6 +1291,7 @@ def send_the_user_input(ack, body, client, say, view):
 def select_user(ack, body, client):
     ack()
     person_who_assigns = body["user"]["id"]
+    print(f"cek boy di user_selection {body}")
     person_who_assigns_name = get_real_name(client, person_who_assigns)
     [
         selected_user,
