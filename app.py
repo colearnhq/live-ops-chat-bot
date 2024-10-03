@@ -182,8 +182,11 @@ def inserting_imgs_thread(client, channel_id, ts, files):
 
 
 def get_real_name(client, user_id):
-    user_info = client.users_info(user=user_id)
-    return user_info["user"]["real_name"]
+    try:
+        user_info = client.users_info(user=user_id)
+        return user_info["user"]["real_name"]
+    except Exception as e:
+        return user_id
 
 
 @app.event("message")
@@ -1010,6 +1013,12 @@ def send_the_user_input(ack, body, client, say, view):
 
         piket_data = f"{date}@@{teacher_requested}@@{teacher_replace}@@{grade}@@{slot_name}@@{time_class}@@{reason}@@{direct_lead}@@{stem_lead}"
         ticket_key_for_user = f"{user_id}@@{response_for_user['ts']}@@{timestamp_jakarta}@@{piket_data}@@{category}"
+        teacher_replace_state = (
+            f"<@{teacher_replace}>"
+            if teacher_replace != "No Mentor"
+            and teacher_replace != "I need a help finding a replacement"
+            else f"`{teacher_replace}`"
+        )
 
         piket_message = [
             {
@@ -1030,7 +1039,7 @@ def send_the_user_input(ack, body, client, say, view):
                     },
                     {
                         "type": "mrkdwn",
-                        "text": f"*Teacher Replaces:*\n<@{teacher_replace}>",
+                        "text": f"*Teacher Replaces:*\n{teacher_replace_state}",
                     },
                     {"type": "mrkdwn", "text": f"*Slot Name:*\n`{grade}-{slot_name}`"},
                     {"type": "mrkdwn", "text": f"*Reason:*\n```{reason}```"},
