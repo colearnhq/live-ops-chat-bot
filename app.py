@@ -774,6 +774,8 @@ def handle_generate_slot_list(ack, body, client):
         or teacher_who_replaces_val == "I need a help finding a replacement"
         else "I have had a replacement"
     )
+
+    print(f"cek the select cat on handle generate slot : {selected_cat_on_piket}")
     grade = state["grade_block"]["grade_action"]["value"]
     slots = sheet_manager.get_slots_by_grade(grade)
     dropdown_options = [
