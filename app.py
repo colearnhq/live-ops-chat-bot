@@ -79,6 +79,7 @@ class TicketManager:
         self.reflected_timestamps = {}
         self.user_inputs = {}
         self.ticket_status = {}
+        self.files = {}
 
     def store_reflected_ts(self, thread_ts, reflected_ts):
         self.reflected_timestamps[thread_ts] = reflected_ts
@@ -109,6 +110,16 @@ class TicketManager:
     def clear_ticket_status(self, thread_ts):
         if thread_ts in self.ticket_status:
             del self.ticket_status[thread_ts]
+
+    def store_files(self, thread_ts, files):
+        self.files[thread_ts] = files
+
+    def get_files(self, thread_ts):
+        self.files.get(thread_ts)
+
+    def clear_files(self, thread_ts):
+        if thread_ts in self.files:
+            del self.files[thread_ts]
 
 
 ticket_manager = TicketManager()
@@ -1220,7 +1231,6 @@ def send_the_user_input(ack, body, client, say, view):
                                 "emoji": True,
                             },
                             "options": user_options,
-                            "value": files,
                             "action_id": "user_select_action",
                         },
                     },
@@ -1260,6 +1270,9 @@ def send_the_user_input(ack, body, client, say, view):
                 blocks=blocks,
             )
 
+            if files:
+                ticket_manager.store_files(ts, files)
+
             sheet_manager.init_ticket_row(
                 f"live-ops.{result['ts']}",
                 user_id,
@@ -1288,7 +1301,6 @@ def send_the_user_input(ack, body, client, say, view):
 @app.action("user_select_action")
 def select_user(ack, body, client):
     ack()
-    print(f"check {body}")
     person_who_assigns = body["user"]["id"]
     person_who_assigns_name = get_real_name(client, person_who_assigns)
     [
@@ -1322,6 +1334,7 @@ def select_user(ack, body, client):
         for category in categories
     ]
 
+    files = ticket_manager.get_files(thread_ts)
     ticket_manager.update_ticket_status(thread_ts, "assigned")
 
     if selected_user in ["S05RYHJ41C6", "S02R59UL0RH"]:
@@ -1430,6 +1443,9 @@ def select_user(ack, body, client):
             )
             if reflected_post["ok"]:
                 ts = reflected_post["ts"]
+                if files:
+                    inserting_imgs_thread(client, reflected_cn, ts, files)
+
                 full_user_input = ticket_manager.get_user_input(thread_ts)
                 client.chat_postMessage(
                     channel=reflected_cn,
@@ -1590,6 +1606,8 @@ def select_user(ack, body, client):
             if reflected_post["ok"]:
                 reflected_ts = reflected_post["ts"]
                 ticket_manager.store_reflected_ts(thread_ts, reflected_ts)
+                if files:
+                    inserting_imgs_thread(client, reflected_cn, reflected_ts, files)
                 full_user_input = ticket_manager.get_user_input(thread_ts)
                 if len(full_user_input) > 37:
                     client.chat_postMessage(
