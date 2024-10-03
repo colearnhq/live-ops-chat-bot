@@ -762,9 +762,16 @@ def handle_category_selection(ack, body, client):
 def handle_generate_slot_list(ack, body, client):
     ack()
     state = body["view"]["state"]["values"]
-    selected_cat_on_piket = state["teacher_replace_block"]["teacher_replace_action"][
+    teacher_who_replaces_val = state["teacher_replace_block"]["teacher_replace_action"][
         "value"
     ]
+    selected_cat_on_piket = (
+        teacher_who_replaces_val
+        if teacher_who_replaces_val
+        == "No Mentor" | teacher_who_replaces_val
+        == "I need a help finding a replacement"
+        else "I have had a replacement"
+    )
     grade = state["grade_block"]["grade_action"]["value"]
     slots = sheet_manager.get_slots_by_grade(grade)
     dropdown_options = [
@@ -916,7 +923,6 @@ def handle_generate_slot_list(ack, body, client):
 def send_the_user_input(ack, body, client, say, view):
     ack()
     private_metadata = view["private_metadata"].split("@@")
-    print(f"we got this: {private_metadata}")
     category = private_metadata[1]
     channel_id = private_metadata[0]
     view_state = body["view"]["state"]["values"]
@@ -936,9 +942,13 @@ def send_the_user_input(ack, body, client, say, view):
         teacher_requested = view["state"]["values"]["teacher_request_block"][
             "teacher_request_action"
         ]["selected_user"]
-        teacher_replace = view["state"]["values"]["teacher_replace_block"][
+        teacher_replace_block = view["state"]["values"]["teacher_replace_block"][
             "teacher_replace_action"
-        ]["selected_user"]
+        ]
+        teacher_replace = teacher_replace_block.get(
+            "selected_user"
+        ) or teacher_replace_block.get("value")
+
         grade = view["state"]["values"]["grade_block"]["grade_action"]["value"]
         slot_name = view["state"]["values"]["slot_name_block"]["slot_name_action"][
             "selected_option"
