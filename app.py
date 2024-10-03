@@ -115,11 +115,8 @@ class TicketManager:
         self.files[thread_ts] = files
 
     def get_files(self, thread_ts):
-        self.files.get(thread_ts)
-
-    def clear_files(self, thread_ts):
-        if thread_ts in self.files:
-            del self.files[thread_ts]
+        files = self.files.get(thread_ts)
+        return files
 
 
 ticket_manager = TicketManager()
