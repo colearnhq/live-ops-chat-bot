@@ -1145,7 +1145,7 @@ def send_the_user_input(ack, body, client, say, view):
             ]
 
             response_for_user = client.chat_postMessage(channel=user_id, blocks=ticket)
-            ticket_key_for_user = f"{user_id}@@{response_for_user['ts']}@@{truncate_value(issue_description)}@@{timestamp_jakarta}@@{category}"
+            ticket_key_for_user = f"{user_id}@@{response_for_user['ts']}@@{truncate_value(issue_description)}@@{timestamp_jakarta}@@{category}@@{files}"
 
             members_result = client.conversations_members(channel=channel_id)
             if members_result["ok"]:
@@ -1291,7 +1291,6 @@ def send_the_user_input(ack, body, client, say, view):
 def select_user(ack, body, client):
     ack()
     person_who_assigns = body["user"]["id"]
-    print(f"cek boy di user_selection {body}")
     person_who_assigns_name = get_real_name(client, person_who_assigns)
     [
         selected_user,
@@ -1300,6 +1299,7 @@ def select_user(ack, body, client):
         user_input,
         reported_at,
         ticket_category,
+        files,
     ] = body["actions"][0]["selected_option"]["value"].split("@@")
     channel_id = body["channel"]["id"]
     thread_ts = body["container"]["message_ts"]
@@ -1433,6 +1433,8 @@ def select_user(ack, body, client):
             if reflected_post["ok"]:
                 ts = reflected_post["ts"]
                 full_user_input = ticket_manager.get_user_input(thread_ts)
+                if files:
+                    inserting_imgs_thread(client, reflected_cn, ts, files)
                 client.chat_postMessage(
                     channel=reflected_cn,
                     thread_ts=ts,
@@ -1593,6 +1595,8 @@ def select_user(ack, body, client):
                 reflected_ts = reflected_post["ts"]
                 ticket_manager.store_reflected_ts(thread_ts, reflected_ts)
                 full_user_input = ticket_manager.get_user_input(thread_ts)
+                if files:
+                    inserting_imgs_thread(client, reflected_cn, reflected_ts, files)
                 if len(full_user_input) > 37:
                     client.chat_postMessage(
                         channel=reflected_cn,
