@@ -765,9 +765,10 @@ def handle_category_selection(ack, body, client):
 def handle_generate_slot_list(ack, body, client):
     ack()
     state = body["view"]["state"]["values"]
-    teacher_who_replaces_val = state["teacher_replace_block"]["teacher_replace_action"][
-        "value"
-    ]
+    teacher_replace_block = state["teacher_replace_block"]["teacher_replace_action"]
+    teacher_who_replaces_val = teacher_replace_block.get(
+        "selected_user"
+    ) or teacher_replace_block.get("value")
     selected_cat_on_piket = (
         teacher_who_replaces_val
         if teacher_who_replaces_val == "No Mentor"
