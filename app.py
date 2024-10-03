@@ -1124,6 +1124,11 @@ def send_the_user_input(ack, body, client, say, view):
         )
         try:
             ticket_manager.store_user_input(initial_ts, issue_description)
+            if files:
+                ticket_manager.store_files(initial_ts, files)
+                print(
+                    f"we check the file {files} and the ts {initial_ts} on send_the_user_input"
+                )
 
             ticket = [
                 {
@@ -1270,9 +1275,6 @@ def send_the_user_input(ack, body, client, say, view):
                 blocks=blocks,
             )
 
-            if files:
-                ticket_manager.store_files(ts, files)
-
             sheet_manager.init_ticket_row(
                 f"live-ops.{result['ts']}",
                 user_id,
@@ -1335,6 +1337,7 @@ def select_user(ack, body, client):
     ]
 
     files = ticket_manager.get_files(thread_ts)
+    print(f"check the files {files} and ts {thread_ts} on select_user")
     ticket_manager.update_ticket_status(thread_ts, "assigned")
 
     if selected_user in ["S05RYHJ41C6", "S02R59UL0RH"]:
