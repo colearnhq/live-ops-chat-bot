@@ -769,6 +769,7 @@ def handle_generate_slot_list(ack, body, client):
     teacher_who_replaces_val = teacher_replace_block.get(
         "selected_user"
     ) or teacher_replace_block.get("value")
+    print(f"cek teacher {teacher_who_replaces_val}")
     selected_cat_on_piket = (
         teacher_who_replaces_val
         if teacher_who_replaces_val == "No Mentor"
