@@ -1586,7 +1586,7 @@ def show_editted_piket_msg(ack, body, client, view, logger):
             client.chat_postMessage(
                 channel=reporter_id,
                 thread_ts=report_ts,
-                text=f"Your request approved. Your class on {date} at {time_class}, the teacher replacement is {teacher_replace}",
+                text=f"Your request approved. Your class on `{date}` at `{time_class}`, the teacher replacement is <@{teacher_replace}>",
             )
 
             client.chat_postMessage(channel=reflected_cn, blocks=piket_message)
