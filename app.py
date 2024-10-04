@@ -1095,22 +1095,44 @@ def send_the_user_input(ack, body, client, say, view):
             },
         ]
 
-        print(f"we check the position of button {piket_message[4]['elements']}")
-        # if teacher_replace == "I need a help finding a replacement":
-        #     piket_message[4]["elements"].append(
-        #         {
-        #             "type": "button",
-        #             "text": {
-        #                 "type": "plain_text",
-        #                 "emoji": True,
-        #                 "text": "Edit",
-        #             },
-        #             "style": "default",
-        #             "value": ticket_key_for_user,
-        #             "action_id": "edit_piket_msg",
-        #         },
-        #     )
+        if teacher_replace == "I need a help finding a replacement":
+            # Check if the 'actions' block exists and has 'elements'
+            if len(piket_message) > 4 and "elements" in piket_message[4]:
+                piket_message[4]["elements"].append(
+                    {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "emoji": True,
+                            "text": "Edit",
+                        },
+                        "style": "default",
+                        "value": ticket_key_for_user,
+                        "action_id": "edit_piket_msg",
+                    }
+                )
+        else:
+            # If the 'actions' block doesn't exist or 'elements' is missing, create it
+            piket_message.append(
+                {
+                    "type": "actions",
+                    "elements": [
+                        {
+                            "type": "button",
+                            "text": {
+                                "type": "plain_text",
+                                "emoji": True,
+                                "text": "Edit",
+                            },
+                            "style": "default",
+                            "value": ticket_key_for_user,
+                            "action_id": "edit_piket_msg",
+                        }
+                    ],
+                }
+            )
 
+        print(f"we check piket msg {piket_message}")
         result = client.chat_update(
             channel=piket_channel_id, ts=initial_ts, blocks=piket_message
         )
