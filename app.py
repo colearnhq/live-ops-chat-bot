@@ -1325,6 +1325,7 @@ def send_the_user_input(ack, body, client, say, view):
 @app.action("edit_piket_msg")
 def edit_piket_msg(ack, body, client):
     ack()
+    print(f'cek ricek : {body["message"]["blocks"][4]["elements"][0]["value"][:-1]}')
     [
         reporter_id,
         report_ts,
@@ -1338,7 +1339,6 @@ def edit_piket_msg(ack, body, client):
         direct_lead,
         stem_lead,
     ] = body["message"]["blocks"][4]["elements"][0]["value"][:-1].split("@@")
-    print(f'cek ricek : {body["message"]["blocks"][4]["elements"][0]["value"][:-1]}')
     previous_values = {
         "date": class_date,
         "teacher_requested": teacher_requested,
