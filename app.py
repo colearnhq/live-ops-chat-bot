@@ -1095,6 +1095,21 @@ def send_the_user_input(ack, body, client, say, view):
             },
         ]
 
+        if teacher_replace == "I need a help finding a replacement":
+            piket_message[4]["elements"].append(
+                {
+                    "type": "button",
+                    "text": {
+                        "type": "plain_text",
+                        "emoji": True,
+                        "text": "Edit",
+                    },
+                    "style": "default",
+                    "value": ticket_key_for_user,
+                    "action_id": "edit_piket_msg",
+                },
+            )
+
         result = client.chat_update(
             channel=piket_channel_id, ts=initial_ts, blocks=piket_message
         )
@@ -1292,6 +1307,190 @@ def send_the_user_input(ack, body, client, say, view):
             schedule_reminder(client, channel_id, ts, reminder_time, result["ts"])
         except Exception as e:
             logging.error(f"An error occurred: {str(e)}")
+
+
+@app.action("edit_piket_msg")
+def edit_piket_msg(ack, body, client):
+    ack()
+
+    # Assuming you have a function to fetch the previous values by ticket or some identifier
+    # For example, you could retrieve it from `ticket_manager.get_ticket_data(ticket_id)`
+    # For demonstration, let's assume you've fetched these values:
+    previous_values = {
+        "date": "2024-10-02",  # The previously selected date
+        "teacher_requested": "U01H83JTZB4",  # The previously selected teacher
+        "teacher_replace": "U01J83KZT54",  # The previously selected replacement teacher
+        "grade": 12,  # The previous grade
+        "slot_name": "Math",  # The previous slot name
+        "time_class": "19:15",  # The previous class time
+        "reason": "Teacher is unavailable",  # The previous reason
+        "direct_lead": "U012TDV62G2",  # The previous direct lead
+        "stem_lead": "U02TDV62G3",  # The previous STEM lead
+    }
+
+    trigger_id = body["trigger_id"]
+
+    modal_blocks = [
+        {
+            "type": "input",
+            "block_id": "date_block",
+            "label": {"type": "plain_text", "text": "Date"},
+            "element": {
+                "type": "datepicker",
+                "action_id": "date_picker_action",
+                "initial_date": previous_values.get(
+                    "date", None
+                ),  # Recall previous date
+                "placeholder": {"type": "plain_text", "text": "Select date"},
+            },
+        },
+        {
+            "type": "input",
+            "block_id": "teacher_request_block",
+            "label": {"type": "plain_text", "text": "Teacher who requested"},
+            "element": {
+                "action_id": "teacher_request_action",
+                "type": "users_select",
+                "initial_user": previous_values.get(
+                    "teacher_requested", None
+                ),  # Recall previous teacher
+                "placeholder": {
+                    "type": "plain_text",
+                    "text": "Select Teacher Who Requested",
+                },
+            },
+        },
+        {
+            "type": "input",
+            "block_id": "teacher_replace_block",
+            "label": {"type": "plain_text", "text": "Teacher who replaces"},
+            "element": {
+                "action_id": "teacher_replace_action",
+                "type": "users_select",
+                "initial_user": previous_values.get(
+                    "teacher_replace", None
+                ),  # Recall previous replacement teacher
+                "placeholder": {
+                    "type": "plain_text",
+                    "text": "Select Teacher Who Replaces",
+                },
+            },
+        },
+        {
+            "type": "input",
+            "block_id": "grade_block",
+            "label": {"type": "plain_text", "text": "Grade"},
+            "element": {
+                "type": "number_input",
+                "action_id": "grade_action",
+                "initial_value": str(
+                    previous_values.get("grade", "")
+                ),  # Recall previous grade
+                "is_decimal_allowed": False,
+            },
+        },
+        {
+            "type": "input",
+            "block_id": "slot_name_block",
+            "label": {"type": "plain_text", "text": "Slot Name"},
+            "element": {
+                "type": "plain_text_input",
+                "action_id": "slot_name_action",
+                "initial_value": previous_values.get(
+                    "slot_name", ""
+                ),  # Recall previous slot name
+                "placeholder": {
+                    "type": "plain_text",
+                    "text": "please input grade first and click generate button",
+                },
+            },
+        },
+        {
+            "type": "actions",
+            "elements": [
+                {
+                    "type": "button",
+                    "text": {"type": "plain_text", "text": "Generate slot"},
+                    "action_id": "generate_slot_list",
+                }
+            ],
+        },
+        {
+            "type": "input",
+            "block_id": "time_class_block",
+            "label": {"type": "plain_text", "text": "Time of Class"},
+            "element": {
+                "type": "plain_text_input",
+                "action_id": "time_class_action",
+                "initial_value": previous_values.get(
+                    "time_class", ""
+                ),  # Recall previous time
+                "placeholder": {"type": "plain_text", "text": "contoh: 19:15"},
+            },
+        },
+        {
+            "type": "input",
+            "block_id": "reason_block",
+            "label": {"type": "plain_text", "text": "Reason"},
+            "element": {
+                "type": "plain_text_input",
+                "multiline": True,
+                "action_id": "reason_action",
+                "initial_value": previous_values.get(
+                    "reason", ""
+                ),  # Recall previous reason
+            },
+        },
+        {
+            "type": "input",
+            "block_id": "direct_lead_block",
+            "label": {"type": "plain_text", "text": "Direct Lead"},
+            "element": {
+                "action_id": "direct_lead_action",
+                "type": "users_select",
+                "initial_user": previous_values.get(
+                    "direct_lead", None
+                ),  # Recall previous direct lead
+                "placeholder": {
+                    "type": "plain_text",
+                    "text": "Select Your Direct Lead",
+                },
+            },
+        },
+        {
+            "type": "input",
+            "block_id": "stem_lead_block",
+            "label": {"type": "plain_text", "text": "STEM Lead"},
+            "element": {
+                "action_id": "stem_lead_action",
+                "type": "users_select",
+                "initial_user": previous_values.get(
+                    "stem_lead", None
+                ),  # Recall previous STEM lead
+                "placeholder": {
+                    "type": "plain_text",
+                    "text": "Select Your STEM Lead",
+                },
+            },
+        },
+    ]
+
+    modal = {
+        "type": "modal",
+        "callback_id": "modal_edit_msg",
+        "title": {
+            "type": "plain_text",
+            "text": "Please, Help Teacher Soon!",
+        },
+        "submit": {"type": "plain_text", "text": "Submit"},
+        "close": {"type": "plain_text", "text": "Cancel"},
+        "blocks": modal_blocks,
+    }
+
+    try:
+        client.views_open(trigger_id=trigger_id, view=modal)
+    except SlackApiError as e:
+        logging.error(f"Error opening modal: {str(e)}")
 
 
 @app.action("user_select_action")
