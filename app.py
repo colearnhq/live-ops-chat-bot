@@ -1096,7 +1096,9 @@ def send_the_user_input(ack, body, client, say, view):
         ]
 
         if teacher_replace == "I need a help finding a replacement":
-            piket_message[3]["elements"].append(
+            piket_message[3][
+                "elements"
+            ].append(  # Appending to the correct block (actions block)
                 {
                     "type": "button",
                     "text": {
