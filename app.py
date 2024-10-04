@@ -1492,6 +1492,8 @@ def show_editted_piket_msg(ack, body, client, view, logger):
     ack()
     try:
         user_id = body["user"]["id"]
+        user_info = client.users_info(user=user_id)
+        user_name = user_info["user"]["real_name"]
         [reporter_id, report_ts, timestamp, thread_ts, channel_id] = view[
             "private_metadata"
         ].split("@@")
@@ -1595,6 +1597,25 @@ def show_editted_piket_msg(ack, body, client, view, logger):
                 channel=channel_id,
                 thread_ts=thread_ts,
                 text=f"This request has been approved at `{timestamp_jakarta}` by <@{user_id}>",
+            )
+
+            sheet_manager.update_piket(
+                f"piket.{thread_ts}",
+                {
+                    "status": "Approved-Editted",
+                    "approved_by": user_name,
+                    "teacher_replaces": teacher_replace,
+                    "approved_at": timestamp_utc,
+                    "teacher_requested": teacher_requested,
+                    "grade": grade,
+                    "slot_name": slot_name,
+                    "class_date": date,
+                    "class_time": time_class,
+                    "reason": reason,
+                    "direct_lead": direct_lead,
+                    "stem_lead": stem_lead,
+                    "edited_at": timestamp_jakarta,
+                },
             )
 
     except Exception as e:
