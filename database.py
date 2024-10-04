@@ -215,4 +215,5 @@ class SheetManager:
             "approved_at": 14,
             "rejected_by": 15,
             "rejected_at": 16,
+            "edited_at": 17,
         }
