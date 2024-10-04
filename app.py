@@ -1124,7 +1124,6 @@ def send_the_user_input(ack, body, client, say, view):
                                 "emoji": True,
                                 "text": "Edit",
                             },
-                            "style": "default",
                             "value": ticket_key_for_user,
                             "action_id": "edit_piket_msg",
                         }
