@@ -1034,7 +1034,7 @@ def send_the_user_input(ack, body, client, say, view):
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"Hi @tim_ajar\nWe've got a request from <@{teacher_requested}> with detail as below:",
+                    "text": f"Hi @tim_ajar\nWe've got a request from <@{teacher_requested}> with details below:",
                 },
             },
             {
@@ -1067,10 +1067,10 @@ def send_the_user_input(ack, body, client, say, view):
                 ],
             },
             {
-                "type": "actions",
+                "type": "actions",  # Ensure correct block type
                 "elements": [
                     {
-                        "type": "button",
+                        "type": "button",  # Button element
                         "text": {
                             "type": "plain_text",
                             "emoji": True,
@@ -1078,10 +1078,10 @@ def send_the_user_input(ack, body, client, say, view):
                         },
                         "style": "primary",
                         "value": ticket_key_for_user,
-                        "action_id": "resolve_button",
+                        "action_id": "resolve_button",  # Unique action ID
                     },
                     {
-                        "type": "button",
+                        "type": "button",  # Another button element
                         "text": {
                             "type": "plain_text",
                             "emoji": True,
@@ -1089,7 +1089,7 @@ def send_the_user_input(ack, body, client, say, view):
                         },
                         "style": "danger",
                         "value": ticket_key_for_user,
-                        "action_id": "reject_button",
+                        "action_id": "reject_button",  # Unique action ID
                     },
                 ],
             },
@@ -1098,7 +1098,7 @@ def send_the_user_input(ack, body, client, say, view):
         if teacher_replace == "I need a help finding a replacement":
             piket_message[3][
                 "elements"
-            ].append(  # Appending to the correct block (actions block)
+            ].append(  # Appending to correct block (actions block)
                 {
                     "type": "button",
                     "text": {
@@ -1108,7 +1108,7 @@ def send_the_user_input(ack, body, client, say, view):
                     },
                     "style": "default",
                     "value": ticket_key_for_user,
-                    "action_id": "edit_piket_msg",
+                    "action_id": "edit_piket_msg",  # Unique action ID
                 },
             )
 
