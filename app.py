@@ -1097,9 +1097,8 @@ def send_the_user_input(ack, body, client, say, view):
 
         if teacher_replace == "I need a help finding a replacement":
             if len(piket_message) > 4:
-                # Insert the button into the elements of the existing block
                 piket_message[4]["elements"].insert(
-                    0,
+                    2,
                     {
                         "type": "button",
                         "text": {
@@ -1112,7 +1111,6 @@ def send_the_user_input(ack, body, client, say, view):
                     },
                 )
 
-        print(f"we check piket msg {piket_message}")
         result = client.chat_update(
             channel=piket_channel_id, ts=initial_ts, blocks=piket_message
         )
@@ -1315,10 +1313,6 @@ def send_the_user_input(ack, body, client, say, view):
 @app.action("edit_piket_msg")
 def edit_piket_msg(ack, body, client):
     ack()
-
-    # Assuming you have a function to fetch the previous values by ticket or some identifier
-    # For example, you could retrieve it from `ticket_manager.get_ticket_data(ticket_id)`
-    # For demonstration, let's assume you've fetched these values:
     previous_values = {
         "date": "2024-10-02",  # The previously selected date
         "teacher_requested": "U01H83JTZB4",  # The previously selected teacher
@@ -1483,7 +1477,7 @@ def edit_piket_msg(ack, body, client):
         "callback_id": "modal_edit_msg",
         "title": {
             "type": "plain_text",
-            "text": "Please, Help Teacher Soon!",
+            "text": "Piket!",
         },
         "submit": {"type": "plain_text", "text": "Submit"},
         "close": {"type": "plain_text", "text": "Cancel"},
