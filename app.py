@@ -1094,8 +1094,8 @@ def send_the_user_input(ack, body, client, say, view):
                 ],
             },
         ]
-        
-        print(f"we check the position of button {piket_message[4]["elements"]}")
+
+        print(f"we check the position of button {piket_message[4]['elements']}")
         # if teacher_replace == "I need a help finding a replacement":
         #     piket_message[4]["elements"].append(
         #         {
