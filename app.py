@@ -1325,9 +1325,6 @@ def send_the_user_input(ack, body, client, say, view):
 @app.action("edit_piket_msg")
 def edit_piket_msg(ack, body, client):
     ack()
-    print(
-        f'cek ricek : {body["message"]["blocks"][4]["elements"][0]["value"].split("@@")}'
-    )
     [
         reporter_id,
         report_ts,
