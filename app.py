@@ -1022,7 +1022,7 @@ def send_the_user_input(ack, body, client, say, view):
 
         piket_data = f"{date}@@{teacher_requested}@@{teacher_replace}@@{grade}@@{slot_name}@@{time_class}@@{reason}@@{direct_lead}@@{stem_lead}"
         ticket_key_for_user = f"{user_id}@@{response_for_user['ts']}@@{timestamp_jakarta}@@{piket_data}@@{category}"
-        ticket_key_for_request_teacher = f"{user_id}@@{response_for_user['ts']}@@{timestamp_jakarta}@@{date}@@{teacher_requested}@@{grade}@@{slot_name}@@{time_class}@@{reason}@@{direct_lead}@@{stem_lead}@@{category}"
+        ticket_key_for_request_teacher = f"{user_id}@@{response_for_user['ts']}@@{timestamp_jakarta}@@{date}@@{teacher_requested}@@{grade}@@{slot_name}@@{time_class}@@{reason}@@{direct_lead}@@{stem_lead}"
         teacher_replace_state = (
             f"<@{teacher_replace}>"
             if teacher_replace != "No Mentor"
@@ -1325,7 +1325,9 @@ def send_the_user_input(ack, body, client, say, view):
 @app.action("edit_piket_msg")
 def edit_piket_msg(ack, body, client):
     ack()
-    print(f'cek ricek : {body["message"]["blocks"][4]["elements"][0]["value"][:-1]}')
+    print(
+        f'cek ricek : {body["message"]["blocks"][4]["elements"][0]["value"].split("@@")}'
+    )
     [
         reporter_id,
         report_ts,
@@ -1338,7 +1340,7 @@ def edit_piket_msg(ack, body, client):
         reason,
         direct_lead,
         stem_lead,
-    ] = body["message"]["blocks"][4]["elements"][0]["value"][:-1].split("@@")
+    ] = body["message"]["blocks"][4]["elements"][0]["value"].split("@@")
     previous_values = {
         "date": class_date,
         "teacher_requested": teacher_requested,
