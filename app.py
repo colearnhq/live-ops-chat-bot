@@ -1022,6 +1022,7 @@ def send_the_user_input(ack, body, client, say, view):
 
         piket_data = f"{date}@@{teacher_requested}@@{teacher_replace}@@{grade}@@{slot_name}@@{time_class}@@{reason}@@{direct_lead}@@{stem_lead}"
         ticket_key_for_user = f"{user_id}@@{response_for_user['ts']}@@{timestamp_jakarta}@@{piket_data}@@{category}"
+        ticket_key_for_request_teacher = f"{user_id}@@{response_for_user['ts']}@@{timestamp_jakarta}@@{date}@@{teacher_requested}@@{grade}@@{slot_name}@@{time_class}@@{reason}@@{direct_lead}@@{stem_lead}@@{category}"
         teacher_replace_state = (
             f"<@{teacher_replace}>"
             if teacher_replace != "No Mentor"
@@ -1097,8 +1098,8 @@ def send_the_user_input(ack, body, client, say, view):
 
         if teacher_replace == "I need a help finding a replacement":
             if len(piket_message) > 4:
-                piket_message[4]["elements"].insert(
-                    2,
+                piket_message[4]["elements"].clear()
+                piket_message[4]["elements"] = [
                     {
                         "type": "button",
                         "text": {
@@ -1106,10 +1107,21 @@ def send_the_user_input(ack, body, client, say, view):
                             "emoji": True,
                             "text": "Edit",
                         },
-                        "value": ticket_key_for_user,
+                        "value": ticket_key_for_request_teacher,
                         "action_id": "edit_piket_msg",
                     },
-                )
+                    {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "emoji": True,
+                            "text": "Reject",
+                        },
+                        "style": "danger",
+                        "value": ticket_key_for_user,
+                        "action_id": "reject_button",
+                    },
+                ]
 
         result = client.chat_update(
             channel=piket_channel_id, ts=initial_ts, blocks=piket_message
@@ -1313,18 +1325,31 @@ def send_the_user_input(ack, body, client, say, view):
 @app.action("edit_piket_msg")
 def edit_piket_msg(ack, body, client):
     ack()
+    [
+        reporter_id,
+        report_ts,
+        timestamp,
+        class_date,
+        teacher_requested,
+        grade,
+        slot_name,
+        time_class,
+        reason,
+        direct_lead,
+        stem_lead,
+    ] = body["message"]["blocks"][4]["elements"][0]["value"][:-1].split("@@")
     previous_values = {
-        "date": "2024-10-02",  # The previously selected date
-        "teacher_requested": "U01H83JTZB4",  # The previously selected teacher
-        "teacher_replace": "U01J83KZT54",  # The previously selected replacement teacher
-        "grade": 12,  # The previous grade
-        "slot_name": "Math",  # The previous slot name
-        "time_class": "19:15",  # The previous class time
-        "reason": "Teacher is unavailable",  # The previous reason
-        "direct_lead": "U012TDV62G2",  # The previous direct lead
-        "stem_lead": "U02TDV62G3",  # The previous STEM lead
+        "date": class_date,
+        "teacher_requested": teacher_requested,
+        "grade": grade,
+        "slot_name": slot_name,
+        "time_class": time_class,
+        "reason": reason,
+        "direct_lead": direct_lead,
+        "stem_lead": stem_lead,
     }
-
+    thread_ts = body["container"]["message_ts"]
+    channel_id = body["channel"]["id"]
     trigger_id = body["trigger_id"]
 
     modal_blocks = [
@@ -1335,9 +1360,7 @@ def edit_piket_msg(ack, body, client):
             "element": {
                 "type": "datepicker",
                 "action_id": "date_picker_action",
-                "initial_date": previous_values.get(
-                    "date", None
-                ),  # Recall previous date
+                "initial_date": previous_values.get("date", None),
                 "placeholder": {"type": "plain_text", "text": "Select date"},
             },
         },
@@ -1348,9 +1371,7 @@ def edit_piket_msg(ack, body, client):
             "element": {
                 "action_id": "teacher_request_action",
                 "type": "users_select",
-                "initial_user": previous_values.get(
-                    "teacher_requested", None
-                ),  # Recall previous teacher
+                "initial_user": previous_values.get("teacher_requested", None),
                 "placeholder": {
                     "type": "plain_text",
                     "text": "Select Teacher Who Requested",
@@ -1364,9 +1385,6 @@ def edit_piket_msg(ack, body, client):
             "element": {
                 "action_id": "teacher_replace_action",
                 "type": "users_select",
-                "initial_user": previous_values.get(
-                    "teacher_replace", None
-                ),  # Recall previous replacement teacher
                 "placeholder": {
                     "type": "plain_text",
                     "text": "Select Teacher Who Replaces",
@@ -1380,9 +1398,7 @@ def edit_piket_msg(ack, body, client):
             "element": {
                 "type": "number_input",
                 "action_id": "grade_action",
-                "initial_value": str(
-                    previous_values.get("grade", "")
-                ),  # Recall previous grade
+                "initial_value": str(previous_values.get("grade", "")),
                 "is_decimal_allowed": False,
             },
         },
@@ -1393,24 +1409,12 @@ def edit_piket_msg(ack, body, client):
             "element": {
                 "type": "plain_text_input",
                 "action_id": "slot_name_action",
-                "initial_value": previous_values.get(
-                    "slot_name", ""
-                ),  # Recall previous slot name
+                "initial_value": previous_values.get("slot_name", ""),
                 "placeholder": {
                     "type": "plain_text",
                     "text": "please input grade first and click generate button",
                 },
             },
-        },
-        {
-            "type": "actions",
-            "elements": [
-                {
-                    "type": "button",
-                    "text": {"type": "plain_text", "text": "Generate slot"},
-                    "action_id": "generate_slot_list",
-                }
-            ],
         },
         {
             "type": "input",
@@ -1419,9 +1423,7 @@ def edit_piket_msg(ack, body, client):
             "element": {
                 "type": "plain_text_input",
                 "action_id": "time_class_action",
-                "initial_value": previous_values.get(
-                    "time_class", ""
-                ),  # Recall previous time
+                "initial_value": previous_values.get("time_class", ""),
                 "placeholder": {"type": "plain_text", "text": "contoh: 19:15"},
             },
         },
@@ -1433,9 +1435,7 @@ def edit_piket_msg(ack, body, client):
                 "type": "plain_text_input",
                 "multiline": True,
                 "action_id": "reason_action",
-                "initial_value": previous_values.get(
-                    "reason", ""
-                ),  # Recall previous reason
+                "initial_value": previous_values.get("reason", ""),
             },
         },
         {
@@ -1445,9 +1445,7 @@ def edit_piket_msg(ack, body, client):
             "element": {
                 "action_id": "direct_lead_action",
                 "type": "users_select",
-                "initial_user": previous_values.get(
-                    "direct_lead", None
-                ),  # Recall previous direct lead
+                "initial_user": previous_values.get("direct_lead", None),
                 "placeholder": {
                     "type": "plain_text",
                     "text": "Select Your Direct Lead",
@@ -1461,9 +1459,7 @@ def edit_piket_msg(ack, body, client):
             "element": {
                 "action_id": "stem_lead_action",
                 "type": "users_select",
-                "initial_user": previous_values.get(
-                    "stem_lead", None
-                ),  # Recall previous STEM lead
+                "initial_user": previous_values.get("stem_lead", None),
                 "placeholder": {
                     "type": "plain_text",
                     "text": "Select Your STEM Lead",
@@ -1482,12 +1478,127 @@ def edit_piket_msg(ack, body, client):
         "submit": {"type": "plain_text", "text": "Submit"},
         "close": {"type": "plain_text", "text": "Cancel"},
         "blocks": modal_blocks,
+        "private_metadata": f"{reporter_id}@@{report_ts}@@{timestamp}@@{thread_ts}@@{channel_id}",
     }
 
     try:
         client.views_open(trigger_id=trigger_id, view=modal)
     except SlackApiError as e:
         logging.error(f"Error opening modal: {str(e)}")
+
+
+@app.view("modal_edit_msg")
+def show_editted_piket_msg(ack, body, client, view, logger):
+    ack()
+    try:
+        user_id = body["user"]["id"]
+        [reporter_id, report_ts, timestamp, thread_ts, channel_id] = view[
+            "private_metadata"
+        ].split("@@")
+        date = view["state"]["values"]["date_block"]["date_picker_action"][
+            "selected_date"
+        ]
+        teacher_requested = view["state"]["values"]["teacher_request_block"][
+            "teacher_request_action"
+        ]["selected_user"]
+        teacher_replace = view["state"]["values"]["teacher_replace_block"][
+            "teacher_replace_action"
+        ]["selected_user"]
+        grade = view["state"]["values"]["grade_block"]["grade_action"]["value"]
+        slot_name = view["state"]["values"]["slot_name_block"]["slot_name_action"][
+            "value"
+        ]
+        time_class = view["state"]["values"]["time_class_block"]["time_class_action"][
+            "value"
+        ]
+        reason = view["state"]["values"]["reason_block"]["reason_action"]["value"]
+        direct_lead = view["state"]["values"]["direct_lead_block"][
+            "direct_lead_action"
+        ]["selected_user"]
+        stem_lead = view["state"]["values"]["stem_lead_block"]["stem_lead_action"][
+            "selected_user"
+        ]
+        timestamp_utc = datetime.utcnow()
+        timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
+
+        piket_message = [
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"Hi @tim_ajar\nWe've got a request from <@{teacher_requested}> with detail as below:",
+                },
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {"type": "mrkdwn", "text": f"*Class Date:*\n`{date}`"},
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Time of Class:*\n`{time_class}`",
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Teacher Requested:*\n<@{teacher_requested}>",
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Teacher Replaces:*\n<@{teacher_replace}>",
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Slot Name:*\n`{grade}-{slot_name}`",
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Reason:*\n```{reason}```",
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Direct Lead:*\n<@{direct_lead}>",
+                    },
+                    {"type": "mrkdwn", "text": f"*STEM Lead:*\n<@{stem_lead}>"},
+                ],
+            },
+            {"type": "divider"},
+            {
+                "type": "context",
+                "elements": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Piket Ticket Number:* piket.{report_ts}",
+                    }
+                ],
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f":white_check_mark: <@{user_id}> approved the request",
+                },
+            },
+        ]
+
+        response = client.chat_update(
+            channel=channel_id, ts=thread_ts, blocks=piket_message
+        )
+        if response["ok"]:
+            client.chat_postMessage(
+                channel=reporter_id,
+                thread_ts=report_ts,
+                text=f"Your request approved. Your class on {date} at {time_class}, the teacher replacement is {teacher_replace}",
+            )
+
+            client.chat_postMessage(channel=reflected_cn, blocks=piket_message)
+
+            client.chat_postMessage(
+                channel=channel_id,
+                thread_ts=thread_ts,
+                text=f"This request has been approved at `{timestamp_jakarta}` by <@{user_id}>",
+            )
+
+    except Exception as e:
+        logger.error(f"Error handling modal submission: {str(e)}")
 
 
 @app.action("user_select_action")
