@@ -1096,18 +1096,22 @@ def send_the_user_input(ack, body, client, say, view):
         ]
 
         if teacher_replace == "I need a help finding a replacement":
-            piket_message[4]["elements"].append(
-                {
-                    "type": "button",
-                    "text": {
-                        "type": "plain_text",
-                        "emoji": True,
-                        "text": "Edit",
+            if len(piket_message) > 4:
+                # Insert the button into the elements of the existing block
+                piket_message[4]["elements"].insert(
+                    0,
+                    {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "emoji": True,
+                            "text": "Edit",
+                        },
+                        "style": "default",
+                        "value": ticket_key_for_user,
+                        "action_id": "edit_piket_msg",
                     },
-                    "value": ticket_key_for_user,
-                    "action_id": "edit_piket_msg",
-                }
-            )
+                )
 
         print(f"we check piket msg {piket_message}")
         result = client.chat_update(
