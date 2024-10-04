@@ -1338,7 +1338,7 @@ def edit_piket_msg(ack, body, client):
         direct_lead,
         stem_lead,
     ] = body["message"]["blocks"][4]["elements"][0]["value"][:-1].split("@@")
-    print(f"cek ricek : {body["message"]["blocks"][4]["elements"][0]["value"][:-1]}")
+    print(f'cek ricek : {body["message"]["blocks"][4]["elements"][0]["value"][:-1]}')
     previous_values = {
         "date": class_date,
         "teacher_requested": teacher_requested,
