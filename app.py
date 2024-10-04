@@ -1034,7 +1034,7 @@ def send_the_user_input(ack, body, client, say, view):
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"Hi @tim_ajar\nWe've got a request from <@{teacher_requested}> with details below:",
+                    "text": f"Hi @tim_ajar\nWe've got a request from <@{teacher_requested}> with detail as below:",
                 },
             },
             {
@@ -1067,10 +1067,10 @@ def send_the_user_input(ack, body, client, say, view):
                 ],
             },
             {
-                "type": "actions",  # Ensure correct block type
+                "type": "actions",
                 "elements": [
                     {
-                        "type": "button",  # Button element
+                        "type": "button",
                         "text": {
                             "type": "plain_text",
                             "emoji": True,
@@ -1078,10 +1078,10 @@ def send_the_user_input(ack, body, client, say, view):
                         },
                         "style": "primary",
                         "value": ticket_key_for_user,
-                        "action_id": "resolve_button",  # Unique action ID
+                        "action_id": "resolve_button",
                     },
                     {
-                        "type": "button",  # Another button element
+                        "type": "button",
                         "text": {
                             "type": "plain_text",
                             "emoji": True,
@@ -1089,28 +1089,102 @@ def send_the_user_input(ack, body, client, say, view):
                         },
                         "style": "danger",
                         "value": ticket_key_for_user,
-                        "action_id": "reject_button",  # Unique action ID
+                        "action_id": "reject_button",
                     },
                 ],
             },
         ]
 
         if teacher_replace == "I need a help finding a replacement":
-            piket_message[3][
-                "elements"
-            ].append(  # Appending to correct block (actions block)
+            piket_message.append(
                 {
-                    "type": "button",
+                    "type": "section",
                     "text": {
-                        "type": "plain_text",
-                        "emoji": True,
-                        "text": "Edit",
+                        "type": "mrkdwn",
+                        "text": "🔍 *Help needed to find a replacement teacher*",
                     },
-                    "style": "default",
-                    "value": ticket_key_for_user,
-                    "action_id": "edit_piket_msg",  # Unique action ID
-                },
+                }
             )
+
+            action_buttons = {
+                "type": "actions",
+                "elements": [
+                    {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "emoji": True,
+                            "text": "Volunteer to Replace",
+                        },
+                        "style": "primary",
+                        "value": ticket_key_for_user,
+                        "action_id": "volunteer_replace_button",
+                    },
+                    {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "emoji": True,
+                            "text": "Suggest Someone",
+                        },
+                        "style": "default",
+                        "value": ticket_key_for_user,
+                        "action_id": "suggest_replacement_button",
+                    },
+                    {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "emoji": True,
+                            "text": "Edit Request",
+                        },
+                        "style": "default",
+                        "value": ticket_key_for_user,
+                        "action_id": "edit_piket_msg",
+                    },
+                    {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "emoji": True,
+                            "text": "Reject",
+                        },
+                        "style": "danger",
+                        "value": ticket_key_for_user,
+                        "action_id": "reject_button",
+                    },
+                ],
+            }
+        else:
+            action_buttons = {
+                "type": "actions",
+                "elements": [
+                    {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "emoji": True,
+                            "text": "Resolve",
+                        },
+                        "style": "primary",
+                        "value": ticket_key_for_user,
+                        "action_id": "resolve_button",
+                    },
+                    {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "emoji": True,
+                            "text": "Reject",
+                        },
+                        "style": "danger",
+                        "value": ticket_key_for_user,
+                        "action_id": "reject_button",
+                    },
+                ],
+            }
+
+        piket_message.append(action_buttons)
 
         result = client.chat_update(
             channel=piket_channel_id, ts=initial_ts, blocks=piket_message
