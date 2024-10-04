@@ -1094,97 +1094,22 @@ def send_the_user_input(ack, body, client, say, view):
                 ],
             },
         ]
-
-        if teacher_replace == "I need a help finding a replacement":
-            piket_message.append(
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "🔍 *Help needed to find a replacement teacher*",
-                    },
-                }
-            )
-
-            action_buttons = {
-                "type": "actions",
-                "elements": [
-                    {
-                        "type": "button",
-                        "text": {
-                            "type": "plain_text",
-                            "emoji": True,
-                            "text": "Volunteer to Replace",
-                        },
-                        "style": "primary",
-                        "value": ticket_key_for_user,
-                        "action_id": "volunteer_replace_button",
-                    },
-                    {
-                        "type": "button",
-                        "text": {
-                            "type": "plain_text",
-                            "emoji": True,
-                            "text": "Suggest Someone",
-                        },
-                        "style": "default",
-                        "value": ticket_key_for_user,
-                        "action_id": "suggest_replacement_button",
-                    },
-                    {
-                        "type": "button",
-                        "text": {
-                            "type": "plain_text",
-                            "emoji": True,
-                            "text": "Edit Request",
-                        },
-                        "style": "default",
-                        "value": ticket_key_for_user,
-                        "action_id": "edit_piket_msg",
-                    },
-                    {
-                        "type": "button",
-                        "text": {
-                            "type": "plain_text",
-                            "emoji": True,
-                            "text": "Reject",
-                        },
-                        "style": "danger",
-                        "value": ticket_key_for_user,
-                        "action_id": "reject_button",
-                    },
-                ],
-            }
-        else:
-            action_buttons = {
-                "type": "actions",
-                "elements": [
-                    {
-                        "type": "button",
-                        "text": {
-                            "type": "plain_text",
-                            "emoji": True,
-                            "text": "Resolve",
-                        },
-                        "style": "primary",
-                        "value": ticket_key_for_user,
-                        "action_id": "resolve_button",
-                    },
-                    {
-                        "type": "button",
-                        "text": {
-                            "type": "plain_text",
-                            "emoji": True,
-                            "text": "Reject",
-                        },
-                        "style": "danger",
-                        "value": ticket_key_for_user,
-                        "action_id": "reject_button",
-                    },
-                ],
-            }
-
-        piket_message.append(action_buttons)
+        
+        print(f"we check the position of button {piket_message[4]["elements"]}")
+        # if teacher_replace == "I need a help finding a replacement":
+        #     piket_message[4]["elements"].append(
+        #         {
+        #             "type": "button",
+        #             "text": {
+        #                 "type": "plain_text",
+        #                 "emoji": True,
+        #                 "text": "Edit",
+        #             },
+        #             "style": "default",
+        #             "value": ticket_key_for_user,
+        #             "action_id": "edit_piket_msg",
+        #         },
+        #     )
 
         result = client.chat_update(
             channel=piket_channel_id, ts=initial_ts, blocks=piket_message
