@@ -1602,7 +1602,7 @@ def show_editted_piket_msg(ack, body, client, view, logger):
             sheet_manager.update_piket(
                 f"piket.{thread_ts}",
                 {
-                    "status": "Approved-Editted",
+                    "status": "Approved",
                     "approved_by": user_name,
                     "teacher_replaces": get_real_name(client, teacher_replace),
                     "approved_at": timestamp_utc,
