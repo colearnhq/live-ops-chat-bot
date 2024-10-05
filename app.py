@@ -461,25 +461,25 @@ def handle_category_selection(ack, body, client):
                     "is_decimal_allowed": False,
                 },
             },
-            {
-                "type": "input",
-                "block_id": "slot_name_block",
-                "label": {"type": "plain_text", "text": "Slot Name"},
-                "element": {
-                    "type": "plain_text_input",
-                    "placeholder": {
-                        "type": "plain_text",
-                        "text": "please input grade first and click generate button",
-                    },
-                    "action_id": "slot_name_action",
-                },
-            },
+            # {
+            #     "type": "input",
+            #     "block_id": "slot_name_block",
+            #     "label": {"type": "plain_text", "text": "Slot Name"},
+            #     "element": {
+            #         "type": "plain_text_input",
+            #         "placeholder": {
+            #             "type": "plain_text",
+            #             "text": "please input grade first and click generate button",
+            #         },
+            #         "action_id": "slot_name_action",
+            #     },
+            # },
             {
                 "type": "actions",
                 "elements": [
                     {
                         "type": "button",
-                        "text": {"type": "plain_text", "text": "Generate slot"},
+                        "text": {"type": "plain_text", "text": "Generate Slots"},
                         "action_id": "generate_slot_list",
                     }
                 ],
