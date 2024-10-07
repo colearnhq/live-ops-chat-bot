@@ -610,7 +610,7 @@ def handle_generate_slot_list(ack, body, client):
                     "element": {
                         "type": "datepicker",
                         "action_id": "date_picker_action",
-                        "placeholder": {"type": "plain_text", "text": "Select date"},
+                        "placeholder": {"type": "plain_text", "text": "Select a date"},
                     },
                 },
                 {
@@ -683,13 +683,13 @@ def handle_generate_slot_list(ack, body, client):
                 {
                     "type": "input",
                     "block_id": "time_class_block",
-                    "label": {"type": "plain_text", "text": "Time of Class"},
+                    "label": {"type": "plain_text", "text": "Class Time"},
                     "element": {
                         "type": "plain_text_input",
                         "action_id": "time_class_action",
                         "placeholder": {
                             "type": "plain_text",
-                            "text": "contoh: 19:15",
+                            "text": "e.g., 19:15",
                         },
                     },
                 },
