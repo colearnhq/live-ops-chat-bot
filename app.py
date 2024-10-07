@@ -558,7 +558,7 @@ def handle_category_selection(ack, body, client):
         "callback_id": "slash_input",
         "title": {
             "type": "plain_text",
-            "text": "Think Wisely :9096_thinkingpepe:",
+            "text": "Think Wisely!",
         },
         "submit": {"type": "plain_text", "text": "Submit"},
         "close": {"type": "plain_text", "text": "Cancel"},
