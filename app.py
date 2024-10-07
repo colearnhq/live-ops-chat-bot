@@ -480,7 +480,7 @@ def handle_category_selection(ack, body, client):
                     "action_id": "time_class_action",
                     "placeholder": {
                         "type": "plain_text",
-                        "text": "contoh: 19:15",
+                        "text": "e.g., 19:15",
                     },
                 },
             },
