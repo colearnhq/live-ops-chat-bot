@@ -317,7 +317,7 @@ def handling_replacement(ack, body, client):
     ack()
 
     categories = [
-        "I need a help finding a replacement",
+        "I need help finding a replacement",
         "No Mentor",
         "I have had a replacement",
     ]
@@ -432,9 +432,9 @@ def handle_category_selection(ack, body, client):
                     **(
                         {
                             "initial_value": (
-                                "I need a help finding a replacement"
+                                "I need help finding a replacement"
                                 if selected_category
-                                == "I need a help finding a replacement"
+                                == "I need help finding a replacement"
                                 else (
                                     "No Mentor"
                                     if selected_category == "No Mentor"
@@ -585,7 +585,7 @@ def handle_generate_slot_list(ack, body, client):
     selected_cat_on_piket = (
         teacher_who_replaces_val
         if teacher_who_replaces_val == "No Mentor"
-        or teacher_who_replaces_val == "I need a help finding a replacement"
+        or teacher_who_replaces_val == "I need help finding a replacement"
         else "I have had a replacement"
     )
     grade = state["grade_block"]["grade_action"]["value"]
@@ -640,9 +640,9 @@ def handle_generate_slot_list(ack, body, client):
                         **(
                             {
                                 "initial_value": (
-                                    "I need a help finding a replacement"
+                                    "I need help finding a replacement"
                                     if selected_cat_on_piket
-                                    == "I need a help finding a replacement"
+                                    == "I need help finding a replacement"
                                     else (
                                         "No Mentor"
                                         if selected_cat_on_piket == "No Mentor"
@@ -831,7 +831,7 @@ def send_the_user_input(ack, body, client, say, view):
         teacher_replace_state = (
             f"<@{teacher_replace}>"
             if teacher_replace != "No Mentor"
-            and teacher_replace != "I need a help finding a replacement"
+            and teacher_replace != "I need help finding a replacement"
             else f"`{teacher_replace}`"
         )
 
@@ -901,7 +901,7 @@ def send_the_user_input(ack, body, client, say, view):
             },
         ]
 
-        if teacher_replace == "I need a help finding a replacement":
+        if teacher_replace == "I need help finding a replacement":
             if len(piket_message) > 4:
                 piket_message[4]["elements"].clear()
                 piket_message[4]["elements"] = [
@@ -2071,7 +2071,7 @@ def resolve_button(ack, body, client, logger):
             teacher_replace_state = (
                 f"<@{teacher_replace}>"
                 if teacher_replace != "No Mentor"
-                and teacher_replace != "I need a help finding a replacement"
+                and teacher_replace != "I need help finding a replacement"
                 else f"`{teacher_replace}`"
             )
             piket_message = [
@@ -2478,7 +2478,7 @@ def show_reject_modal(ack, body, client, view, logger):
             teacher_replace_state = (
                 f"<@{teacher_replace}>"
                 if teacher_replace != "No Mentor"
-                and teacher_replace != "I need a help finding a replacement"
+                and teacher_replace != "I need help finding a replacement"
                 else f"`{teacher_replace}`"
             )
             if response["ok"]:
