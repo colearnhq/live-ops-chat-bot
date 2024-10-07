@@ -402,7 +402,7 @@ def handle_category_selection(ack, body, client):
                 "element": {
                     "type": "datepicker",
                     "action_id": "date_picker_action",
-                    "placeholder": {"type": "plain_text", "text": "Select date"},
+                    "placeholder": {"type": "plain_text", "text": "Select a date"},
                 },
             },
             {
@@ -1166,7 +1166,7 @@ def edit_piket_msg(ack, body, client):
                 "type": "datepicker",
                 "action_id": "date_picker_action",
                 "initial_date": previous_values.get("date", None),
-                "placeholder": {"type": "plain_text", "text": "Select date"},
+                "placeholder": {"type": "plain_text", "text": "Select a date"},
             },
         },
         {
