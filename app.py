@@ -30,8 +30,8 @@ app = App(token=os.getenv("SLACK_BOT_TOKEN"))
 sheet_manager = SheetManager(creds_dict, "1dPXiGBN2dDyyQ9TnO6Hi8cQtmbkFBU4O7sI5ztbXT90")
 
 ops_cn = "C079J897A49"
-reflected_cn = "C0719R3NQ91"
-piket_reflected_cn = "C0719R3NQ91"
+reflected_cn = "C032B89UK36"
+piket_reflected_cn = "C056S606NGM"
 
 greetings_response = {
     "morning": "Good Morning",
