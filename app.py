@@ -4,7 +4,8 @@ from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from dotenv import load_dotenv
 import logging
-from datetime import datetime
+import threading
+from datetime import datetime, timedelta
 from slack_sdk.errors import SlackApiError
 from database import SheetManager
 import pytz
@@ -28,7 +29,9 @@ creds_dict = {
 app = App(token=os.getenv("SLACK_BOT_TOKEN"))
 sheet_manager = SheetManager(creds_dict, "1dPXiGBN2dDyyQ9TnO6Hi8cQtmbkFBU4O7sI5ztbXT90")
 
+ops_cn = "C079J897A49"
 reflected_cn = "C032B89UK36"
+piket_reflected_cn = "C056S606NGM"
 
 greetings_response = {
     "morning": "Good Morning",
@@ -77,6 +80,8 @@ class TicketManager:
     def __init__(self):
         self.reflected_timestamps = {}
         self.user_inputs = {}
+        self.ticket_status = {}
+        self.files = {}
 
     def store_reflected_ts(self, thread_ts, reflected_ts):
         self.reflected_timestamps[thread_ts] = reflected_ts
@@ -98,8 +103,100 @@ class TicketManager:
         if thread_ts in self.user_inputs:
             del self.user_inputs[thread_ts]
 
+    def update_ticket_status(self, thread_ts, status):
+        self.ticket_status[thread_ts] = status
+
+    def get_ticket_status(self, thread_ts):
+        return self.ticket_status.get(thread_ts, "unassigned")
+
+    def clear_ticket_status(self, thread_ts):
+        if thread_ts in self.ticket_status:
+            del self.ticket_status[thread_ts]
+
+    def store_files(self, thread_ts, files):
+        self.files[thread_ts] = files
+
+    def get_files(self, thread_ts):
+        files = self.files.get(thread_ts)
+        return files
+
 
 ticket_manager = TicketManager()
+
+
+def convert_utc_to_jakarta(utc_dt):
+    from pytz import timezone
+
+    fmt = "%Y-%m-%d %H:%M:%S %Z%z"
+    utc_dt = utc_dt.replace(tzinfo=timezone("UTC"))
+    jakarta_time = utc_dt.astimezone(timezone("Asia/Jakarta"))
+    return jakarta_time.strftime(fmt)
+
+
+def schedule_reminder(client, channel_id, thread_ts, reminder_time, ticket_ts):
+    def remind():
+        if not is_ticket_assigned(ticket_ts):
+            omar_id = "U020SH7JJF3"
+            client.chat_postMessage(
+                channel=channel_id,
+                thread_ts=thread_ts,
+                text=f"Ribbit! 🐸 Pepe’s getting impatient, and this ticket's feeling lonely! Can you <@{omar_id}> hop in and rescue it within the next 2 minutes before Pepe starts croaking louder? 🐸⏳",
+            )
+
+    threading.Timer(reminder_time.total_seconds(), remind).start()
+
+
+def is_ticket_assigned(ticket_ts):
+    status = ticket_manager.get_ticket_status(ticket_ts)
+    return status != "unassigned"
+
+
+def truncate_value(value, max_length=25):
+    return (
+        value
+        if len(value) <= max_length
+        else value[:max_length] + "...(continued in thread)"
+    )
+
+
+def inserting_imgs_thread(client, channel_id, ts, files):
+    blocks = []
+
+    blocks.append(
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": "Here are the uploaded images from user:",
+            },
+        }
+    )
+
+    for file in files:
+        img_url = file.get("url_private", file.get("thumb_360", file.get("thumb_64")))
+        if img_url:
+            img_block = {
+                "type": "image",
+                "image_url": img_url,
+                "alt_text": "user_attachment",
+            }
+            blocks.append(img_block)
+
+    if blocks:
+        client.chat_postMessage(
+            channel=channel_id,
+            thread_ts=ts,
+            blocks=blocks,
+            text="Here are the uploaded images",
+        )
+
+
+def get_real_name(client, user_id):
+    try:
+        user_info = client.users_info(user=user_id)
+        return user_info["user"]["real_name"]
+    except Exception as e:
+        return user_id
 
 
 @app.event("message")
@@ -149,37 +246,555 @@ def handle_message_events(body, say, client):
         logging.error(f"Error handling message: {str(e)}")
 
 
-def truncate_value(value, max_length=37):
-    return (
-        value
-        if len(value) <= max_length
-        else value[:max_length] + "...(continued in thread)"
+@app.command("/hiops")
+def slash_input(ack, body, client):
+    ack()
+    categories = [
+        "Piket",
+        "Others",
+    ]
+    user_input = body.get("text", "No message provided.")
+    category_options = [
+        {
+            "text": {"type": "plain_text", "text": category},
+            "value": f"{category}",
+        }
+        for category in categories
+    ]
+    trigger_id = body["trigger_id"]
+    channel_id = ops_cn
+
+    modal = {
+        "type": "modal",
+        "callback_id": "slash_input",
+        "title": {
+            "type": "plain_text",
+            "text": "Don’t Overthink It!",
+        },
+        "blocks": [
+            {
+                "type": "section",
+                "block_id": "category_block",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "Please select the category of the issue:",
+                },
+            },
+            {
+                "type": "actions",
+                "block_id": "category_buttons",
+                "elements": [
+                    {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "text": category["text"]["text"],
+                            "emoji": True,
+                        },
+                        "value": category["value"],
+                        "action_id": f"button_{category['value']}",
+                        "style": (
+                            "primary"
+                            if category["text"]["text"] == "Piket"
+                            else "danger"
+                        ),
+                    }
+                    for category in category_options
+                ],
+            },
+        ],
+        "private_metadata": f"{channel_id}@@{user_input}",
+    }
+
+    try:
+        client.views_open(trigger_id=trigger_id, view=modal)
+    except SlackApiError as e:
+        logging.error(
+            f"Error opening modal: {str(e)} | Response: {e.response['error']}"
+        )
+
+
+@app.action("button_Piket")
+def handling_replacement(ack, body, client):
+    ack()
+
+    categories = [
+        "I need help finding a replacement",
+        "No Mentor",
+        "I have had a replacement",
+    ]
+
+    category_options = [
+        {
+            "text": {"type": "plain_text", "text": category},
+            "value": category,
+        }
+        for category in categories
+    ]
+
+    channel_id = ops_cn
+    view_id = body["view"]["id"]
+
+    modal = {
+        "type": "modal",
+        "callback_id": "slash_input",
+        "title": {
+            "type": "plain_text",
+            "text": "Don’t Overthink It!",
+        },
+        "blocks": [
+            {
+                "type": "section",
+                "block_id": "category_block",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "Teacher Replacement Options",
+                },
+                "accessory": {
+                    "type": "static_select",
+                    "action_id": "handle_category_selection",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Select a category",
+                    },
+                    "options": [
+                        {
+                            "text": {
+                                "type": "plain_text",
+                                "text": category_option["text"]["text"],
+                            },
+                            "value": category_option["value"],
+                        }
+                        for category_option in category_options
+                    ],
+                },
+            },
+        ],
+        "private_metadata": f"{channel_id}@@Piket",
+    }
+
+    try:
+        client.views_update(view_id=view_id, view=modal)
+    except SlackApiError as e:
+        logging.error(
+            f"Error updating modal: {str(e)} | Response: {e.response['error']}"
+        )
+
+
+@app.action("handle_category_selection")
+@app.action("button_Others")
+def handle_category_selection(ack, body, client):
+    ack()
+    [channel_id, user_input] = body["view"]["private_metadata"].split("@@")
+    selected_category = (
+        body["view"]["state"]["values"]["category_block"]["handle_category_selection"][
+            "selected_option"
+        ]["value"]
+        if user_input == "Piket"
+        else body["actions"][0]["value"]
+    )
+    trigger_id = body["trigger_id"]
+
+    if user_input == "Piket":
+        modal_blocks = [
+            {
+                "type": "input",
+                "block_id": "date_block",
+                "label": {"type": "plain_text", "text": "Date"},
+                "element": {
+                    "type": "datepicker",
+                    "action_id": "date_picker_action",
+                    "placeholder": {"type": "plain_text", "text": "Select a date"},
+                },
+            },
+            {
+                "type": "input",
+                "block_id": "teacher_request_block",
+                "label": {"type": "plain_text", "text": "Teacher who requested"},
+                "element": {
+                    "action_id": "teacher_request_action",
+                    "type": "users_select",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Select Teacher Who Requested",
+                    },
+                },
+            },
+            {
+                "type": "input",
+                "block_id": "teacher_replace_block",
+                "label": {"type": "plain_text", "text": "Teacher who replaces"},
+                "element": {
+                    "action_id": "teacher_replace_action",
+                    "type": (
+                        "users_select"
+                        if selected_category == "I have had a replacement"
+                        else "plain_text_input"
+                    ),
+                    **(
+                        {
+                            "initial_value": (
+                                "I need help finding a replacement"
+                                if selected_category
+                                == "I need help finding a replacement"
+                                else (
+                                    "No Mentor"
+                                    if selected_category == "No Mentor"
+                                    else None
+                                )
+                            )
+                        }
+                        if selected_category != "I have had a replacement"
+                        else {}
+                    ),
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Select Teacher Who Replaces",
+                    },
+                },
+            },
+            {
+                "type": "input",
+                "block_id": "grade_block",
+                "label": {"type": "plain_text", "text": "Grade"},
+                "element": {
+                    "type": "number_input",
+                    "action_id": "grade_action",
+                    "is_decimal_allowed": False,
+                },
+            },
+            {
+                "type": "actions",
+                "elements": [
+                    {
+                        "type": "button",
+                        "text": {"type": "plain_text", "text": "Generate Slots"},
+                        "action_id": "generate_slot_list",
+                    }
+                ],
+            },
+            {
+                "type": "input",
+                "block_id": "time_class_block",
+                "label": {"type": "plain_text", "text": "Class Time"},
+                "element": {
+                    "type": "plain_text_input",
+                    "action_id": "time_class_action",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "e.g., 19:15",
+                    },
+                },
+            },
+            {
+                "type": "input",
+                "block_id": "reason_block",
+                "label": {"type": "plain_text", "text": "Reason"},
+                "element": {
+                    "type": "plain_text_input",
+                    "multiline": True,
+                    "action_id": "reason_action",
+                },
+            },
+            {
+                "type": "input",
+                "block_id": "direct_lead_block",
+                "label": {"type": "plain_text", "text": "Direct Lead"},
+                "element": {
+                    "action_id": "direct_lead_action",
+                    "type": "users_select",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Select Your Direct Lead",
+                    },
+                },
+            },
+            {
+                "type": "input",
+                "block_id": "stem_lead_block",
+                "label": {"type": "plain_text", "text": "STEM Lead"},
+                "element": {
+                    "action_id": "stem_lead_action",
+                    "type": "users_select",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Select Your STEM Lead",
+                    },
+                },
+            },
+        ]
+
+    elif selected_category == "Others":
+        modal_blocks = [
+            {
+                "type": "input",
+                "block_id": "issue_name",
+                "label": {"type": "plain_text", "text": "Your Issue"},
+                "element": {
+                    "type": "plain_text_input",
+                    "action_id": "user_issue",
+                    "multiline": True,
+                    "initial_value": user_input,
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Describe your issue...",
+                    },
+                },
+            },
+            {
+                "type": "input",
+                "optional": True,
+                "block_id": "file_upload_block",
+                "label": {"type": "plain_text", "text": "File Upload"},
+                "element": {
+                    "type": "file_input",
+                    "action_id": "file_input_action",
+                    "filetypes": ["jpg", "png"],
+                    "max_files": 5,
+                },
+            },
+        ]
+
+    updated_modal = {
+        "type": "modal",
+        "callback_id": "slash_input",
+        "title": {
+            "type": "plain_text",
+            "text": "Think Wisely!",
+        },
+        "submit": {"type": "plain_text", "text": "Submit"},
+        "close": {"type": "plain_text", "text": "Cancel"},
+        "blocks": modal_blocks,
+        "private_metadata": f"{channel_id}@@{'Piket' if selected_category != 'Others' else 'Others'}",
+    }
+
+    try:
+        client.views_update(view_id=body["view"]["id"], view=updated_modal)
+    except SlackApiError as e:
+        logging.error(
+            f"Error updating modal: {str(e)} | Response: {e.response['error']}"
+        )
+
+
+@app.action("generate_slot_list")
+def handle_generate_slot_list(ack, body, client):
+    ack()
+    state = body["view"]["state"]["values"]
+    teacher_replace_block = state["teacher_replace_block"]["teacher_replace_action"]
+    teacher_who_replaces_val = teacher_replace_block.get(
+        "selected_user"
+    ) or teacher_replace_block.get("value")
+    selected_cat_on_piket = (
+        teacher_who_replaces_val
+        if teacher_who_replaces_val == "No Mentor"
+        or teacher_who_replaces_val == "I need help finding a replacement"
+        else "I have had a replacement"
+    )
+    grade = state["grade_block"]["grade_action"]["value"]
+    slots = sheet_manager.get_slots_by_grade(grade)
+    dropdown_options = [
+        {"text": {"type": "plain_text", "text": slot}, "value": slot} for slot in slots
+    ]
+
+    client.views_update(
+        view_id=body["view"]["id"],
+        view={
+            "type": "modal",
+            "callback_id": "slash_input",
+            "title": {"type": "plain_text", "text": "Piket Request"},
+            "submit": {"type": "plain_text", "text": "Submit"},
+            "close": {"type": "plain_text", "text": "Cancel"},
+            "blocks": [
+                {
+                    "type": "input",
+                    "block_id": "date_block",
+                    "label": {"type": "plain_text", "text": "Date"},
+                    "element": {
+                        "type": "datepicker",
+                        "action_id": "date_picker_action",
+                        "placeholder": {"type": "plain_text", "text": "Select a date"},
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "teacher_request_block",
+                    "label": {"type": "plain_text", "text": "Teacher who requested"},
+                    "element": {
+                        "action_id": "teacher_request_action",
+                        "type": "users_select",
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "Select Teacher Who Requested",
+                        },
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "teacher_replace_block",
+                    "label": {"type": "plain_text", "text": "Teacher who replaces"},
+                    "element": {
+                        "action_id": "teacher_replace_action",
+                        "type": (
+                            "users_select"
+                            if selected_cat_on_piket == "I have had a replacement"
+                            else "plain_text_input"
+                        ),
+                        **(
+                            {
+                                "initial_value": (
+                                    "I need help finding a replacement"
+                                    if selected_cat_on_piket
+                                    == "I need help finding a replacement"
+                                    else (
+                                        "No Mentor"
+                                        if selected_cat_on_piket == "No Mentor"
+                                        else None
+                                    )
+                                )
+                            }
+                            if selected_cat_on_piket != "I have had a replacement"
+                            else {}
+                        ),
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "Select Teacher Who Replaces",
+                        },
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "grade_block",
+                    "label": {"type": "plain_text", "text": "Grade"},
+                    "element": {
+                        "type": "number_input",
+                        "action_id": "grade_action",
+                        "is_decimal_allowed": False,
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "slot_name_block",
+                    "label": {"type": "plain_text", "text": "Slot Name"},
+                    "element": {
+                        "type": "static_select",
+                        "action_id": "slot_name_action",
+                        "placeholder": {"type": "plain_text", "text": "Select a slot"},
+                        "options": dropdown_options,
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "time_class_block",
+                    "label": {"type": "plain_text", "text": "Class Time"},
+                    "element": {
+                        "type": "plain_text_input",
+                        "action_id": "time_class_action",
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "e.g., 19:15",
+                        },
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "reason_block",
+                    "label": {"type": "plain_text", "text": "Reason"},
+                    "element": {
+                        "type": "plain_text_input",
+                        "multiline": True,
+                        "action_id": "reason_action",
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "direct_lead_block",
+                    "label": {"type": "plain_text", "text": "Direct Lead"},
+                    "element": {
+                        "action_id": "direct_lead_action",
+                        "type": "users_select",
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "Select Your Direct Lead",
+                        },
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "stem_lead_block",
+                    "label": {"type": "plain_text", "text": "STEM Lead"},
+                    "element": {
+                        "action_id": "stem_lead_action",
+                        "type": "users_select",
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "Select Your STEM Lead",
+                        },
+                    },
+                },
+            ],
+            "private_metadata": body["view"]["private_metadata"],
+        },
     )
 
 
-@app.command("/hiops")
-def handle_hiops_command(ack, body, client, say):
+@app.view("slash_input")
+def send_the_user_input(ack, body, client, say, view):
     ack()
-    user_input = body.get("text", "No message provided.")
-    user_id = body["user_id"]
-    reporter_name = body["user_name"]
-    channel_id = "C079J897A49"
+    private_metadata = view["private_metadata"].split("@@")
+    category = private_metadata[1]
+    channel_id = private_metadata[0]
+    view_state = body["view"]["state"]["values"]
+    user_id = body["user"]["id"]
+    reporter_name = body["user"]["username"]
     timestamp_utc = datetime.utcnow()
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
+    init_result = client.chat_postMessage(
+        channel=channel_id, text="Initializing ticket..."
+    )
+    initial_ts = init_result["ts"]
 
-    try:
-        init_result = client.chat_postMessage(
-            channel=channel_id, text="Initializing ticket..."
-        )
+    if category == "Piket":
+        date = view["state"]["values"]["date_block"]["date_picker_action"][
+            "selected_date"
+        ]
+        teacher_requested = view["state"]["values"]["teacher_request_block"][
+            "teacher_request_action"
+        ]["selected_user"]
+        teacher_replace_block = view["state"]["values"]["teacher_replace_block"][
+            "teacher_replace_action"
+        ]
+        teacher_replace = teacher_replace_block.get(
+            "selected_user"
+        ) or teacher_replace_block.get("value")
 
-        ticket_manager.store_user_input(init_result["ts"], user_input)
+        grade = view["state"]["values"]["grade_block"]["grade_action"]["value"]
+        slot_name = view["state"]["values"]["slot_name_block"]["slot_name_action"][
+            "selected_option"
+        ]["value"]
+        time_class = view["state"]["values"]["time_class_block"]["time_class_action"][
+            "value"
+        ]
+        reason = view["state"]["values"]["reason_block"]["reason_action"]["value"]
+        direct_lead = view["state"]["values"]["direct_lead_block"][
+            "direct_lead_action"
+        ]["selected_user"]
+        stem_lead = view["state"]["values"]["stem_lead_block"]["stem_lead_action"][
+            "selected_user"
+        ]
 
-        ticket = [
+        teacher_requested_name = get_real_name(client, teacher_requested)
+        teacher_replaces_name = get_real_name(client, teacher_replace)
+        direct_lead_name = get_real_name(client, direct_lead)
+        stem_lead_name = get_real_name(client, stem_lead)
+
+        piket_channel_id = channel_id
+
+        piket_blocks = [
             {
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"Your ticket number: *live-ops.{init_result['ts']}*",
+                    "text": f"Hi <@{user_id}> :blob-wave:\nYour piket request have been received with this following number: `piket.{initial_ts}`",
                 },
             },
             {
@@ -189,64 +804,167 @@ def handle_hiops_command(ack, body, client, say):
                         "type": "mrkdwn",
                         "text": f"*Your Name:*\n{reporter_name}",
                     },
-                    {"type": "mrkdwn", "text": f"*Reported at:*\n{timestamp_jakarta}"},
                     {
                         "type": "mrkdwn",
-                        "text": f"*Problem:*\n`{truncate_value(user_input)}`",
+                        "text": f"*Requested at:*\n{timestamp_jakarta}",
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Ticket Category:*\n`{category}`",
+                    },
+                ],
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"Please wait ya, we will give the update in this thread.",
+                },
+            },
+        ]
+
+        response_for_user = client.chat_postMessage(
+            channel=user_id, blocks=piket_blocks
+        )
+
+        piket_data = f"{date}@@{teacher_requested}@@{teacher_replace}@@{grade}@@{slot_name}@@{time_class}@@{reason}@@{direct_lead}@@{stem_lead}"
+        ticket_key_for_user = f"{user_id}@@{response_for_user['ts']}@@{timestamp_jakarta}@@{piket_data}@@{category}"
+        ticket_key_for_request_teacher = f"{user_id}@@{response_for_user['ts']}@@{timestamp_jakarta}@@{date}@@{teacher_requested}@@{grade}@@{slot_name}@@{time_class}@@{reason}@@{direct_lead}@@{stem_lead}"
+        teacher_replace_state = (
+            f"<@{teacher_replace}>"
+            if teacher_replace != "No Mentor"
+            and teacher_replace != "I need help finding a replacement"
+            else f"`{teacher_replace}`"
+        )
+
+        piket_message = [
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"Hi @tim_ajar\nWe've got a request from <@{teacher_requested}> with detail as below:",
+                },
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {"type": "mrkdwn", "text": f"*Class Date:*\n`{date}`"},
+                    {"type": "mrkdwn", "text": f"*Time of Class:*\n`{time_class}`"},
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Teacher Requested:*\n<@{teacher_requested}>",
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Teacher Replaces:*\n{teacher_replace_state}",
+                    },
+                    {"type": "mrkdwn", "text": f"*Slot Name:*\n`{grade}-{slot_name}`"},
+                    {"type": "mrkdwn", "text": f"*Reason:*\n```{reason}```"},
+                    {"type": "mrkdwn", "text": f"*Direct Lead:*\n<@{direct_lead}>"},
+                    {"type": "mrkdwn", "text": f"*STEM Lead:*\n<@{stem_lead}>"},
+                ],
+            },
+            {"type": "divider"},
+            {
+                "type": "context",
+                "elements": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Piket Ticket Number:* piket.{initial_ts}",
+                    }
+                ],
+            },
+            {
+                "type": "actions",
+                "elements": [
+                    {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "emoji": True,
+                            "text": "Resolve",
+                        },
+                        "style": "primary",
+                        "value": ticket_key_for_user,
+                        "action_id": "resolve_button",
+                    },
+                    {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "emoji": True,
+                            "text": "Reject",
+                        },
+                        "style": "danger",
+                        "value": ticket_key_for_user,
+                        "action_id": "reject_button",
                     },
                 ],
             },
         ]
 
-        response_for_user = client.chat_postMessage(channel=user_id, blocks=ticket)
-        ticket_key_for_user = f"{user_id}@@{response_for_user['ts']}@@{truncate_value(user_input)}@@{timestamp_jakarta}"
+        if teacher_replace == "I need help finding a replacement":
+            if len(piket_message) > 4:
+                piket_message[4]["elements"].clear()
+                piket_message[4]["elements"] = [
+                    {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "emoji": True,
+                            "text": "Edit",
+                        },
+                        "value": ticket_key_for_request_teacher,
+                        "action_id": "edit_piket_msg",
+                    },
+                    {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "emoji": True,
+                            "text": "Reject",
+                        },
+                        "style": "danger",
+                        "value": ticket_key_for_user,
+                        "action_id": "reject_button",
+                    },
+                ]
 
-        members_result = client.conversations_members(channel=channel_id)
-        if members_result["ok"]:
-            members = members_result["members"]
-        else:
-            members = []
+        result = client.chat_update(
+            channel=piket_channel_id, ts=initial_ts, blocks=piket_message
+        )
+        sheet_manager.init_piket_row(
+            f"piket.{result['ts']}",
+            teacher_requested_name,
+            teacher_replaces_name,
+            grade,
+            slot_name,
+            date,
+            time_class,
+            reason,
+            direct_lead_name,
+            stem_lead_name,
+            timestamp_utc,
+        )
 
-        group_mentions = ["S05RYHJ41C6", "S02R59UL0RH"]
-        members.extend(group_mentions)
-        members.sort()
+    elif category == "Others":
+        issue_description = view_state["issue_name"]["user_issue"]["value"]
+        files = (
+            view_state.get("file_upload_block", {})
+            .get("file_input_action", {})
+            .get("files", [])
+        )
+        try:
+            ticket_manager.store_user_input(initial_ts, issue_description)
+            if files:
+                ticket_manager.store_files(initial_ts, files)
 
-        user_options = [
-            {
-                "text": {
-                    "type": "plain_text",
-                    "text": (
-                        f"<@{member}>"
-                        if not member.startswith("S")
-                        else f"<!subteam^{member}>"
-                    ),
-                },
-                "value": f"{member}@@{user_id}@@{response_for_user['ts']}@@{truncate_value(user_input)}@@{timestamp_jakarta}",
-            }
-            for member in members
-        ]
-
-        if response_for_user["ok"]:
-            ts = response_for_user["ts"]
-            if len(user_input) > 37:
-                client.chat_postMessage(
-                    channel=user_id,
-                    thread_ts=ts,
-                    text=f"For the problem details: `{user_input}`",
-                )
-
-        if init_result["ok"]:
-            ts = init_result["ts"]
-            blocks = [
-                {
-                    "type": "section",
-                    "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
-                },
+            ticket = [
                 {
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"We just received a ticket from <@{user_id}> at `{timestamp_jakarta}`",
+                        "text": f"Your ticket number: *live-ops.{init_result['ts']}*",
                     },
                 },
                 {
@@ -254,92 +972,476 @@ def handle_hiops_command(ack, body, client, say):
                     "fields": [
                         {
                             "type": "mrkdwn",
-                            "text": f"*Ticket Number:*\nlive-ops.{ts}",
+                            "text": f"*Your Name:*\n{reporter_name}",
                         },
                         {
                             "type": "mrkdwn",
-                            "text": f"*Problem:*\n`{truncate_value(user_input)}`",
-                        },
-                    ],
-                },
-                {"type": "divider"},
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "Please pick a person:",
-                    },
-                    "accessory": {
-                        "type": "static_select",
-                        "placeholder": {
-                            "type": "plain_text",
-                            "text": "Select a person...",
-                            "emoji": True,
-                        },
-                        "options": user_options,
-                        "action_id": "user_select_action",
-                    },
-                },
-                {"type": "divider"},
-                {
-                    "type": "actions",
-                    "elements": [
-                        {
-                            "type": "button",
-                            "text": {
-                                "type": "plain_text",
-                                "emoji": True,
-                                "text": "Resolve",
-                            },
-                            "style": "primary",
-                            "value": ticket_key_for_user,
-                            "action_id": "resolve_button",
+                            "text": f"*Reported at:*\n{timestamp_jakarta}",
                         },
                         {
-                            "type": "button",
-                            "text": {
-                                "type": "plain_text",
-                                "emoji": True,
-                                "text": "Reject",
-                            },
-                            "style": "danger",
-                            "value": ticket_key_for_user,
-                            "action_id": "reject_button",
+                            "type": "mrkdwn",
+                            "text": f"*Problem:*\n`{truncate_value(issue_description)}`",
                         },
                     ],
                 },
             ]
 
-        result = client.chat_update(channel=channel_id, ts=ts, blocks=blocks)
-        sheet_manager.init_ticket_row(
-            f"live-ops.{result['ts']}",
-            user_id,
-            body["user_name"],
-            user_input,
-            timestamp_utc,
+            response_for_user = client.chat_postMessage(channel=user_id, blocks=ticket)
+            ticket_key_for_user = f"{user_id}@@{response_for_user['ts']}@@{truncate_value(issue_description)}@@{timestamp_jakarta}@@{category}"
+
+            members_result = client.conversations_members(channel=channel_id)
+            if members_result["ok"]:
+                members = members_result["members"]
+            else:
+                members = []
+
+            group_mentions = ["S05RYHJ41C6", "S02R59UL0RH"]
+            members.extend(group_mentions)
+            members.sort()
+
+            user_options = [
+                {
+                    "text": {
+                        "type": "plain_text",
+                        "text": (
+                            f"<@{member}>"
+                            if not member.startswith("S")
+                            else f"<!subteam^{member}>"
+                        ),
+                    },
+                    "value": f"{member}@@{user_id}@@{response_for_user['ts']}@@{truncate_value(issue_description)}@@{timestamp_jakarta}@@{category}",
+                }
+                for member in members
+            ]
+
+            if response_for_user["ok"]:
+                ts = response_for_user["ts"]
+                if len(issue_description) > 25:
+                    client.chat_postMessage(
+                        channel=user_id,
+                        thread_ts=ts,
+                        text=f"For the problem details: `{issue_description}`",
+                    )
+
+            if init_result["ok"]:
+                ts = initial_ts
+                blocks = [
+                    {
+                        "type": "section",
+                        "text": {"type": "mrkdwn", "text": "Hi Team :wave:"},
+                    },
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": f"We just received a ticket from <@{user_id}> at `{timestamp_jakarta}`",
+                        },
+                    },
+                    {
+                        "type": "section",
+                        "fields": [
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Ticket Number:*\nlive-ops.{ts}",
+                            },
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Problem:*\n`{truncate_value(issue_description)}`",
+                            },
+                        ],
+                    },
+                    {"type": "divider"},
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": "Please pick a person:",
+                        },
+                        "accessory": {
+                            "type": "static_select",
+                            "placeholder": {
+                                "type": "plain_text",
+                                "text": "Select a person...",
+                                "emoji": True,
+                            },
+                            "options": user_options,
+                            "action_id": "user_select_action",
+                        },
+                    },
+                    {"type": "divider"},
+                    {
+                        "type": "actions",
+                        "elements": [
+                            {
+                                "type": "button",
+                                "text": {
+                                    "type": "plain_text",
+                                    "emoji": True,
+                                    "text": "Resolve",
+                                },
+                                "style": "primary",
+                                "value": ticket_key_for_user,
+                                "action_id": "resolve_button",
+                            },
+                            {
+                                "type": "button",
+                                "text": {
+                                    "type": "plain_text",
+                                    "emoji": True,
+                                    "text": "Reject",
+                                },
+                                "style": "danger",
+                                "value": ticket_key_for_user,
+                                "action_id": "reject_button",
+                            },
+                        ],
+                    },
+                ]
+
+            result = client.chat_update(
+                channel=channel_id,
+                ts=ts,
+                blocks=blocks,
+            )
+
+            sheet_manager.init_ticket_row(
+                f"live-ops.{result['ts']}",
+                user_id,
+                reporter_name,
+                issue_description,
+                timestamp_utc,
+            )
+            if result["ok"]:
+                if files:
+                    inserting_imgs_thread(client, channel_id, ts, files)
+                if len(issue_description) > 37:
+                    client.chat_postMessage(
+                        channel=channel_id,
+                        thread_ts=ts,
+                        text=f"For the problem details: `{issue_description}`",
+                    )
+            else:
+                say("Failed to post message")
+
+            reminder_time = timedelta(minutes=3)
+            schedule_reminder(client, channel_id, ts, reminder_time, result["ts"])
+        except Exception as e:
+            logging.error(f"An error occurred: {str(e)}")
+
+
+@app.action("edit_piket_msg")
+def edit_piket_msg(ack, body, client):
+    ack()
+    [
+        reporter_id,
+        report_ts,
+        timestamp,
+        class_date,
+        teacher_requested,
+        grade,
+        slot_name,
+        time_class,
+        reason,
+        direct_lead,
+        stem_lead,
+    ] = body["message"]["blocks"][4]["elements"][0]["value"].split("@@")
+    previous_values = {
+        "date": class_date,
+        "teacher_requested": teacher_requested,
+        "grade": grade,
+        "slot_name": slot_name,
+        "time_class": time_class,
+        "reason": reason,
+        "direct_lead": direct_lead,
+        "stem_lead": stem_lead,
+    }
+    thread_ts = body["container"]["message_ts"]
+    channel_id = body["channel"]["id"]
+    trigger_id = body["trigger_id"]
+
+    modal_blocks = [
+        {
+            "type": "input",
+            "block_id": "date_block",
+            "label": {"type": "plain_text", "text": "Date"},
+            "element": {
+                "type": "datepicker",
+                "action_id": "date_picker_action",
+                "initial_date": previous_values.get("date", None),
+                "placeholder": {"type": "plain_text", "text": "Select a date"},
+            },
+        },
+        {
+            "type": "input",
+            "block_id": "teacher_request_block",
+            "label": {"type": "plain_text", "text": "Teacher who requested"},
+            "element": {
+                "action_id": "teacher_request_action",
+                "type": "users_select",
+                "initial_user": previous_values.get("teacher_requested", None),
+                "placeholder": {
+                    "type": "plain_text",
+                    "text": "Select Teacher Who Requested",
+                },
+            },
+        },
+        {
+            "type": "input",
+            "block_id": "teacher_replace_block",
+            "label": {"type": "plain_text", "text": "Teacher who replaces"},
+            "element": {
+                "action_id": "teacher_replace_action",
+                "type": "users_select",
+                "placeholder": {
+                    "type": "plain_text",
+                    "text": "Select Teacher Who Replaces",
+                },
+            },
+        },
+        {
+            "type": "input",
+            "block_id": "grade_block",
+            "label": {"type": "plain_text", "text": "Grade"},
+            "element": {
+                "type": "number_input",
+                "action_id": "grade_action",
+                "initial_value": str(previous_values.get("grade", "")),
+                "is_decimal_allowed": False,
+            },
+        },
+        {
+            "type": "input",
+            "block_id": "slot_name_block",
+            "label": {"type": "plain_text", "text": "Slot Name"},
+            "element": {
+                "type": "plain_text_input",
+                "action_id": "slot_name_action",
+                "initial_value": previous_values.get("slot_name", ""),
+                "placeholder": {
+                    "type": "plain_text",
+                    "text": "please input grade first and click generate button",
+                },
+            },
+        },
+        {
+            "type": "input",
+            "block_id": "time_class_block",
+            "label": {"type": "plain_text", "text": "Time of Class"},
+            "element": {
+                "type": "plain_text_input",
+                "action_id": "time_class_action",
+                "initial_value": previous_values.get("time_class", ""),
+                "placeholder": {"type": "plain_text", "text": "contoh: 19:15"},
+            },
+        },
+        {
+            "type": "input",
+            "block_id": "reason_block",
+            "label": {"type": "plain_text", "text": "Reason"},
+            "element": {
+                "type": "plain_text_input",
+                "multiline": True,
+                "action_id": "reason_action",
+                "initial_value": previous_values.get("reason", ""),
+            },
+        },
+        {
+            "type": "input",
+            "block_id": "direct_lead_block",
+            "label": {"type": "plain_text", "text": "Direct Lead"},
+            "element": {
+                "action_id": "direct_lead_action",
+                "type": "users_select",
+                "initial_user": previous_values.get("direct_lead", None),
+                "placeholder": {
+                    "type": "plain_text",
+                    "text": "Select Your Direct Lead",
+                },
+            },
+        },
+        {
+            "type": "input",
+            "block_id": "stem_lead_block",
+            "label": {"type": "plain_text", "text": "STEM Lead"},
+            "element": {
+                "action_id": "stem_lead_action",
+                "type": "users_select",
+                "initial_user": previous_values.get("stem_lead", None),
+                "placeholder": {
+                    "type": "plain_text",
+                    "text": "Select Your STEM Lead",
+                },
+            },
+        },
+    ]
+
+    modal = {
+        "type": "modal",
+        "callback_id": "modal_edit_msg",
+        "title": {
+            "type": "plain_text",
+            "text": "Piket!",
+        },
+        "submit": {"type": "plain_text", "text": "Submit"},
+        "close": {"type": "plain_text", "text": "Cancel"},
+        "blocks": modal_blocks,
+        "private_metadata": f"{reporter_id}@@{report_ts}@@{timestamp}@@{thread_ts}@@{channel_id}",
+    }
+
+    try:
+        client.views_open(trigger_id=trigger_id, view=modal)
+    except SlackApiError as e:
+        logging.error(f"Error opening modal: {str(e)}")
+
+
+@app.view("modal_edit_msg")
+def show_editted_piket_msg(ack, body, client, view, logger):
+    ack()
+    try:
+        user_id = body["user"]["id"]
+        user_info = client.users_info(user=user_id)
+        user_name = user_info["user"]["real_name"]
+        [reporter_id, report_ts, timestamp, thread_ts, channel_id] = view[
+            "private_metadata"
+        ].split("@@")
+        date = view["state"]["values"]["date_block"]["date_picker_action"][
+            "selected_date"
+        ]
+        teacher_requested = view["state"]["values"]["teacher_request_block"][
+            "teacher_request_action"
+        ]["selected_user"]
+        teacher_replace = view["state"]["values"]["teacher_replace_block"][
+            "teacher_replace_action"
+        ]["selected_user"]
+        grade = view["state"]["values"]["grade_block"]["grade_action"]["value"]
+        slot_name = view["state"]["values"]["slot_name_block"]["slot_name_action"][
+            "value"
+        ]
+        time_class = view["state"]["values"]["time_class_block"]["time_class_action"][
+            "value"
+        ]
+        reason = view["state"]["values"]["reason_block"]["reason_action"]["value"]
+        direct_lead = view["state"]["values"]["direct_lead_block"][
+            "direct_lead_action"
+        ]["selected_user"]
+        stem_lead = view["state"]["values"]["stem_lead_block"]["stem_lead_action"][
+            "selected_user"
+        ]
+        timestamp_utc = datetime.utcnow()
+        timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
+
+        piket_message = [
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"Hi @tim_ajar\nWe've got a request from <@{teacher_requested}> with detail as below:",
+                },
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {"type": "mrkdwn", "text": f"*Class Date:*\n`{date}`"},
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Time of Class:*\n`{time_class}`",
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Teacher Requested:*\n<@{teacher_requested}>",
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Teacher Replaces:*\n<@{teacher_replace}>",
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Slot Name:*\n`{grade}-{slot_name}`",
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Reason:*\n```{reason}```",
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Direct Lead:*\n<@{direct_lead}>",
+                    },
+                    {"type": "mrkdwn", "text": f"*STEM Lead:*\n<@{stem_lead}>"},
+                ],
+            },
+            {"type": "divider"},
+            {
+                "type": "context",
+                "elements": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Piket Ticket Number:* piket.{report_ts}",
+                    }
+                ],
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f":white_check_mark: <@{user_id}> approved the request",
+                },
+            },
+        ]
+
+        response = client.chat_update(
+            channel=channel_id, ts=thread_ts, blocks=piket_message
         )
-        if result["ok"]:
-            if len(user_input) > 37:
-                client.chat_postMessage(
-                    channel=channel_id,
-                    thread_ts=ts,
-                    text=f"For the problem details: `{user_input}`",
-                )
-        else:
-            say("Failed to post message")
+        if response["ok"]:
+            client.chat_postMessage(
+                channel=reporter_id,
+                thread_ts=report_ts,
+                text=f"Your request approved. Your class on `{date}` at `{time_class}`, the teacher replacement is <@{teacher_replace}>",
+            )
+
+            client.chat_postMessage(channel=piket_reflected_cn, blocks=piket_message)
+
+            client.chat_postMessage(
+                channel=channel_id,
+                thread_ts=thread_ts,
+                text=f"This request has been approved at `{timestamp_jakarta}` by <@{user_id}>",
+            )
+
+            sheet_manager.update_piket(
+                f"piket.{thread_ts}",
+                {
+                    "status": "Approved",
+                    "approved_by": user_name,
+                    "teacher_replaces": get_real_name(client, teacher_replace),
+                    "approved_at": timestamp_utc,
+                    "teacher_requested": get_real_name(client, teacher_requested),
+                    "grade": str(grade),
+                    "slot_name": slot_name,
+                    "class_date": str(date),
+                    "class_time": str(time_class),
+                    "reason": reason,
+                    "direct_lead": get_real_name(client, direct_lead),
+                    "stem_lead": get_real_name(client, stem_lead),
+                    "edited_at": timestamp_utc,
+                },
+            )
+
     except Exception as e:
-        logging.error(f"An error occurred: {str(e)}")
+        logger.error(f"Error handling modal submission: {str(e)}")
 
 
 @app.action("user_select_action")
 def handle_user_selection(ack, body, client):
     ack()
-    selected_user_data = body["actions"][0]["selected_option"]["value"].split("@@")
-    selected_user = selected_user_data[0]
-    user_who_requested = selected_user_data[1]
-    response_ts = selected_user_data[2]
-    user_input = selected_user_data[3]
-    reported_at = selected_user_data[4]
+    person_who_assigns = body["user"]["id"]
+    person_who_assigns_name = get_real_name(client, person_who_assigns)
+    [
+        selected_user,
+        user_who_requested,
+        response_ts,
+        user_input,
+        reported_at,
+        ticket_category,
+    ] = body["actions"][0]["selected_option"]["value"].split("@@")
     channel_id = body["channel"]["id"]
     thread_ts = body["container"]["message_ts"]
     categories = [
@@ -347,7 +1449,6 @@ def handle_user_selection(ack, body, client):
         "Cuti",
         "Data related",
         "Observasi",
-        "Piket",
         "Polling",
         "Recording Video",
         "Zoom",
@@ -355,8 +1456,7 @@ def handle_user_selection(ack, body, client):
     ]
     timestamp_utc = datetime.utcnow()
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
-    ticket_key_for_user = f"{user_who_requested}@@{response_ts}@@{truncate_value(user_input)}@@{reported_at}@@{selected_user}"
-
+    ticket_key_for_user = f"{user_who_requested}@@{response_ts}@@{truncate_value(user_input)}@@{reported_at}@@{selected_user}@@{ticket_category}"
     category_options = [
         {
             "text": {"type": "plain_text", "text": category},
@@ -364,6 +1464,9 @@ def handle_user_selection(ack, body, client):
         }
         for category in categories
     ]
+
+    files = ticket_manager.get_files(thread_ts)
+    ticket_manager.update_ticket_status(thread_ts, "assigned")
 
     if selected_user in ["S05RYHJ41C6", "S02R59UL0RH"]:
         user_info = client.users_info(user=body["user"]["id"])
@@ -380,13 +1483,17 @@ def handle_user_selection(ack, body, client):
         )
         sheet_manager.update_ticket(
             f"live-ops.{thread_ts}",
-            {"handed_over_by": selected_user_name, "handed_over_at": timestamp_utc},
+            {
+                "handed_over_by": selected_user_name,
+                "handed_over_at": timestamp_utc,
+                "assigned_by": person_who_assigns_name,
+            },
         )
         if handover_response["ok"]:
             updated_blocks = [
                 {
                     "type": "section",
-                    "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
+                    "text": {"type": "mrkdwn", "text": "Hi Team :wave:"},
                 },
                 {
                     "type": "section",
@@ -467,6 +1574,9 @@ def handle_user_selection(ack, body, client):
             )
             if reflected_post["ok"]:
                 ts = reflected_post["ts"]
+                if files:
+                    inserting_imgs_thread(client, reflected_cn, ts, files)
+
                 full_user_input = ticket_manager.get_user_input(thread_ts)
                 client.chat_postMessage(
                     channel=reflected_cn,
@@ -485,19 +1595,23 @@ def handle_user_selection(ack, body, client):
         response = client.chat_postMessage(
             channel=channel_id,
             thread_ts=thread_ts,
-            text=f"<@{selected_user}> is going to resolve this issue, starting from `{timestamp_jakarta}`.",
+            text=f"<@{selected_user}> is on the case and will tackle this issue starting at `{timestamp_jakarta}`. (Assigned by: <@{person_who_assigns}>)",
         )
 
         sheet_manager.update_ticket(
             f"live-ops.{thread_ts}",
-            {"handled_by": selected_user_name, "handled_at": timestamp_utc},
+            {
+                "handled_by": selected_user_name,
+                "handled_at": timestamp_utc,
+                "assigned_by": person_who_assigns_name,
+            },
         )
 
         if response["ok"]:
             updated_blocks = [
                 {
                     "type": "section",
-                    "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
+                    "text": {"type": "mrkdwn", "text": "Hi Team :wave:"},
                 },
                 {
                     "type": "section",
@@ -623,6 +1737,8 @@ def handle_user_selection(ack, body, client):
             if reflected_post["ok"]:
                 reflected_ts = reflected_post["ts"]
                 ticket_manager.store_reflected_ts(thread_ts, reflected_ts)
+                if files:
+                    inserting_imgs_thread(client, reflected_cn, reflected_ts, files)
                 full_user_input = ticket_manager.get_user_input(thread_ts)
                 if len(full_user_input) > 37:
                     client.chat_postMessage(
@@ -651,16 +1767,18 @@ def handle_user_selection(ack, body, client):
 def handle_category_selection(ack, body, client):
     ack()
     channel_id = body["channel"]["id"]
-    selected_category = body["actions"][0]["selected_option"]["value"].split("@@")
-    selected_category_name = selected_category[0]
-    user_who_requested = selected_category[1]
-    response_ts = selected_category[2]
-    user_input = selected_category[3]
-    reported_at = selected_category[4]
-    selected_user = selected_category[5]
+    [
+        selected_category_name,
+        user_who_requested,
+        response_ts,
+        user_input,
+        reported_at,
+        selected_user,
+        ticket_category,
+    ] = body["actions"][0]["selected_option"]["value"].split("@@")
     thread_ts = body["container"]["message_ts"]
     reflected_ts = ticket_manager.get_reflected_ts(thread_ts)
-    ticket_key_for_user = f"{user_who_requested}@@{response_ts}@@{truncate_value(user_input)}@@{reported_at}@@{selected_user}@@{selected_category_name}"
+    ticket_key_for_user = f"{user_who_requested}@@{response_ts}@@{truncate_value(user_input)}@@{reported_at}@@{selected_user}@@{selected_category_name}@@{ticket_category}"
 
     if selected_category_name.lower() == "others":
         trigger_id = body["trigger_id"]
@@ -682,7 +1800,7 @@ def handle_category_selection(ack, body, client):
                     },
                 }
             ],
-            "private_metadata": f"{thread_ts}@@{user_who_requested}@@{reported_at}@@{truncate_value(user_input)}@@{selected_user}@@{channel_id}@@{response_ts}",
+            "private_metadata": f"{thread_ts}@@{user_who_requested}@@{reported_at}@@{truncate_value(user_input)}@@{selected_user}@@{channel_id}@@{response_ts}@@{ticket_category}",
             "submit": {"type": "plain_text", "text": "Submit"},
         }
         client.views_open(trigger_id=trigger_id, view=modal_view)
@@ -690,7 +1808,7 @@ def handle_category_selection(ack, body, client):
         updated_blocks = [
             {
                 "type": "section",
-                "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
+                "text": {"type": "mrkdwn", "text": "Hi Team :wave:"},
             },
             {
                 "type": "section",
@@ -796,22 +1914,24 @@ def handle_custom_category_modal_submission(ack, body, client, view, logger):
     custom_category = view["state"]["values"]["custom_category_block"][
         "custom_category_input"
     ]["value"]
-    values = view["private_metadata"].split("@@")
-    thread_ts = values[0]
-    user_who_requested = values[1]
-    reported_at = values[2]
-    user_input = values[3]
-    selected_user = values[4]
-    channel_id = values[5]
-    response_ts = values[6]
+    [
+        thread_ts,
+        user_who_requested,
+        reported_at,
+        user_input,
+        selected_user,
+        channel_id,
+        response_ts,
+        ticket_category,
+    ] = view["private_metadata"].split("@@")
     reflected_ts = ticket_manager.get_reflected_ts(thread_ts)
-    ticket_key_for_user = f"{user_who_requested}@@{response_ts}@@{truncate_value(user_input)}@@{reported_at}@@{selected_user}@@{custom_category}"
+    ticket_key_for_user = f"{user_who_requested}@@{response_ts}@@{truncate_value(user_input)}@@{reported_at}@@{selected_user}@@{custom_category}@@{ticket_category}"
 
     try:
         updated_blocks = [
             {
                 "type": "section",
-                "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
+                "text": {"type": "mrkdwn", "text": "Hi Team :wave:"},
             },
             {
                 "type": "section",
@@ -917,142 +2037,256 @@ def handle_custom_category_modal_submission(ack, body, client, view, logger):
 
 
 @app.action("resolve_button")
-def handle_resolve_button(ack, body, client):
+def resolve_button(ack, body, client, logger):
     ack()
-    user_id = body["user"]["id"]
-    user_info = client.users_info(user=user_id)
-    user_name = user_info["user"]["real_name"]
-    channel_id = body["channel"]["id"]
-    thread_ts = body["container"]["message_ts"]
-    reflected_ts = ticket_manager.get_reflected_ts(thread_ts)
-    elements = body["message"]["blocks"][4]["elements"]
-    resolve_button_value = elements[0]["value"].split("@@")
-    user_who_requested_ticket_id = resolve_button_value[0]
-    user_message_ts = resolve_button_value[1]
-    user_input = resolve_button_value[2]
-    ticket_reported_at = resolve_button_value[3]
-    selected_user = resolve_button_value[4]
-    selected_category = resolve_button_value[5]
-    timestamp_utc = datetime.utcnow()
-    timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
-    response = client.chat_update(
-        channel=channel_id,
-        ts=thread_ts,
-        text=None,
-        blocks=[
-            {
-                "type": "section",
-                "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"We just received a message from <@{user_who_requested_ticket_id}> at `{ticket_reported_at}`",
+    try:
+        user_id = body["user"]["id"]
+        user_info = client.users_info(user=user_id)
+        user_name = user_info["user"]["real_name"]
+        channel_id = body["channel"]["id"]
+        thread_ts = body["container"]["message_ts"]
+        reflected_ts = ticket_manager.get_reflected_ts(thread_ts)
+        elements = body["message"]["blocks"][4]["elements"]
+        resolve_button_value = elements[0]["value"].split("@@")
+        category_ticket = resolve_button_value[-1]
+        timestamp_utc = datetime.utcnow()
+        timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
+
+        if category_ticket == "Piket":
+            [
+                reporter_piket,
+                response_ts,
+                timestamp,
+                date,
+                teacher_requested,
+                teacher_replace,
+                grade,
+                slot_name,
+                time_class,
+                reason,
+                direct_lead,
+                stem_lead,
+            ] = resolve_button_value[:-1]
+            ticket_manager.update_ticket_status(thread_ts, "assigned")
+            teacher_replace_state = (
+                f"<@{teacher_replace}>"
+                if teacher_replace != "No Mentor"
+                and teacher_replace != "I need help finding a replacement"
+                else f"`{teacher_replace}`"
+            )
+            piket_message = [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"Hi @tim_ajar\nWe've got a request from <@{teacher_requested}> with detail as below:",
+                    },
                 },
-            },
-            {
-                "type": "section",
-                "fields": [
-                    {
+                {
+                    "type": "section",
+                    "fields": [
+                        {"type": "mrkdwn", "text": f"*Class Date:*\n`{date}`"},
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Time of Class:*\n`{time_class}`",
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Teacher Requested:*\n<@{teacher_requested}>",
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Teacher Replaces:*\n{teacher_replace_state}",
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Slot Name:*\n`{grade}-{slot_name}`",
+                        },
+                        {"type": "mrkdwn", "text": f"*Reason:*\n```{reason}```"},
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Direct Lead:*\n<@{direct_lead}>",
+                        },
+                        {"type": "mrkdwn", "text": f"*STEM Lead:*\n<@{stem_lead}>"},
+                    ],
+                },
+                {"type": "divider"},
+                {
+                    "type": "context",
+                    "elements": [
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Piket Ticket Number:* piket.{thread_ts}",
+                        }
+                    ],
+                },
+                {
+                    "type": "section",
+                    "text": {
                         "type": "mrkdwn",
-                        "text": f"*Ticket Number:*\nlive.ops.{thread_ts}",
+                        "text": f":white_check_mark: <@{user_id}> approved the request",
+                    },
+                },
+            ]
+            response = client.chat_update(
+                channel=channel_id, ts=thread_ts, text=None, blocks=piket_message
+            )
+            if response["ok"]:
+                client.chat_postMessage(
+                    channel=channel_id,
+                    thread_ts=thread_ts,
+                    text=f"This request has been approved at `{timestamp_jakarta}` by <@{user_id}>",
+                )
+
+                client.chat_postMessage(
+                    channel=piket_reflected_cn,
+                    blocks=piket_message,
+                )
+
+                client.chat_postMessage(
+                    channel=reporter_piket,
+                    thread_ts=response_ts,
+                    text=f"<@{reporter_piket}> your piket request has been approved at `{timestamp_jakarta}`. Thank you :blob-bear-dance:",
+                )
+
+            sheet_manager.update_piket(
+                f"piket.{thread_ts}",
+                {
+                    "status": "Approved",
+                    "approved_by": user_name,
+                    "approved_at": timestamp_utc,
+                },
+            )
+        elif category_ticket == "Others":
+            user_who_requested_ticket_id = resolve_button_value[0]
+            user_message_ts = resolve_button_value[1]
+            user_input = resolve_button_value[2]
+            ticket_reported_at = resolve_button_value[3]
+            selected_user = resolve_button_value[4]
+            selected_category = resolve_button_value[5]
+            category_ticket = resolve_button_value[6]
+            response = client.chat_update(
+                channel=channel_id,
+                ts=thread_ts,
+                text=None,
+                blocks=[
+                    {
+                        "type": "section",
+                        "text": {"type": "mrkdwn", "text": "Hi Team :wave:"},
                     },
                     {
-                        "type": "mrkdwn",
-                        "text": f"*Problem:*\n`{truncate_value(user_input)}`",
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": f"We just received a message from <@{user_who_requested_ticket_id}> at `{ticket_reported_at}`",
+                        },
                     },
                     {
-                        "type": "mrkdwn",
-                        "text": f"*Picked up by:*\n<@{selected_user}>",
+                        "type": "section",
+                        "fields": [
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Ticket Number:*\nlive.ops.{thread_ts}",
+                            },
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Problem:*\n`{truncate_value(user_input)}`",
+                            },
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Picked up by:*\n<@{selected_user}>",
+                            },
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Category:*\n{selected_category}",
+                            },
+                        ],
                     },
+                    {"type": "divider"},
                     {
-                        "type": "mrkdwn",
-                        "text": f"*Category:*\n{selected_category}",
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": f":white_check_mark: <@{user_id}> resolved this issue",
+                        },
                     },
                 ],
-            },
-            {"type": "divider"},
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f":white_check_mark: <@{user_id}> resolved this issue",
-                },
-            },
-        ],
-    )
-    sheet_manager.update_ticket(
-        f"live-ops.{thread_ts}",
-        {"resolved_by": user_name, "resolved_at": timestamp_utc},
-    )
+            )
+            sheet_manager.update_ticket(
+                f"live-ops.{thread_ts}",
+                {"resolved_by": user_name, "resolved_at": timestamp_utc},
+            )
 
-    if response["ok"]:
-        client.chat_postMessage(
-            channel=channel_id,
-            thread_ts=thread_ts,
-            text=f"<@{user_id}> has resolved the issue at `{timestamp_jakarta}`.",
-        )
+            if response["ok"]:
+                client.chat_postMessage(
+                    channel=channel_id,
+                    thread_ts=thread_ts,
+                    text=f"<@{user_id}> has resolved the issue at `{timestamp_jakarta}`.",
+                )
 
-        reflected_msg = [
-            {
-                "type": "section",
-                "text": {"type": "mrkdwn", "text": "Hi Team :wave:"},
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"We just received an issue from <@{user_who_requested_ticket_id}> at `{ticket_reported_at}`",
-                },
-            },
-            {
-                "type": "section",
-                "fields": [
+                reflected_msg = [
                     {
-                        "type": "mrkdwn",
-                        "text": f"*Ticket Number:*\nlive-ops.{thread_ts}",
+                        "type": "section",
+                        "text": {"type": "mrkdwn", "text": "Hi Team :wave:"},
                     },
                     {
-                        "type": "mrkdwn",
-                        "text": f"*Problem:*\n`{truncate_value(user_input)}`",
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": f"We just received an issue from <@{user_who_requested_ticket_id}> at `{ticket_reported_at}`",
+                        },
                     },
                     {
-                        "type": "mrkdwn",
-                        "text": f"*Current Progress:*\n:white_check_mark: Resolved",
+                        "type": "section",
+                        "fields": [
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Ticket Number:*\nlive-ops.{thread_ts}",
+                            },
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Problem:*\n`{truncate_value(user_input)}`",
+                            },
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Current Progress:*\n:white_check_mark: Resolved",
+                            },
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Issue Category:*\n{selected_category}",
+                            },
+                        ],
                     },
+                    {"type": "divider"},
                     {
-                        "type": "mrkdwn",
-                        "text": f"*Issue Category:*\n{selected_category}",
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": "Please pay attention, if this issue related to you :point_up_2:",
+                        },
                     },
-                ],
-            },
-            {"type": "divider"},
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "Please pay attention, if this issue related to you :point_up_2:",
-                },
-            },
-        ]
+                ]
 
-        client.chat_update(channel=reflected_cn, ts=reflected_ts, blocks=reflected_msg)
+                client.chat_update(
+                    channel=reflected_cn, ts=reflected_ts, blocks=reflected_msg
+                )
 
-        client.chat_postMessage(
-            channel=reflected_cn,
-            thread_ts=reflected_ts,
-            text=f"This issue has been resolved at `{timestamp_jakarta}` by <@{user_id}>",
-        )
+                client.chat_postMessage(
+                    channel=reflected_cn,
+                    thread_ts=reflected_ts,
+                    text=f"This issue has been resolved at `{timestamp_jakarta}` by <@{user_id}>",
+                )
 
-        client.chat_postMessage(
-            channel=user_who_requested_ticket_id,
-            thread_ts=user_message_ts,
-            text=f"<@{user_who_requested_ticket_id}> your issue has been resolved at `{timestamp_jakarta}`. Thank you :blob-bear-dance:",
-        )
+                client.chat_postMessage(
+                    channel=user_who_requested_ticket_id,
+                    thread_ts=user_message_ts,
+                    text=f"<@{user_who_requested_ticket_id}> your issue has been resolved at `{timestamp_jakarta}`. Thank you :blob-bear-dance:",
+                )
 
-    else:
-        logging.error(f"Failed to post message: {response['error']}")
+            else:
+                logging.error(f"Failed to post message: {response['error']}")
+    except Exception as e:
+        logger.error(f"Error handling modal submission: {str(e)}")
 
 
 @app.action("reject_button")
@@ -1063,12 +2297,18 @@ def handle_reject_button(ack, body, client):
     channel_id = body["channel"]["id"]
     user_info = client.users_info(user=body["user"]["id"])
     user_name = user_info["user"]["real_name"]
-    elements = body["message"]["blocks"][6]["elements"]
-    reject_button_value = elements[0]["value"]
+    conditional_index = [6, 0] if len(body["message"]["blocks"]) > 5 else [4, 1]
+    elements = body["message"]["blocks"][conditional_index[0]]["elements"]
+    reject_button_value = elements[conditional_index[1]]["value"]
+    ticket_category = "Piket" if conditional_index[0] == 4 else "Others"
     timestamp_utc = datetime.utcnow()
     sheet_manager.update_ticket(
         f"live-ops.{message_ts}",
         {"rejected_by": user_name, "rejected_at": timestamp_utc},
+    )
+    sheet_manager.update_piket(
+        f"piket.{message_ts}",
+        {"status": "Rejected", "rejected_by": user_name, "rejected_at": timestamp_utc},
     )
     modal = {
         "type": "modal",
@@ -1086,9 +2326,9 @@ def handle_reject_button(ack, body, client):
                     "action_id": "reason_input",
                     "multiline": True,
                 },
-            }
+            },
         ],
-        "private_metadata": f"{channel_id}@@{message_ts}@@{reject_button_value} ",
+        "private_metadata": f"{channel_id}@@{message_ts}@@{reject_button_value}@@{ticket_category}",
     }
 
     try:
@@ -1102,38 +2342,79 @@ def handle_modal_submission(ack, body, client, view, logger):
     ack()
     try:
         user_id = body["user"]["id"]
-        private_metadata = view["private_metadata"].split("@@")
-        channel_id = private_metadata[0]
-        message_ts = private_metadata[1]
-        user_requested_id = private_metadata[2]
-        user_message_ts = private_metadata[3]
-        user_input = private_metadata[4]
-        ticket_reported_at = private_metadata[5]
+        [channel_id, message_ts, *reject_button_value] = view["private_metadata"].split(
+            "@@"
+        )
         reflected_ts = ticket_manager.get_reflected_ts(message_ts)
         reason = view["state"]["values"]["reject_reason"]["reason_input"]["value"]
         timestamp_utc = datetime.utcnow()
         timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
+        ticket_category = reject_button_value[-1]
+        ticket_manager.update_ticket_status(message_ts, "assigned")
 
-        response = client.chat_postMessage(
-            channel=channel_id,
-            thread_ts=message_ts,
-            text=f"<@{user_id}> has rejected the issue at `{timestamp_jakarta}` due to: `{reason}`.",
-        )
-        if response["ok"]:
-            client.chat_update(
+        if ticket_category == "Others":
+            [
+                user_requested_id,
+                user_message_ts,
+                user_input,
+                ticket_reported_at,
+            ] = reject_button_value[0:4]
+            response = client.chat_postMessage(
                 channel=channel_id,
-                ts=message_ts,
-                text=None,
-                blocks=[
+                thread_ts=message_ts,
+                text=f"<@{user_id}> has rejected the issue at `{timestamp_jakarta}` due to: `{reason}`.",
+            )
+            if response["ok"]:
+                client.chat_update(
+                    channel=channel_id,
+                    ts=message_ts,
+                    text=None,
+                    blocks=[
+                        {
+                            "type": "section",
+                            "text": {"type": "mrkdwn", "text": "Hi Team :wave:"},
+                        },
+                        {
+                            "type": "section",
+                            "text": {
+                                "type": "mrkdwn",
+                                "text": f"We just received a message from <@{user_requested_id}> at `{ticket_reported_at}`",
+                            },
+                        },
+                        {
+                            "type": "section",
+                            "fields": [
+                                {
+                                    "type": "mrkdwn",
+                                    "text": f"*Ticket Number:*\nlive.ops.{message_ts}",
+                                },
+                                {
+                                    "type": "mrkdwn",
+                                    "text": f"*Problem:*\n`{truncate_value(user_input)}`",
+                                },
+                            ],
+                        },
+                        {"type": "divider"},
+                        {
+                            "type": "section",
+                            "text": {
+                                "type": "mrkdwn",
+                                "text": f":x: This issue was rejected by <@{user_id}>. Please ignore this",
+                            },
+                        },
+                    ],
+                )
+
+                reflected_msg = [
                     {
                         "type": "section",
-                        "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
+                        "text": {"type": "mrkdwn", "text": "Hi Team :wave:"},
                     },
                     {
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": f"We just received a message from <@{user_requested_id}> at `{ticket_reported_at}`",
+                            "text": f"We just received an issue from <@{user_requested_id}> at `{ticket_reported_at}`",
                         },
                     },
                     {
@@ -1141,74 +2422,134 @@ def handle_modal_submission(ack, body, client, view, logger):
                         "fields": [
                             {
                                 "type": "mrkdwn",
-                                "text": f"*Ticket Number:*\nlive.ops.{message_ts}",
+                                "text": f"*Ticket Number:*\nlive-ops.{message_ts}",
                             },
                             {
                                 "type": "mrkdwn",
                                 "text": f"*Problem:*\n`{truncate_value(user_input)}`",
                             },
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Current Progress:*\n:x: Issue Rejected",
+                            },
                         ],
                     },
-                    {"type": "divider"},
+                ]
+
+                client.chat_postMessage(
+                    channel=user_requested_id,
+                    thread_ts=user_message_ts,
+                    text=f"We are sorry :smiling_face_with_tear: your issue was rejected due to `{reason}` at `{timestamp_jakarta}`. Let's put another question.",
+                )
+
+                client.chat_update(
+                    channel=reflected_cn, ts=reflected_ts, blocks=reflected_msg
+                )
+
+                client.chat_postMessage(
+                    channel=reflected_cn,
+                    thread_ts=reflected_ts,
+                    text=f"We are sorry, this issue was rejected by <@{user_id}> at `{timestamp_jakarta}` due to `{reason}`.",
+                )
+
+            else:
+                logger.error("No value information available for this channel.")
+        elif ticket_category == "Piket":
+            [
+                reporter_piket,
+                response_ts,
+                timestamp,
+                date,
+                teacher_requested,
+                teacher_replace,
+                grade,
+                slot_name,
+                time_class,
+                reason_on_piket_replacement,
+                direct_lead,
+                stem_lead,
+            ] = reject_button_value[:-2]
+            response = client.chat_postMessage(
+                channel=channel_id,
+                thread_ts=message_ts,
+                text=f"<@{user_id}> has rejected the request at `{timestamp_jakarta}` due to: `{reason}`.",
+            )
+            teacher_replace_state = (
+                f"<@{teacher_replace}>"
+                if teacher_replace != "No Mentor"
+                and teacher_replace != "I need help finding a replacement"
+                else f"`{teacher_replace}`"
+            )
+            if response["ok"]:
+                piket_message = [
                     {
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": f":x: This issue was rejected by <@{user_id}>. Please ignore this",
+                            "text": f"Hi @tim_ajar\nWe've got a request from <@{teacher_requested}> with detail as below:",
                         },
                     },
-                ],
-            )
-
-            reflected_msg = [
-                {
-                    "type": "section",
-                    "text": {"type": "mrkdwn", "text": "Hi Team :wave:"},
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": f"We just received an issue from <@{user_requested_id}> at `{ticket_reported_at}`",
+                    {
+                        "type": "section",
+                        "fields": [
+                            {"type": "mrkdwn", "text": f"*Class Date:*\n`{date}`"},
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Time of Class:*\n`{time_class}`",
+                            },
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Teacher Requested:*\n<@{teacher_requested}>",
+                            },
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Teacher Replaces:*\n{teacher_replace_state}",
+                            },
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Slot Name:*\n`{grade}-{slot_name}`",
+                            },
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Reason:*\n```{reason_on_piket_replacement}```",
+                            },
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Direct Lead:*\n<@{direct_lead}>",
+                            },
+                            {"type": "mrkdwn", "text": f"*STEM Lead:*\n<@{stem_lead}>"},
+                        ],
                     },
-                },
-                {
-                    "type": "section",
-                    "fields": [
-                        {
+                    {"type": "divider"},
+                    {
+                        "type": "context",
+                        "elements": [
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Piket Ticket Number:* piket.{message_ts}",
+                            }
+                        ],
+                    },
+                    {
+                        "type": "section",
+                        "text": {
                             "type": "mrkdwn",
-                            "text": f"*Ticket Number:*\nlive-ops.{message_ts}",
+                            "text": f":x: This request was rejected by <@{user_id}>. Please ignore this",
                         },
-                        {
-                            "type": "mrkdwn",
-                            "text": f"*Problem:*\n`{truncate_value(user_input)}`",
-                        },
-                        {
-                            "type": "mrkdwn",
-                            "text": f"*Current Progress:*\n:x: Issue Rejected",
-                        },
-                    ],
-                },
-            ]
+                    },
+                ]
+                client.chat_update(
+                    channel=channel_id, ts=message_ts, text=None, blocks=piket_message
+                )
 
-            client.chat_postMessage(
-                channel=user_requested_id,
-                thread_ts=user_message_ts,
-                text=f"We are sorry :smiling_face_with_tear: your issue was rejected due to `{reason}` at {timestamp_jakarta}. Let's put another question.",
-            )
+                client.chat_postMessage(
+                    channel=reporter_piket,
+                    thread_ts=response_ts,
+                    text=f"Uh-oh! :smiling_face_with_tear: Your request got the boot due to `{reason}` at `{timestamp_jakarta}`. But hey, no worries! You can always throw another piket request our way soon!",
+                )
 
-            client.chat_update(
-                channel=reflected_cn, ts=reflected_ts, blocks=reflected_msg
-            )
-
-            client.chat_postMessage(
-                channel=reflected_cn,
-                thread_ts=reflected_ts,
-                text=f"We are sorry, this issue was rejected by <@{user_id}> at `{timestamp_jakarta}` due to `{reason}`.",
-            )
-
-        else:
-            logger.error("No value information available for this channel.")
+            else:
+                logger.error("No value information available for this channel.")
     except Exception as e:
         logger.error(f"Error handling modal submission: {str(e)}")
 
