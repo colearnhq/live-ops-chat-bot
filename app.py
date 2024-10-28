@@ -995,7 +995,7 @@ def send_the_user_input(ack, body, client, say, view):
             else:
                 members = []
 
-            group_mentions = ["S05RYHJ41C6", "S02R59UL0RH"]
+            group_mentions = ["S05RYHJ41C6", "S02R59UL0RH", "U05LPMNQBBK"]
             members.extend(group_mentions)
             members.sort()
 
