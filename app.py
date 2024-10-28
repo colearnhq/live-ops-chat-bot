@@ -1468,18 +1468,23 @@ def handle_user_selection(ack, body, client):
     files = ticket_manager.get_files(thread_ts)
     ticket_manager.update_ticket_status(thread_ts, "assigned")
 
-    if selected_user in ["S05RYHJ41C6", "S02R59UL0RH"]:
+    if selected_user in ["S05RYHJ41C6", "S02R59UL0RH", "U05LPMNQBBK"]:
         user_info = client.users_info(user=body["user"]["id"])
         selected_user_name = user_info["user"]["real_name"]
+        other_div_mention = (
+            f"<@{selected_user}>"
+            if selected_user == "U05LPMNQBBK"
+            else f"<!subteam^{selected_user}>"
+        )
         client.chat_postMessage(
             channel=user_who_requested,
             thread_ts=response_ts,
-            text=f"Sorry <@{user_who_requested}>, your issue isn't within Live Ops's domain. But don't worry, <!subteam^{selected_user}> will take care of it soon.",
+            text=f"Sorry <@{user_who_requested}>, your issue isn't within Live Ops's domain. But don't worry, {other_div_mention} will take care of it soon.",
         )
         handover_response = client.chat_postMessage(
             channel=channel_id,
             thread_ts=thread_ts,
-            text=f"We've officially handed off this hot potato to <!subteam^{selected_user}>. Now, let's dive back into our awesome work!",
+            text=f"We've officially handed off this hot potato to {other_div_mention}. Now, let's dive back into our awesome work!",
         )
         sheet_manager.update_ticket(
             f"live-ops.{thread_ts}",
@@ -1520,7 +1525,7 @@ def handle_user_selection(ack, body, client):
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f":handshake: Handover to <!subteam^{selected_user}>",
+                        "text": f":handshake: Handover to {other_div_mention}",
                     },
                 },
             ]
@@ -1550,7 +1555,7 @@ def handle_user_selection(ack, body, client):
                         },
                         {
                             "type": "mrkdwn",
-                            "text": f"*Current Progress:*\n:handshake: Handover to <!subteam^{selected_user}>",
+                            "text": f"*Current Progress:*\n:handshake: Handover to {other_div_mention}",
                         },
                     ],
                 },
@@ -1581,7 +1586,7 @@ def handle_user_selection(ack, body, client):
                 client.chat_postMessage(
                     channel=reflected_cn,
                     thread_ts=ts,
-                    text=f"Hi <!subteam^{selected_user}>,\nCould you lend a hand to <@{user_who_requested}> with the following problem: `{full_user_input}`? \nMuch appreciated!",
+                    text=f"Hi {other_div_mention},\nCould you lend a hand to <@{user_who_requested}> with the following problem: `{full_user_input}`? \nMuch appreciated!",
                 )
     else:
         user_info = client.users_info(user=selected_user)
@@ -2469,10 +2474,11 @@ def handle_modal_submission(ack, body, client, view, logger):
                 direct_lead,
                 stem_lead,
             ] = reject_button_value[:-2]
+            general_rejection_text = f"<@{user_id}> has rejected the request at `{timestamp_jakarta}` due to: `{reason}`."
             response = client.chat_postMessage(
                 channel=channel_id,
                 thread_ts=message_ts,
-                text=f"<@{user_id}> has rejected the request at `{timestamp_jakarta}` due to: `{reason}`.",
+                text=general_rejection_text,
             )
             teacher_replace_state = (
                 f"<@{teacher_replace}>"
@@ -2547,6 +2553,18 @@ def handle_modal_submission(ack, body, client, view, logger):
                     thread_ts=response_ts,
                     text=f"Uh-oh! :smiling_face_with_tear: Your request got the boot due to `{reason}` at `{timestamp_jakarta}`. But hey, no worries! You can always throw another piket request our way soon!",
                 )
+
+                ref_post = client.chat_postMessage(
+                    channel=reflected_cn, blocks=piket_message
+                )
+
+                if ref_post["ok"]:
+                    ref_ts = ref_post["ts"]
+                    client.chat_postMessage(
+                        channel=reflected_cn,
+                        thread_ts=ref_ts,
+                        text=general_rejection_text,
+                    )
 
             else:
                 logger.error("No value information available for this channel.")
