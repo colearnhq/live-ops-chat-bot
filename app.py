@@ -2470,7 +2470,7 @@ def show_reject_modal(ack, body, client, view, logger):
                 direct_lead,
                 stem_lead,
             ] = reject_button_value[:-2]
-            general_rejection_text = f"<@{user_id} has rejected the request at `{timestamp_jakarta}` due to: `{reason}`."
+            general_rejection_text = f"<@{user_id}> has rejected the request at `{timestamp_jakarta}` due to: `{reason}`."
             response = client.chat_postMessage(
                 channel=channel_id,
                 thread_ts=message_ts,
