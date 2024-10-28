@@ -1467,18 +1467,23 @@ def select_user(ack, body, client):
     print(f"check the files {files} and ts {thread_ts} on select_user")
     ticket_manager.update_ticket_status(thread_ts, "assigned")
 
-    if selected_user in ["S05RYHJ41C6", "S02R59UL0RH"]:
+    if selected_user in ["S05RYHJ41C6", "S02R59UL0RH", "U05LPMNQBBK"]:
         user_info = client.users_info(user=body["user"]["id"])
         selected_user_name = user_info["user"]["real_name"]
+        other_div_mention = (
+            f"<@{selected_user}>"
+            if selected_user == "U05LPMNQBBK"
+            else f"<!subteam^{selected_user}>"
+        )
         client.chat_postMessage(
             channel=user_who_requested,
             thread_ts=response_ts,
-            text=f"Sorry <@{user_who_requested}>, your issue isn't within Live Ops's domain. But don't worry, <!subteam^{selected_user}> will take care of it soon.",
+            text=f"Sorry <@{user_who_requested}>, your issue isn't within Live Ops's domain. But don't worry, {other_div_mention} will take care of it soon.",
         )
         handover_response = client.chat_postMessage(
             channel=channel_id,
             thread_ts=thread_ts,
-            text=f"We've officially handed off this hot potato to <!subteam^{selected_user}>. Now, let's dive back into our awesome work!",
+            text=f"We've officially handed off this hot potato to {other_div_mention}. Now, let's dive back into our awesome work!",
         )
         sheet_manager.update_ticket(
             f"live-ops.{thread_ts}",
@@ -1519,7 +1524,7 @@ def select_user(ack, body, client):
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f":handshake: Handover to <!subteam^{selected_user}>",
+                        "text": f":handshake: Handover to {other_div_mention}",
                     },
                 },
             ]
@@ -1549,7 +1554,7 @@ def select_user(ack, body, client):
                         },
                         {
                             "type": "mrkdwn",
-                            "text": f"*Current Progress:*\n:handshake: Handover to <!subteam^{selected_user}>",
+                            "text": f"*Current Progress:*\n:handshake: Handover to {other_div_mention}",
                         },
                     ],
                 },
@@ -1580,7 +1585,7 @@ def select_user(ack, body, client):
                 client.chat_postMessage(
                     channel=reflected_cn,
                     thread_ts=ts,
-                    text=f"Hi <!subteam^{selected_user}>,\nCould you lend a hand to <@{user_who_requested}> with the following problem: `{full_user_input}`? \nMuch appreciated!",
+                    text=f"Hi {other_div_mention},\nCould you lend a hand to <@{user_who_requested}> with the following problem: `{full_user_input}`? \nMuch appreciated!",
                 )
     else:
         user_info = client.users_info(user=selected_user)
