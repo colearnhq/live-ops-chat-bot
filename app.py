@@ -2470,10 +2470,11 @@ def show_reject_modal(ack, body, client, view, logger):
                 direct_lead,
                 stem_lead,
             ] = reject_button_value[:-2]
+            general_rejection_text = f"<@{user_id} has rejected the request at `{timestamp_jakarta}` due to: `{reason}`."
             response = client.chat_postMessage(
                 channel=channel_id,
                 thread_ts=message_ts,
-                text=f"<@{user_id}> has rejected the request at `{timestamp_jakarta}` due to: `{reason}`.",
+                text=general_rejection_text,
             )
             teacher_replace_state = (
                 f"<@{teacher_replace}>"
@@ -2548,6 +2549,18 @@ def show_reject_modal(ack, body, client, view, logger):
                     thread_ts=response_ts,
                     text=f"Uh-oh! :smiling_face_with_tear: Your request got the boot due to `{reason}` at `{timestamp_jakarta}`. But hey, no worries! You can always throw another piket request our way soon!",
                 )
+
+                ref_post = client.chat_postMessage(
+                    channel=reflected_cn, blocks=piket_message
+                )
+
+                if ref_post["ok"]:
+                    ref_ts = ref_post["ts"]
+                    client.chat_postMessage(
+                        channel=reflected_cn,
+                        thread_ts=ref_ts,
+                        text=general_rejection_text,
+                    )
 
             else:
                 logger.error("No value information available for this channel.")
