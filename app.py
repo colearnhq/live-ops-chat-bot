@@ -2555,13 +2555,13 @@ def handle_modal_submission(ack, body, client, view, logger):
                 )
 
                 ref_post = client.chat_postMessage(
-                    channel=reflected_cn, blocks=piket_message
+                    channel=piket_reflected_cn, blocks=piket_message
                 )
 
                 if ref_post["ok"]:
                     ref_ts = ref_post["ts"]
                     client.chat_postMessage(
-                        channel=reflected_cn,
+                        channel=piket_reflected_cn,
                         thread_ts=ref_ts,
                         text=general_rejection_text,
                     )
