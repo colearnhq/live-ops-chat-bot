@@ -390,6 +390,11 @@ def handle_category_selection(ack, body, client):
         else body["actions"][0]["value"]
     )
     trigger_id = body["trigger_id"]
+    print(
+        f"cek category: {body["view"]["state"]["values"]["category_block"]["handle_category_selection"][
+            "selected_option"
+        ]["value"]}"
+    )
 
     if user_input == "Piket":
         modal_blocks = [
@@ -564,9 +569,6 @@ def handle_category_selection(ack, body, client):
             for level in urgency_levels
         ]
 
-        print(f"check issue type {issue_type_options}")
-        print(f"check urgency type {urgency_level_options}")
-
         modal_blocks = [
             {
                 "type": "input",
@@ -651,8 +653,10 @@ def handle_category_selection(ack, body, client):
         "submit": {"type": "plain_text", "text": "Submit"},
         "close": {"type": "plain_text", "text": "Cancel"},
         "blocks": modal_blocks,
-        "private_metadata": f"{channel_id}@@{'Piket' if selected_category != 'Others' else 'Others'}",
+        "private_metadata": f"{channel_id}@@{'Piket' if selected_category == 'Others' else 'Others'}",
     }
+
+    print(f"cek updated_modal {updated_modal}")
 
     try:
         client.views_update(view_id=body["view"]["id"], view=updated_modal)
