@@ -289,9 +289,9 @@ def slash_input(ack, body, client):
                         "value": category["value"],
                         "action_id": f"button_{category['value']}",
                         "style": (
-                            "primary"
-                            if category["text"]["text"] == "Piket"
-                            else "danger"
+                            "danger"
+                            if category["text"]["text"] == "Others"
+                            else "primary"
                         ),
                     }
                     for category in category_options
@@ -563,6 +563,9 @@ def handle_category_selection(ack, body, client):
             {"text": {"type": "plain_text", "text": level}, "value": level}
             for level in urgency_levels
         ]
+
+        print(f"check issue type {issue_type_options}")
+        print(f"check urgency type {urgency_level_options}")
 
         modal_blocks = [
             {
