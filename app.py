@@ -391,9 +391,9 @@ def handle_category_selection(ack, body, client):
     )
     trigger_id = body["trigger_id"]
     print(
-        f"cek category: {body["view"]["state"]["values"]["category_block"]["handle_category_selection"][
+        f'cek category: {body["view"]["state"]["values"]["category_block"]["handle_category_selection"][
             "selected_option"
-        ]["value"]}"
+        ]["value"]}'
     )
 
     if user_input == "Piket":
