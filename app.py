@@ -247,10 +247,7 @@ def intial_msg(body, say, client):
 @app.command("/opsdev")
 def slash_input(ack, body, client):
     ack()
-    categories = [
-        "Piket",
-        "Others",
-    ]
+    categories = ["Piket", "Others", "IT Helpdesk"]
     user_input = body.get("text", "No message provided.")
     category_options = [
         {
@@ -381,6 +378,7 @@ def handling_replacement(ack, body, client):
 
 @app.action("handle_category_selection")
 @app.action("button_Others")
+@app.action("button_IT Helpdesk")
 def handle_category_selection(ack, body, client):
     ack()
     [channel_id, user_input] = body["view"]["private_metadata"].split("@@")
@@ -549,6 +547,112 @@ def handle_category_selection(ack, body, client):
                     "action_id": "file_input_action",
                     "filetypes": ["jpg", "png"],
                     "max_files": 5,
+                },
+            },
+        ]
+    elif selected_category == "IT Helpdesk":
+        issue_types = ["laptop issue", "network issue", "software issue", "others"]
+        urgency_levels = ["low", "medium", "high"]
+
+        issue_type_options = [
+            {"text": {"type": "plain_text", "text": type}, "value": type}
+            for type in issue_types
+        ]
+
+        urgency_level_options = [
+            {"text": {"type": "plain_text", "text": level}, "value": level}
+            for level in urgency_levels
+        ]
+
+        modal_blocks = [
+            {
+                "type": "input",
+                "block_id": "full_name_block",
+                "label": {"type": "plain_text", "text": "Full Name"},
+                "element": {
+                    "type": "plain_text_input",
+                    "action_id": "full_name_action",
+                    "placeholder": {"type": "plain_text", "text": "Your Full Name"},
+                },
+            },
+            {
+                "type": "actions",
+                "block_id": "issue_type_id",
+                "label": {"type": "plain_text", "text": "Issue Type"},
+                "elements": [
+                    {
+                        "type": "static_select",
+                        "placeholder": {"type": "mrkdwn", "text": "Your Issue Type"},
+                        "action_id": "handle_issue_type",
+                        "options": [
+                            {
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": issue_type_option["text"]["text"],
+                                },
+                                "value": issue_type_option["value"],
+                            }
+                            for issue_type_option in issue_type_options
+                        ],
+                    }
+                ],
+            },
+            {
+                "type": "input",
+                "block_id": "issue_description",
+                "label": {"type": "plain_text", "text": "Description"},
+                "element": {
+                    "type": "plain_text_input",
+                    "multiline": True,
+                    "action_id": "issue_description_action",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Describe Your Issue",
+                    },
+                },
+            },
+            {
+                "type": "actions",
+                "block_id": "urgency_id",
+                "label": {"type": "plain_text", "text": "Urgency Level"},
+                "elements": [
+                    {
+                        "type": "static_select",
+                        "placeholder": {
+                            "type": "mrkdwn",
+                            "text": "Determine Your Issue Level",
+                        },
+                        "action_id": "handle_urgency_level",
+                        "options": [
+                            {
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": urgency_level_option["text"]["text"],
+                                },
+                                "value": urgency_level_option["value"],
+                            }
+                            for urgency_level_option in urgency_level_options
+                        ],
+                    }
+                ],
+            },
+            # {
+            #     "type": "input",
+            #     "block_id": "date_id",
+            #     "label": {"type": "plain_text", "text": "Choose Date for The Incident"},
+            #     "element": {
+            #         "type": "datepicker",
+            #         "action_id": "date_picker_action",
+            #         "placeholder": {"type": "plain_text", "text": "Select a Date"},
+            #     },
+            # },
+            {
+                "type": "input",
+                "block_id": "time_id",
+                "label": {"type": "plain_text", "text": "Incident Date and Time"},
+                "element": {
+                    "type": "datetimepicker",
+                    "action_id": "datetimepicker-action",
                 },
             },
         ]
