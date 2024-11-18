@@ -639,25 +639,6 @@ def handle_category_selection(ack, body, client):
                     }
                 ],
             },
-            # {
-            #     "type": "input",
-            #     "block_id": "date_id",
-            #     "label": {"type": "plain_text", "text": "Choose Date for The Incident"},
-            #     "element": {
-            #         "type": "datepicker",
-            #         "action_id": "date_picker_action",
-            #         "placeholder": {"type": "plain_text", "text": "Select a Date"},
-            #     },
-            # },
-            {
-                "type": "input",
-                "block_id": "time_id",
-                "label": {"type": "plain_text", "text": "Incident Date and Time"},
-                "element": {
-                    "type": "datetimepicker",
-                    "action_id": "datetimepicker-action",
-                },
-            },
         ]
 
     updated_modal = {
