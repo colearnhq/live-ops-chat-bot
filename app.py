@@ -2308,7 +2308,7 @@ def resolve_button(ack, body, client, logger):
         category_ticket = resolve_button_value[-1]
         timestamp_utc = datetime.utcnow()
         timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
-        reflected_cn = "C05Q52ZTQ3X"
+        print(f"we land on resolve button {resolve_button_value}")
 
         if category_ticket == "Piket":
             [
@@ -2417,6 +2417,7 @@ def resolve_button(ack, body, client, logger):
             )
         elif category_ticket == "Emergency":
             reflected_ts = ticket_manager.get_reflected_ts(thread_ts)
+            print(f"we land sucessfully on emergency resolve")
             user_who_requested_ticket_id = resolve_button_value[0]
             user_message_ts = resolve_button_value[1]
             resolved_emergency_block = [
@@ -2658,7 +2659,6 @@ def show_reject_modal(ack, body, client, view, logger):
     ack()
     try:
         user_id = body["user"]["id"]
-        reflected_cn = "C05Q52ZTQ3X"
         [channel_id, message_ts, *reject_button_value] = view["private_metadata"].split(
             "@@"
         )
