@@ -382,16 +382,12 @@ def handling_replacement(ack, body, client):
 def handle_category_selection(ack, body, client):
     ack()
     [channel_id, user_input] = body["view"]["private_metadata"].split("@@")
-    selected_category = (
-        body["view"]["state"]["values"]["category_block"]["handle_category_selection"][
-            "selected_option"
-        ]["value"]
-        if user_input == "Piket"
-        else body["actions"][0]["value"]
-    )
+    piket_category = body["view"]["state"]["values"]["category_block"][
+        "handle_category_selection"
+    ]["selected_option"].get("value", None)
+    selected_category = body["actions"][0].get("value", user_input)
     trigger_id = body["trigger_id"]
-    print(f"cek category: {body['actions'][0].get('value', user_input)}")
-    if user_input == "Piket":
+    if selected_category == "Piket":
         modal_blocks = [
             {
                 "type": "input",
@@ -424,23 +420,22 @@ def handle_category_selection(ack, body, client):
                     "action_id": "teacher_replace_action",
                     "type": (
                         "users_select"
-                        if selected_category == "I have had a replacement"
+                        if piket_category == "I have had a replacement"
                         else "plain_text_input"
                     ),
                     **(
                         {
                             "initial_value": (
                                 "I need help finding a replacement"
-                                if selected_category
-                                == "I need help finding a replacement"
+                                if piket_category == "I need help finding a replacement"
                                 else (
                                     "No Mentor"
-                                    if selected_category == "No Mentor"
+                                    if piket_category == "No Mentor"
                                     else None
                                 )
                             )
                         }
-                        if selected_category != "I have had a replacement"
+                        if piket_category != "I have had a replacement"
                         else {}
                     ),
                     "placeholder": {
@@ -648,7 +643,7 @@ def handle_category_selection(ack, body, client):
         "submit": {"type": "plain_text", "text": "Submit"},
         "close": {"type": "plain_text", "text": "Cancel"},
         "blocks": modal_blocks,
-        "private_metadata": f"{channel_id}@@{'Piket' if selected_category == 'Others' else 'Others'}",
+        "private_metadata": f"{channel_id}@@{selected_category}",
     }
 
     try:
