@@ -390,7 +390,7 @@ def handle_category_selection(ack, body, client):
         else body["actions"][0]["value"]
     )
     trigger_id = body["trigger_id"]
-    print(f"cek category: {selected_category}")
+    print(f"cek category: {body['actions'][0]['value']}")
     if user_input == "Piket":
         modal_blocks = [
             {
@@ -551,7 +551,6 @@ def handle_category_selection(ack, body, client):
             },
         ]
     elif selected_category == "IT Helpdesk":
-        print(f"we got this")
         issue_types = ["laptop issue", "network issue", "software issue", "others"]
         urgency_levels = ["low", "medium", "high"]
 
