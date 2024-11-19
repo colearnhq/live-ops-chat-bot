@@ -645,6 +645,18 @@ def handle_category_selection(ack, body, client):
                     "action_id": "datetimepicker_action",
                 },
             },
+            {
+                "type": "input",
+                "optional": True,
+                "block_id": "file_upload_id",
+                "label": {"type": "plain_text", "text": "File Upload"},
+                "element": {
+                    "type": "file_input",
+                    "action_id": "file_input_action",
+                    "filetypes": ["jpg", "png"],
+                    "max_files": 5,
+                },
+            },
         ]
 
     modal_title = (
