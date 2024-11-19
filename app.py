@@ -30,6 +30,7 @@ app = App(token=os.getenv("SLACK_BOT_TOKEN"))
 sheet_manager = SheetManager(creds_dict, "1dPXiGBN2dDyyQ9TnO6Hi8cQtmbkFBU4O7sI5ztbXT90")
 
 reflected_cn = "C05Q52ZTQ3X"
+tiket_channel = "C0719R3NQ91"
 
 greetings_response = {
     "morning": "Good Morning",
@@ -266,7 +267,7 @@ def slash_input(ack, body, client):
         for category in categories
     ]
     trigger_id = body["trigger_id"]
-    channel_id = "C0719R3NQ91"
+    channel_id = tiket_channel
 
     modal = {
         "type": "modal",
@@ -336,7 +337,7 @@ def handling_replacement(ack, body, client):
         for category in categories
     ]
 
-    channel_id = "C0719R3NQ91"
+    channel_id = tiket_channel
     view_id = body["view"]["id"]
 
     modal = {
@@ -856,6 +857,92 @@ def handle_generate_slot_list(ack, body, client):
 
 
 @app.action("button_Emergency")
+def handle_emergency_button(ack, body, client):
+    ack()
+    user_id = body["user"]["id"]
+    timestamp_utc = datetime.utcnow()
+    timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
+    feedback_block = [
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f":mailbox_with_mail: *We've Received Your Alert!* :mailbox_with_mail:\n\nHi <@{user_id}>, thank you for reporting the emergency in your class at `{timestamp_jakarta}`. The Ops team has been notified and is reviewing the situation. We'll keep you updated as soon as there’s progress.",
+            },
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": "If there’s any additional information you'd like to share, please reply here or reach out to us directly.",
+            },
+        },
+    ]
+
+    info_channel_block = [
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f":rotating_light: *Emergency Reported!* :rotating_light:\n\nAn emergency has been reported by <@{user_id}> in their class at `{timestamp_jakarta}`. The Ops team has been notified and is taking action.",
+            },
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": "This message is for your information. If you have any relevant details to assist the Ops team, please contact them directly.",
+            },
+        },
+    ]
+
+    try:
+        response = client.chat_postMessage(channel=user_id, blocks=feedback_block)
+        if response["ok"]:
+            user_ts = response["ts"]
+            value_key = f"{user_id}@@{user_ts}@@Emergency"
+            emergency_block = [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": ":siren: Emergency Alert! :siren:",
+                    },
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"Hi Ops team @tim_ajar! A critical situation has been reported at `{timestamp_jakarta}` in <@{user_id}>'s class.\nPlease check it immediately and provide assistance as soon as possible.",
+                    },
+                },
+                {
+                    "type": "actions",
+                    "element": {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "emoji": True,
+                            "text": "Resolve",
+                        },
+                        "style": "primary",
+                        "value": value_key,
+                        "action_id": "emergency_resolve",
+                    },
+                },
+            ]
+            client.chat_postMessage(channel=tiket_channel, blocks=emergency_block)
+            reflected_response = client.chat_postMessage(
+                channel=reflected_cn, blocks=info_channel_block
+            )
+            if reflected_response["ok"]:
+                reflected_ts = reflected_response["ts"]
+                ticket_manager.store_reflected_ts(user_ts, reflected_ts)
+    except Exception as e:
+        logging.error(f"An error occured: {str(e)}")
+
+
+@app.action("button_Emergency")
 @app.view("slash_input")
 def send_the_user_input(ack, body, client, say, view):
     ack()
@@ -1246,85 +1333,6 @@ def send_the_user_input(ack, body, client, say, view):
             schedule_reminder(client, channel_id, ts, reminder_time, result["ts"])
         except Exception as e:
             logging.error(f"An error occurred: {str(e)}")
-    elif category == "Emergency":
-        feedback_block = [
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f":mailbox_with_mail: *We've Received Your Alert!* :mailbox_with_mail:\n\nHi <@{user_id}>, thank you for reporting the emergency in your class at `{timestamp_jakarta}`. The Ops team has been notified and is reviewing the situation. We'll keep you updated as soon as there’s progress.",
-                },
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "If there’s any additional information you'd like to share, please reply here or reach out to us directly.",
-                },
-            },
-        ]
-
-        info_channel_block = [
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f":rotating_light: *Emergency Reported!* :rotating_light:\n\nAn emergency has been reported by <@{user_id}> in their class at `{timestamp_jakarta}`. The Ops team has been notified and is taking action.",
-                },
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "This message is for your information. If you have any relevant details to assist the Ops team, please contact them directly.",
-                },
-            },
-        ]
-
-        try:
-            response = client.chat_postMessage(channel=user_id, blocks=feedback_block)
-            if response["ok"]:
-                user_ts = response["ts"]
-                value_key = f"{user_id}@@{user_ts}@@{category}"
-                emergency_block = [
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": ":siren: Emergency Alert! :siren:",
-                        },
-                    },
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": f"Hi Ops team @tim_ajar! A critical situation has been reported at `{timestamp_jakarta}` in <@{user_id}>'s class.\nPlease check it immediately and provide assistance as soon as possible.",
-                        },
-                    },
-                    {
-                        "type": "actions",
-                        "element": {
-                            "type": "button",
-                            "text": {
-                                "type": "plain_text",
-                                "emoji": True,
-                                "text": "Resolve",
-                            },
-                            "style": "primary",
-                            "value": value_key,
-                            "action_id": "emergency_resolve",
-                        },
-                    },
-                ]
-                client.chat_postMessage(channel=channel_id, blocks=emergency_block)
-                reflected_response = client.chat_postMessage(
-                    channel=reflected_cn, blocks=info_channel_block
-                )
-                if reflected_response["ok"]:
-                    reflected_ts = reflected_response["ts"]
-                    ticket_manager.store_reflected_ts(initial_ts, reflected_ts)
-        except Exception as e:
-            logging.error(f"An error occured: {str(e)}")
 
 
 @app.action("edit_piket_msg")
