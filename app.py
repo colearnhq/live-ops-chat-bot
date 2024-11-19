@@ -855,6 +855,7 @@ def handle_generate_slot_list(ack, body, client):
     )
 
 
+@app.action("button_Emergency")
 @app.view("slash_input")
 def send_the_user_input(ack, body, client, say, view):
     ack()
