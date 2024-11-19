@@ -384,9 +384,11 @@ def handle_category_selection(ack, body, client):
     [channel_id, user_input] = body["view"]["private_metadata"].split("@@")
     piket_category = body["view"]["state"]["values"]["category_block"][
         "handle_category_selection"
-    ]["selected_option"].get("value", None)
+    ]["selected_option"].get("value", "Others")
     selected_category = body["actions"][0].get("value", user_input)
     trigger_id = body["trigger_id"]
+    print(f"cek category: {selected_category}")
+    print(f"cek piket category: {piket_category}")
     if selected_category == "Piket":
         modal_blocks = [
             {
