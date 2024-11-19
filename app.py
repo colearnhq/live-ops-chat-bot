@@ -2309,6 +2309,8 @@ def resolve_button(ack, body, client, logger):
         category_ticket = resolve_button_value[-1]
         timestamp_utc = datetime.utcnow()
         timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
+        print(f"we check the thread ts {thread_ts}")
+        print(f"we check the reflected_ts {reflected_ts}")
 
         if category_ticket == "Piket":
             [
