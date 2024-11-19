@@ -884,7 +884,14 @@ def handle_emergency_button(ack, body, client):
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": f":rotating_light: *Emergency Reported!* :rotating_light:\n\nAn emergency has been reported by <@{user_id}> in their class at `{timestamp_jakarta}`. The Ops team has been notified and is taking action.",
+                "text": f":rotating_light: *Emergency Reported!* :rotating_light:",
+            },
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"An emergency has been reported by <@{user_id}> in their class at `{timestamp_jakarta}`. The Ops team has been notified and is taking action.",
             },
         },
         {
@@ -918,7 +925,7 @@ def handle_emergency_button(ack, body, client):
                 },
                 {
                     "type": "actions",
-                    "element": {
+                    "elements": {
                         "type": "button",
                         "text": {
                             "type": "plain_text",
@@ -931,7 +938,9 @@ def handle_emergency_button(ack, body, client):
                     },
                 },
             ]
-            client.chat_postMessage(channel=tiket_channel, blocks=emergency_block)
+            client.chat_postMessage(
+                channel=tiket_channel, text=None, blocks=emergency_block
+            )
             reflected_response = client.chat_postMessage(
                 channel=reflected_cn, blocks=info_channel_block
             )
