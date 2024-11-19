@@ -636,14 +636,28 @@ def handle_category_selection(ack, body, client):
                     ],
                 },
             },
+            {
+                "type": "input",
+                "block_id": "datetime_id",
+                "label": {"type": "plain_text", "text": "Incident Date and Time"},
+                "element": {
+                    "type": "datetimepicker",
+                    "action_id": "datetimepicker_action",
+                },
+            },
         ]
 
+    modal_title = (
+        "Submit a Helpdesk Ticket"
+        if selected_category == "IT Helpdesk"
+        else "Think Wisely!"
+    )
     updated_modal = {
         "type": "modal",
         "callback_id": "slash_input",
         "title": {
             "type": "plain_text",
-            "text": "Think Wisely!",
+            "text": modal_title,
         },
         "submit": {"type": "plain_text", "text": "Submit"},
         "close": {"type": "plain_text", "text": "Cancel"},
