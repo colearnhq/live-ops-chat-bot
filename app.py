@@ -1245,6 +1245,85 @@ def send_the_user_input(ack, body, client, say, view):
             schedule_reminder(client, channel_id, ts, reminder_time, result["ts"])
         except Exception as e:
             logging.error(f"An error occurred: {str(e)}")
+    elif category == "Emergency":
+        feedback_block = [
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f":mailbox_with_mail: *We've Received Your Alert!* :mailbox_with_mail:\n\nHi <@{user_id}>, thank you for reporting the emergency in your class at `{timestamp_jakarta}`. The Ops team has been notified and is reviewing the situation. We'll keep you updated as soon as there’s progress.",
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "If there’s any additional information you'd like to share, please reply here or reach out to us directly.",
+                },
+            },
+        ]
+
+        info_channel_block = [
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f":rotating_light: *Emergency Reported!* :rotating_light:\n\nAn emergency has been reported by <@{user_id}> in their class at `{timestamp_jakarta}`. The Ops team has been notified and is taking action.",
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "This message is for your information. If you have any relevant details to assist the Ops team, please contact them directly.",
+                },
+            },
+        ]
+
+        try:
+            response = client.chat_postMessage(channel=user_id, blocks=feedback_block)
+            if response["ok"]:
+                user_ts = response["ts"]
+                value_key = f"{user_id}@@{user_ts}@@{category}"
+                emergency_block = [
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": ":siren: Emergency Alert! :siren:",
+                        },
+                    },
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": f"Hi Ops team @tim_ajar! A critical situation has been reported at `{timestamp_jakarta}` in <@{user_id}>'s class.\nPlease check it immediately and provide assistance as soon as possible.",
+                        },
+                    },
+                    {
+                        "type": "actions",
+                        "element": {
+                            "type": "button",
+                            "text": {
+                                "type": "plain_text",
+                                "emoji": True,
+                                "text": "Resolve",
+                            },
+                            "style": "primary",
+                            "value": value_key,
+                            "action_id": "emergency_resolve",
+                        },
+                    },
+                ]
+                client.chat_postMessage(channel=channel_id, blocks=emergency_block)
+                reflected_response = client.chat_postMessage(
+                    channel=reflected_cn, blocks=info_channel_block
+                )
+                if reflected_response["ok"]:
+                    reflected_ts = reflected_response["ts"]
+                    ticket_manager.store_reflected_ts(initial_ts, reflected_ts)
+        except Exception as e:
+            logging.error(f"An error occured: {str(e)}")
 
 
 @app.action("edit_piket_msg")
@@ -2160,6 +2239,7 @@ def select_custom_category(ack, body, client, view, logger):
         )
 
 
+@app.action("emergency_resolve")
 @app.action("resolve_button")
 def resolve_button(ack, body, client, logger):
     ack()
@@ -2282,6 +2362,64 @@ def resolve_button(ack, body, client, logger):
                     "approved_at": timestamp_utc,
                 },
             )
+        elif category_ticket == "Emergency":
+            reflected_ts = ticket_manager.get_reflected_ts(thread_ts)
+            user_who_requested_ticket_id = resolve_button_value[0]
+            user_message_ts = resolve_button_value[1]
+            resolved_emergency_block = [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": ":rotating_light: *Emergency Update* :rotating_light:\n\nHi Ops team @tim_ajar, here’s an update regarding the critical situation reported earlier.",
+                    },
+                },
+                {
+                    "type": "section",
+                    "fields": [
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Reported By:*\n<@{user_who_requested_ticket_id}>",
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Timestamp:*\n`{timestamp_jakarta}`",
+                        },
+                    ],
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f":white_check_mark: *Status:* The issue has been successfully resolved by <@{user_id}>!",
+                    },
+                },
+                {"type": "divider"},
+                {
+                    "type": "context",
+                    "elements": [
+                        {
+                            "type": "mrkdwn",
+                            "text": "_Great teamwork, everyone! Let's continue to stay vigilant._",
+                        }
+                    ],
+                },
+            ]
+
+            client.chat_update(
+                channel=channel_id, ts=thread_ts, blocks=resolved_emergency_block
+            )
+
+            client.chat_update(
+                channel=reflected_cn, ts=reflected_ts, blocks=resolved_emergency_block
+            )
+
+            client.chat_postMessage(
+                channel=user_who_requested_ticket_id,
+                thread_ts=user_message_ts,
+                text=f"Your emergency issue has been resolved by <@{user_id}> at `{timestamp_jakarta}`",
+            )
+
         elif category_ticket == "Others":
             user_who_requested_ticket_id = resolve_button_value[0]
             user_message_ts = resolve_button_value[1]
