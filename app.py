@@ -390,11 +390,11 @@ def handle_category_selection(ack, body, client):
         else body["actions"][0]["value"]
     )
     trigger_id = body["trigger_id"]
-    print(
-        f'cek category: {body["view"]["state"]["values"]["category_block"]["handle_category_selection"][
-            "selected_option"
-        ]["value"]}'
-    )
+    cek_category = body["view"]["state"]["values"]["category_block"][
+        "handle_category_selection"
+    ]["selected_option"]["value"]
+
+    print(f"cek category: {cek_category}")
 
     if user_input == "Piket":
         modal_blocks = [
