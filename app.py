@@ -389,12 +389,10 @@ def handle_category_selection(ack, body, client):
         .get("category_block", {})
         .get("handle_category_selection", {})
         .get("selected_option", {})
-        .get("value", "Others")
+        .get("value", {})
     )
     selected_category = body["actions"][0].get("value", user_input)
     trigger_id = body["trigger_id"]
-    print(f"cek category: {selected_category}")
-    print(f"cek piket category: {piket_category}")
     if selected_category == "Piket":
         modal_blocks = [
             {
@@ -585,7 +583,10 @@ def handle_category_selection(ack, body, client):
                 "elements": [
                     {
                         "type": "static_select",
-                        "placeholder": {"type": "mrkdwn", "text": "Your Issue Type"},
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "Your Issue Type",
+                        },
                         "action_id": "handle_issue_type",
                         "options": [
                             {
@@ -622,7 +623,7 @@ def handle_category_selection(ack, body, client):
                     {
                         "type": "static_select",
                         "placeholder": {
-                            "type": "mrkdwn",
+                            "type": "plain_text",
                             "text": "Determine Your Issue Level",
                         },
                         "action_id": "handle_urgency_level",
