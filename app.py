@@ -2303,12 +2303,12 @@ def resolve_button(ack, body, client, logger):
         channel_id = body["channel"]["id"]
         thread_ts = body["container"]["message_ts"]
         reflected_ts = ticket_manager.get_reflected_ts(thread_ts)
-        elements = body["message"]["blocks"][4]["elements"]
+        conditional_index = 2 if len(body["message"]["blocks"]) <= 3 else 4
+        elements = body["message"]["blocks"][conditional_index]["elements"]
         resolve_button_value = elements[0]["value"].split("@@")
         category_ticket = resolve_button_value[-1]
         timestamp_utc = datetime.utcnow()
         timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
-        print(f"we land on resolve button {resolve_button_value}")
 
         if category_ticket == "Piket":
             [
@@ -2603,7 +2603,7 @@ def resolve_button(ack, body, client, logger):
             else:
                 logging.error(f"Failed to post message: {response['error']}")
     except Exception as e:
-        logger.error(f"Error handling modal submission: {str(e)}")
+        logger.error(f"Error resolve function: {str(e)}")
 
 
 @app.action("reject_button")
