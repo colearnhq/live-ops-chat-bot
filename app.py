@@ -862,6 +862,7 @@ def handle_emergency_button(ack, body, client, logger):
     user_id = body["user"]["id"]
     timestamp_utc = datetime.utcnow()
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
+    print(f"we check body {body}")
     feedback_block = [
         {
             "type": "section",
@@ -986,7 +987,6 @@ def handle_emergency_button(ack, body, client, logger):
         logger.error(f"An error occurred: {str(e)}")
 
 
-@app.action("button_Emergency")
 @app.view("slash_input")
 def send_the_user_input(ack, body, client, say, view):
     ack()
