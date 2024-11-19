@@ -197,6 +197,15 @@ def get_real_name(client, user_id):
         return user_id
 
 
+def coloring_the_button(issue_type):
+    if issue_type == "Emergency":
+        return "danger"
+    elif issue_type == "Piket":
+        return "primary"
+    else:
+        return "default"
+
+
 @app.event("message")
 def intial_msg(body, say, client):
     event = body.get("event", {})
@@ -247,7 +256,7 @@ def intial_msg(body, say, client):
 @app.command("/opsdev")
 def slash_input(ack, body, client):
     ack()
-    categories = ["Piket", "Others", "IT Helpdesk"]
+    categories = ["Piket", "Emergency", "IT Helpdesk", "Others"]
     user_input = body.get("text", "No message provided.")
     category_options = [
         {
@@ -288,11 +297,7 @@ def slash_input(ack, body, client):
                         },
                         "value": category["value"],
                         "action_id": f"button_{category['value']}",
-                        "style": (
-                            "danger"
-                            if category["text"]["text"] == "Others"
-                            else "primary"
-                        ),
+                        "style": coloring_the_button(category["value"]),
                     }
                     for category in category_options
                 ],
