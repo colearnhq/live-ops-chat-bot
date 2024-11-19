@@ -857,7 +857,7 @@ def handle_generate_slot_list(ack, body, client):
 
 
 @app.action("button_Emergency")
-def handle_emergency_button(ack, body, client):
+def handle_emergency_button(ack, body, client, logger):
     ack()
     user_id = body["user"]["id"]
     timestamp_utc = datetime.utcnow()
@@ -867,7 +867,14 @@ def handle_emergency_button(ack, body, client):
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": f":mailbox_with_mail: *We've Received Your Alert!* :mailbox_with_mail:\n\nHi <@{user_id}>, thank you for reporting the emergency in your class at `{timestamp_jakarta}`. The Ops team has been notified and is reviewing the situation. We'll keep you updated as soon as there’s progress.",
+                "text": f":mailbox_with_mail: *We've Received Your Alert!* :mailbox_with_mail:",
+            },
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"Hi <@{user_id}>, thank you for reporting the emergency in your class at `{timestamp_jakarta}`. The Ops team has been notified and is reviewing the situation.\nWe'll keep you updated as soon as there’s progress.",
             },
         },
         {
@@ -904,7 +911,11 @@ def handle_emergency_button(ack, body, client):
     ]
 
     try:
-        response = client.chat_postMessage(channel=user_id, blocks=feedback_block)
+        response = client.chat_postMessage(
+            channel=user_id,
+            text="Your emergency alert has been received.",
+            blocks=feedback_block,
+        )
         if response["ok"]:
             user_ts = response["ts"]
             value_key = f"{user_id}@@{user_ts}@@Emergency"
@@ -925,30 +936,54 @@ def handle_emergency_button(ack, body, client):
                 },
                 {
                     "type": "actions",
-                    "elements": {
-                        "type": "button",
-                        "text": {
-                            "type": "plain_text",
-                            "emoji": True,
-                            "text": "Resolve",
+                    "elements": [
+                        {
+                            "type": "button",
+                            "text": {
+                                "type": "plain_text",
+                                "emoji": True,
+                                "text": "Resolve",
+                            },
+                            "style": "primary",
+                            "value": value_key,
+                            "action_id": "emergency_resolve",
                         },
-                        "style": "primary",
-                        "value": value_key,
-                        "action_id": "emergency_resolve",
-                    },
+                    ],
                 },
             ]
             client.chat_postMessage(
-                channel=tiket_channel, text=None, blocks=emergency_block
+                channel=tiket_channel,
+                text="Emergency Alert! A critical situation has been reported. Please check immediately.",
+                blocks=emergency_block,
             )
             reflected_response = client.chat_postMessage(
-                channel=reflected_cn, blocks=info_channel_block
+                channel=reflected_cn,
+                text="Emergency Alert reported. Please refer to the main alert.",
+                blocks=info_channel_block,
             )
             if reflected_response["ok"]:
                 reflected_ts = reflected_response["ts"]
                 ticket_manager.store_reflected_ts(user_ts, reflected_ts)
+
+            client.views_update(
+                view_id=body["view"]["id"],
+                view={
+                    "type": "modal",
+                    "title": {"type": "plain_text", "text": "Processing..."},
+                    "blocks": [
+                        {
+                            "type": "section",
+                            "text": {
+                                "type": "mrkdwn",
+                                "text": "Thank you! Your emergency alert has been submitted.",
+                            },
+                        },
+                    ],
+                    "close": {"type": "plain_text", "text": "Close"},
+                },
+            )
     except Exception as e:
-        logging.error(f"An error occured: {str(e)}")
+        logger.error(f"An error occurred: {str(e)}")
 
 
 @app.action("button_Emergency")
