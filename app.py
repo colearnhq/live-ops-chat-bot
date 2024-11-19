@@ -874,14 +874,14 @@ def handle_emergency_button(ack, body, client, logger):
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": f"Hi <@{user_id}>, thank you for reporting the emergency in your class at `{timestamp_jakarta}`. The Ops team has been notified and is reviewing the situation.\nWe'll keep you updated as soon as there’s progress.",
+                "text": f"Hi <@{user_id}>, thank you for reporting the emergency in your class at `{timestamp_jakarta}`. The Ops team has been notified and is reviewing the situation.",
             },
         },
         {
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": "If there’s any additional information you'd like to share, please reply here or reach out to us directly.",
+                "text": "We'll keep you updated as soon as there’s progress.",
             },
         },
     ]
@@ -924,14 +924,14 @@ def handle_emergency_button(ack, body, client, logger):
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": ":siren: Emergency Alert! :siren:",
+                        "text": ":rotating_light: Emergency Alert! :rotating_light:",
                     },
                 },
                 {
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"Hi Ops team @tim_ajar! A critical situation has been reported at `{timestamp_jakarta}` in <@{user_id}>'s class.\nPlease check it immediately and provide assistance as soon as possible.",
+                        "text": f"Hi Ops team @tim_ajar!\nA critical situation has been reported at `{timestamp_jakarta}` in <@{user_id}>'s class.\nPlease check it immediately and provide assistance as soon as possible.",
                     },
                 },
                 {
