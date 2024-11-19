@@ -577,7 +577,7 @@ def handle_category_selection(ack, body, client):
                 },
             },
             {
-                "type": "actions",
+                "type": "input",
                 "block_id": "issue_type_id",
                 "label": {"type": "plain_text", "text": "Issue Type"},
                 "elements": [
@@ -616,7 +616,7 @@ def handle_category_selection(ack, body, client):
                 },
             },
             {
-                "type": "actions",
+                "type": "input",
                 "block_id": "urgency_id",
                 "label": {"type": "plain_text", "text": "Urgency Level"},
                 "elements": [
