@@ -551,6 +551,7 @@ def handle_category_selection(ack, body, client):
             },
         ]
     elif selected_category == "IT Helpdesk":
+        print(f"we got this")
         issue_types = ["laptop issue", "network issue", "software issue", "others"]
         urgency_levels = ["low", "medium", "high"]
 
@@ -650,8 +651,6 @@ def handle_category_selection(ack, body, client):
         "blocks": modal_blocks,
         "private_metadata": f"{channel_id}@@{'Piket' if selected_category == 'Others' else 'Others'}",
     }
-
-    print(f"cek updated_modal {updated_modal}")
 
     try:
         client.views_update(view_id=body["view"]["id"], view=updated_modal)
