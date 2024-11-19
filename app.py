@@ -580,14 +580,23 @@ def handle_category_selection(ack, body, client):
                 "type": "input",
                 "block_id": "issue_type_id",
                 "label": {"type": "plain_text", "text": "Issue Type"},
-                "elements": {
+                "element": {
                     "type": "static_select",
                     "placeholder": {
                         "type": "plain_text",
                         "text": "Your Issue Type",
                     },
                     "action_id": "handle_issue_type",
-                    "options": issue_type_options,
+                    "options": [
+                        {
+                            "text": {
+                                "type": "plain_text",
+                                "text": issue_type_option["text"]["text"],
+                            },
+                            "value": issue_type_option["value"],
+                        }
+                        for issue_type_option in issue_type_options
+                    ],
                 },
             },
             {
@@ -615,8 +624,17 @@ def handle_category_selection(ack, body, client):
                         "text": "Determine Your Issue Level",
                     },
                     "action_id": "handle_urgency_level",
-                    "options": urgency_level_options
-                }
+                    "options": [
+                        {
+                            "text": {
+                                "type": "plain_text",
+                                "text": urgency_level_option["text"]["text"],
+                            },
+                            "value": urgency_level_option["value"],
+                        }
+                        for urgency_level_option in urgency_level_options
+                    ],
+                },
             },
         ]
 
