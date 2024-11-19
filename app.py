@@ -382,9 +382,15 @@ def handling_replacement(ack, body, client):
 def handle_category_selection(ack, body, client):
     ack()
     [channel_id, user_input] = body["view"]["private_metadata"].split("@@")
-    piket_category = body["view"]["state"]["values"]["category_block"][
-        "handle_category_selection"
-    ]["selected_option"].get("value", "Others")
+    piket_category = (
+        body.get("view", {})
+        .get("state", {})
+        .get("values", {})
+        .get("category_block", {})
+        .get("handle_category_selection", {})
+        .get("selected_option", {})
+        .get("value", "Others")
+    )
     selected_category = body["actions"][0].get("value", user_input)
     trigger_id = body["trigger_id"]
     print(f"cek category: {selected_category}")
