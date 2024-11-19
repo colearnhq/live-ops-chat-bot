@@ -2417,7 +2417,6 @@ def resolve_button(ack, body, client, logger):
             )
         elif category_ticket == "Emergency":
             reflected_ts = ticket_manager.get_reflected_ts(thread_ts)
-            print(f"we land sucessfully on emergency resolve")
             user_who_requested_ticket_id = resolve_button_value[0]
             user_message_ts = resolve_button_value[1]
             resolved_emergency_block = [
@@ -2461,11 +2460,17 @@ def resolve_button(ack, body, client, logger):
             ]
 
             client.chat_update(
-                channel=channel_id, ts=thread_ts, blocks=resolved_emergency_block
+                channel=channel_id,
+                ts=thread_ts,
+                text="Emergency resolved. Details updated in the thread.",
+                blocks=resolved_emergency_block,
             )
 
             client.chat_update(
-                channel=reflected_cn, ts=reflected_ts, blocks=resolved_emergency_block
+                channel=reflected_cn,
+                ts=reflected_ts,
+                text="Emergency resolved. Details updated in the thread.",
+                blocks=resolved_emergency_block,
             )
 
             client.chat_postMessage(
