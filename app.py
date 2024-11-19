@@ -297,7 +297,11 @@ def slash_input(ack, body, client):
                         },
                         "value": category["value"],
                         "action_id": f"button_{category['value']}",
-                        "style": coloring_the_button(category["value"]),
+                        **(
+                            {"style": coloring_the_button(category["value"])}
+                            if coloring_the_button(category["value"])
+                            else {}
+                        ),
                     }
                     for category in category_options
                 ],
