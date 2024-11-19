@@ -203,7 +203,7 @@ def coloring_the_button(issue_type):
     elif issue_type == "Piket":
         return "primary"
     else:
-        return "default"
+        return None
 
 
 @app.event("message")
