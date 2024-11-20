@@ -1210,7 +1210,7 @@ def send_the_user_input(ack, body, client, say, view):
             timestamp_utc,
         )
     elif category == "IT Helpdesk":
-        ticket_id = f"it-helpdek.{initial_ts}"
+        ticket_id = f"it-helpdesk.{initial_ts}"
         full_name = view_state["full_name_block"]["full_name_action"]["value"]
         issue_type = view_state["issue_type_id"]["handle_issue_type"][
             "selected_option"
@@ -1237,19 +1237,16 @@ def send_the_user_input(ack, body, client, say, view):
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"Hi <@{user_id}> :wave:!\nYour helpdesk ticket has been submitted successfully",
-                    },
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": f"Your ticket number: *{ticket_id}*",
+                        "text": f"Hi <@{user_id}> :wave:!\nYour helpdesk ticket has been submitted successfully :rocket:",
                     },
                 },
                 {
                     "type": "section",
                     "fields": [
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Your Ticket Number:*\n`{ticket_id}`",
+                        },
                         {"type": "mrkdwn", "text": f"*Your Name:*\n{full_name}"},
                         {"type": "mrkdwn", "text": f"*Issue Type:*\n{issue_type}"},
                         {
@@ -1294,7 +1291,11 @@ def send_the_user_input(ack, body, client, say, view):
                 },
             ]
 
-            user_msg = client.chat_postMessage(channel=user_id, blocks=user_response)
+            user_msg = client.chat_postMessage(
+                channel=user_id,
+                text="Your request has been sent. We will send a ticket soon.",
+                blocks=user_response,
+            )
             if user_msg["ok"]:
                 user_ts = user_msg["ts"]
                 values = f"{ticket_id}@@{user_id}@@{user_ts}@@{category}"
@@ -1321,7 +1322,7 @@ def send_the_user_input(ack, body, client, say, view):
                             {"type": "mrkdwn", "text": f"*Issue Type:*\n{issue_type}"},
                             {
                                 "type": "mrkdwn",
-                                "text": f"*Issue Description:*\n```{issue_description}```",
+                                "text": f"*Issue Description:*\n```{helpdesk_issue_description}```",
                             },
                             {
                                 "type": "mrkdwn",
@@ -1364,8 +1365,8 @@ def send_the_user_input(ack, body, client, say, view):
                         ],
                     },
                 ]
-                response_for_staff = client.chat_postMessage(
-                    channel=helpdesk_cn, blocks=helpdesk_ticket_blocks
+                response_for_staff = client.chat_update(
+                    channel=helpdesk_cn, ts=initial_ts, blocks=helpdesk_ticket_blocks
                 )
                 if response_for_staff["ok"]:
                     response_ts = response_for_staff["ts"]
