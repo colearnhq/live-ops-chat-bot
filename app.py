@@ -1225,9 +1225,11 @@ def send_the_user_input(ack, body, client, say, view):
         urgency_level = view_state["urgency_id"]["handle_urgency_level"][
             "selected_option"
         ]["value"]
-        date_time = datetime.utcfromtimestamp(
-            view_state["datetime_id"]["datetimepicker_action"]["selected_date_time"]
-        ).strftime("%Y-%m-%d %H:%M:%S")
+        date_time = convert_utc_to_jakarta(
+            datetime.utcfromtimestamp(
+                view_state["datetime_id"]["datetimepicker_action"]["selected_date_time"]
+            ).strftime("%Y-%m-%d %H:%M:%S")
+        )
         helpdesk_files = (
             view_state.get("file_upload_id", {})
             .get("file_input_action", {})
@@ -1308,7 +1310,7 @@ def send_the_user_input(ack, body, client, say, view):
                         "type": "header",
                         "text": {
                             "type": "plain_text",
-                            "text": f"New Helpdesk Ticket: *{ticket_id}*",
+                            "text": f"New Helpdesk Ticket: {ticket_id}",
                         },
                     },
                     {
@@ -1334,7 +1336,7 @@ def send_the_user_input(ack, body, client, say, view):
                             },
                             {
                                 "type": "mrkdwn",
-                                "text": f"*Incident Date and Time:*\n{date_time}",
+                                "text": f"*Incident Date and Time:*\n`{date_time}`",
                             },
                             {"type": "mrkdwn", "text": f"*Status:*\nPending"},
                         ],
@@ -1362,7 +1364,6 @@ def send_the_user_input(ack, body, client, say, view):
                                     "type": "plain_text",
                                     "text": "Start Chatting",
                                 },
-                                "style": "primary",
                                 "value": f"{ticket_id}@@{user_id}",
                                 "action_id": "start_chat",
                             },
