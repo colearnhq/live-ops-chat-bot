@@ -2474,7 +2474,7 @@ def resolve_button(ack, body, client, logger):
 
                 client.chat_postMessage(
                     channel=reflected_cn,
-                    ts=emergency_reflected_ts,
+                    thread_ts=emergency_reflected_ts,
                     text=f"The emergency issue has been resolved by <@{user_id}> at `{timestamp_jakarta}`",
                 )
 
