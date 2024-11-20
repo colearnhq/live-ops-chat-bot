@@ -2466,10 +2466,16 @@ def resolve_button(ack, body, client, logger):
             )
 
             if resolved_response["ok"]:
-                client.chat_update(
+                client.reactions_add(
+                    channel=reflected_cn,
+                    timestamp=emergency_reflected_ts,
+                    name="white_check_mark",
+                )
+
+                client.chat_postMessage(
                     channel=reflected_cn,
                     ts=emergency_reflected_ts,
-                    text="Emergency resolved. Details updated in the thread.",
+                    text=f"The emergency issue has been resolved by <@{user_id}> at `{timestamp_jakarta}`",
                     blocks=resolved_emergency_block,
                 )
 
