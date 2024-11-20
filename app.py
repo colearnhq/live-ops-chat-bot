@@ -1199,7 +1199,9 @@ def send_the_user_input(ack, body, client, say, view):
             stem_lead_name,
             timestamp_utc,
         )
-
+    elif category == "IT Helpdesk":
+        print(f"we check view through body {view_state}")
+        print(f"we check view through view {view['state']['values']}")
     elif category == "Others":
         issue_description = view_state["issue_name"]["user_issue"]["value"]
         files = (
