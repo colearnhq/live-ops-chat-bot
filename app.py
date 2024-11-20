@@ -860,6 +860,7 @@ def handle_generate_slot_list(ack, body, client):
 def handle_emergency_button(ack, body, client, logger):
     ack()
     user_id = body["user"]["id"]
+    user_name = get_real_name(client, user_id)
     timestamp_utc = datetime.utcnow()
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
     feedback_block = [
@@ -964,6 +965,9 @@ def handle_emergency_button(ack, body, client, logger):
             if reflected_response["ok"]:
                 reflected_ts = reflected_response["ts"]
                 ticket_manager.store_reflected_ts(user_ts, reflected_ts)
+                sheet_manager.init_emergency(
+                    f"emergency-{user_ts}", user_name, timestamp_utc
+                )
 
             client.views_update(
                 view_id=body["view"]["id"],
@@ -2482,6 +2486,11 @@ def resolve_button(ack, body, client, logger):
                     channel=user_who_requested_ticket_id,
                     thread_ts=user_message_ts,
                     text=f"Your emergency issue has been resolved by <@{user_id}> at `{timestamp_jakarta}`",
+                )
+
+                sheet_manager.update_emergency_row(
+                    f"emergency-{user_message_ts}",
+                    {"resolved_by": user_id, "resolved_at": timestamp_jakarta},
                 )
 
         elif category_ticket == "Others":
