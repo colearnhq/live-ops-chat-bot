@@ -965,6 +965,8 @@ def handle_emergency_button(ack, body, client, logger):
             if reflected_response["ok"]:
                 reflected_ts = reflected_response["ts"]
                 ticket_manager.store_reflected_ts(user_ts, reflected_ts)
+                print(f"check the reflected ts {reflected_ts}")
+                print(f"check the user ts {user_ts}")
 
             client.views_update(
                 view_id=body["view"]["id"],
