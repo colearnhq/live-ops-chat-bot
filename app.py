@@ -1011,12 +1011,12 @@ def send_the_user_input(ack, body, client, say, view):
     reporter_name = body["user"]["username"]
     timestamp_utc = datetime.utcnow()
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
-    init_result = client.chat_postMessage(
-        channel=channel_id, text="Initializing ticket..."
-    )
-    initial_ts = init_result["ts"]
 
     if category == "Piket":
+        init_result = client.chat_postMessage(
+            channel=channel_id, text="Initializing ticket..."
+        )
+        initial_ts = init_result["ts"]
         date = view["state"]["values"]["date_block"]["date_picker_action"][
             "selected_date"
         ]
@@ -1210,6 +1210,10 @@ def send_the_user_input(ack, body, client, say, view):
             timestamp_utc,
         )
     elif category == "IT Helpdesk":
+        init_result = client.chat_postMessage(
+            channel=helpdesk_cn, text="Initializing ticket..."
+        )
+        initial_ts = init_result["ts"]
         ticket_id = f"it-helpdesk.{initial_ts}"
         full_name = view_state["full_name_block"]["full_name_action"]["value"]
         issue_type = view_state["issue_type_id"]["handle_issue_type"][
@@ -1382,6 +1386,10 @@ def send_the_user_input(ack, body, client, say, view):
             logging.error(f"An error occured on helpdesk {str(e)}")
 
     elif category == "Others":
+        init_result = client.chat_postMessage(
+            channel=channel_id, text="Initializing ticket..."
+        )
+        initial_ts = init_result["ts"]
         issue_description = view_state["issue_name"]["user_issue"]["value"]
         files = (
             view_state.get("file_upload_block", {})
