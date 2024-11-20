@@ -21,6 +21,7 @@ class SheetManager:
             self.ticket_sheet = client.open_by_key(sheet_key).worksheet("ticket")
             self.piket_sheet = client.open_by_key(sheet_key).worksheet("piket")
             self.slot_data = client.open_by_key(sheet_key).worksheet("slot_data")
+            self.emergency = client.open_by_key(sheet_key).worksheet("emergency")
         except Exception as e:
             logging.error(f"Failed to initialize SheetManager: {str(e)}")
 
@@ -83,6 +84,14 @@ class SheetManager:
         except Exception as e:
             logging.error(f"Failed to log chat: {str(e)}")
 
+    def init_emergency(self, emergency_id, user_requested, timestamp_utc):
+        try:
+            timestamp_local = self.convert_to_local_time(timestamp_utc)
+            data = [emergency_id, timestamp_local, user_requested]
+            self.piket_sheet.append_row(data)
+        except Exception as e:
+            logging.error(f"Failed to initialize emergency row: {str(e)}")
+
     def init_piket_row(
         self,
         piket_id,
@@ -114,7 +123,7 @@ class SheetManager:
             ]
             self.piket_sheet.append_row(data)
         except Exception as e:
-            logging.error(f"Failed to initialize ticket row: {str(e)}")
+            logging.error(f"Failed to initialize piket row: {str(e)}")
 
     def init_ticket_row(self, ticket_id, user_id, user_name, user_input, timestamp_utc):
         try:
@@ -216,4 +225,34 @@ class SheetManager:
             "rejected_by": 15,
             "rejected_at": 16,
             "edited_at": 17,
+        }
+
+    def update_emergency_row(self, emergency_id, updates):
+        try:
+            row = self.find_emergency_id(emergency_id)
+            if row:
+                for key, value in updates.items():
+                    col = self.emergency_col_mapping[key]
+                    if "at" in key and isinstance(value, datetime):
+                        value = self.convert_to_local_time(value)
+                    self.emergency.update_cell(row, col, value)
+        except Exception as e:
+            logging.error(f"Failed to update row: {str(e)}")
+
+    def find_emergency_id(self, emergency_id):
+        emergency_id_col = 1
+        col_values = self.emergency.col_values(emergency_id_col)
+        for i, val in enumerate(col_values):
+            if val == emergency_id:
+                return i + 1
+        return None
+
+    @property
+    def emergency_col_mapping(self):
+        return {
+            "emergency_id": 1,
+            "timestamp": 2,
+            "user_reported": 3,
+            "resolved_by": 4,
+            "resolved_at": 5,
         }
