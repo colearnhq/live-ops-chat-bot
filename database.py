@@ -88,7 +88,7 @@ class SheetManager:
         try:
             timestamp_local = self.convert_to_local_time(timestamp_utc)
             data = [emergency_id, timestamp_local, user_requested]
-            self.piket_sheet.append_row(data)
+            self.emergency.append_row(data)
         except Exception as e:
             logging.error(f"Failed to initialize emergency row: {str(e)}")
 
