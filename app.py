@@ -1228,7 +1228,7 @@ def send_the_user_input(ack, body, client, say, view):
         date_time = convert_utc_to_jakarta(
             datetime.utcfromtimestamp(
                 view_state["datetime_id"]["datetimepicker_action"]["selected_date_time"]
-            ).strftime("%Y-%m-%d %H:%M:%S")
+            )
         )
         helpdesk_files = (
             view_state.get("file_upload_id", {})
