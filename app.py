@@ -862,7 +862,6 @@ def handle_emergency_button(ack, body, client, logger):
     user_id = body["user"]["id"]
     timestamp_utc = datetime.utcnow()
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
-    print(f"we check body {body}")
     feedback_block = [
         {
             "type": "section",
@@ -965,8 +964,6 @@ def handle_emergency_button(ack, body, client, logger):
             if reflected_response["ok"]:
                 reflected_ts = reflected_response["ts"]
                 ticket_manager.store_reflected_ts(user_ts, reflected_ts)
-                print(f"check the reflected ts {reflected_ts}")
-                print(f"check the user ts {user_ts}")
 
             client.views_update(
                 view_id=body["view"]["id"],
@@ -1718,7 +1715,6 @@ def select_user(ack, body, client):
     ]
 
     files = ticket_manager.get_files(thread_ts)
-    print(f"check the files {files} and ts {thread_ts} on select_user")
     ticket_manager.update_ticket_status(thread_ts, "assigned")
 
     if selected_user in ["S05RYHJ41C6", "S02R59UL0RH", "U05LPMNQBBK"]:
@@ -2311,8 +2307,6 @@ def resolve_button(ack, body, client, logger):
         category_ticket = resolve_button_value[-1]
         timestamp_utc = datetime.utcnow()
         timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
-        print(f"we check the thread ts {thread_ts}")
-        print(f"we check the reflected_ts {reflected_ts}")
 
         if category_ticket == "Piket":
             [
@@ -2423,6 +2417,7 @@ def resolve_button(ack, body, client, logger):
             reflected_ts = ticket_manager.get_reflected_ts(thread_ts)
             user_who_requested_ticket_id = resolve_button_value[0]
             user_message_ts = resolve_button_value[1]
+            emergency_reflected_ts = ticket_manager.get_reflected_ts(user_message_ts)
             resolved_emergency_block = [
                 {
                     "type": "section",
@@ -2471,7 +2466,7 @@ def resolve_button(ack, body, client, logger):
             )
 
             client.chat_update(
-                channel=reflected_cn,
+                channel=emergency_reflected_ts,
                 ts=reflected_ts,
                 text="Emergency resolved. Details updated in the thread.",
                 blocks=resolved_emergency_block,
