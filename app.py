@@ -1370,7 +1370,10 @@ def send_the_user_input(ack, body, client, say, view):
                     },
                 ]
                 response_for_staff = client.chat_update(
-                    channel=helpdesk_cn, ts=initial_ts, blocks=helpdesk_ticket_blocks
+                    channel=helpdesk_cn,
+                    ts=initial_ts,
+                    text=f"We just received a helpdesk request from {full_name}",
+                    blocks=helpdesk_ticket_blocks,
                 )
                 if response_for_staff["ok"]:
                     response_ts = response_for_staff["ts"]
