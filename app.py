@@ -2490,7 +2490,10 @@ def resolve_button(ack, body, client, logger):
 
                 sheet_manager.update_emergency_row(
                     f"emergency-{user_message_ts}",
-                    {"resolved_by": user_id, "resolved_at": timestamp_jakarta},
+                    {
+                        "resolved_by": get_real_name(client, user_id),
+                        "resolved_at": timestamp_utc,
+                    },
                 )
 
         elif category_ticket == "Others":
