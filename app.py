@@ -918,7 +918,6 @@ def handle_emergency_button(ack, body, client, logger):
         )
         if response["ok"]:
             user_ts = response["ts"]
-            print(f"here user_ts in handle_emergency {user_ts}")
             value_key = f"{user_id}@@{user_ts}@@Emergency"
             emergency_block = [
                 {
@@ -965,7 +964,6 @@ def handle_emergency_button(ack, body, client, logger):
             if reflected_response["ok"]:
                 reflected_ts = reflected_response["ts"]
                 ticket_manager.store_reflected_ts(user_ts, reflected_ts)
-                print(f"origin reflected_ts {reflected_ts}")
 
             client.views_update(
                 view_id=body["view"]["id"],
@@ -2420,9 +2418,6 @@ def resolve_button(ack, body, client, logger):
             user_who_requested_ticket_id = resolve_button_value[0]
             user_message_ts = resolve_button_value[1]
             emergency_reflected_ts = ticket_manager.get_reflected_ts(user_message_ts)
-            print(
-                f"here user_ts in resolve {user_message_ts} and reflected_ts {emergency_reflected_ts}"
-            )
             resolved_emergency_block = [
                 {
                     "type": "section",
@@ -2463,25 +2458,26 @@ def resolve_button(ack, body, client, logger):
                 },
             ]
 
-            client.chat_update(
+            resolved_response = client.chat_update(
                 channel=channel_id,
                 ts=thread_ts,
                 text="Emergency resolved. Details updated in the thread.",
                 blocks=resolved_emergency_block,
             )
 
-            client.chat_update(
-                channel=emergency_reflected_ts,
-                ts=reflected_ts,
-                text="Emergency resolved. Details updated in the thread.",
-                blocks=resolved_emergency_block,
-            )
+            if resolved_response["ok"]:
+                client.chat_update(
+                    channel=reflected_cn,
+                    ts=emergency_reflected_ts,
+                    text="Emergency resolved. Details updated in the thread.",
+                    blocks=resolved_emergency_block,
+                )
 
-            client.chat_postMessage(
-                channel=user_who_requested_ticket_id,
-                thread_ts=user_message_ts,
-                text=f"Your emergency issue has been resolved by <@{user_id}> at `{timestamp_jakarta}`",
-            )
+                client.chat_postMessage(
+                    channel=user_who_requested_ticket_id,
+                    thread_ts=user_message_ts,
+                    text=f"Your emergency issue has been resolved by <@{user_id}> at `{timestamp_jakarta}`",
+                )
 
         elif category_ticket == "Others":
             user_who_requested_ticket_id = resolve_button_value[0]
