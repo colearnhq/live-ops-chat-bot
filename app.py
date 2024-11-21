@@ -2576,7 +2576,7 @@ def resolve_button_post_chatting(ack, body, client, logger):
         )
         client.chat_postMessage(
             channel=conv_id,
-            text=f"Thanks so much for chatting with us! 🎉 We’re happy we could help. This conversation is all wrapped up now, but don’t hesitate to reach out again if you need anything else.\n\nHave an awesome day, <@{user_reported}! 🌟",
+            text=f"Thanks so much for chatting with us! 🎉 We’re happy we could help. This conversation is all wrapped up now, but don’t hesitate to reach out again if you need anything else.\n\nHave an awesome day, <@{user_reported}>! 🌟",
         )
     except Exception as e:
         logging.error(f"Any error on resolving post chatting: {str(e)}")
