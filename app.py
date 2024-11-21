@@ -2579,7 +2579,6 @@ def resolve_button_post_conv(ack, body, client, logger):
         client.chat_postMessage(
             channel=helpdesk_cn, thread_ts=helpdesk_ts, text=general_info
         )
-        print(f"cek channel conv id {conv_id}")
         client.conversations_close(channel=conv_id)
     except Exception as e:
         logging.error(f"Error in closing the conversation: {str(e)}")
