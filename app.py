@@ -2556,8 +2556,24 @@ def resolve_button_post_conv(ack, body, client, logger):
     [ticket_id, user_id, user_ts, conv_id, helpdesk_ts] = body["actions"][0][
         "value"
     ].split("@@")
+    timestamp_utc = datetime.utcnow()
+    timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
     general_info = f"We will close this conversation of {ticket_id}, you can still check the history chat."
     try:
+        blocks = body["message"]["blocks"]
+        blocks[1]["fields"][7]["text"] = "*Status:*\n:white_check_mark: Resolved"
+        blocks[1]["fields"].push(
+            {"type": "mrkdwn", "text": f"*Resolved At:*\n{timestamp_jakarta}"}
+        )
+        blocks.pop(2)
+
+        client.chat_update(channel=helpdesk_cn, ts=helpdesk_ts, blocks=blocks)
+
+        client.chat_postMessage(
+            channel=user_id,
+            thread_ts=user_ts,
+            text=f"Your helpdesk ticket: *{ticket_id}* has been resolved by <@{user_id}> at `{timestamp_jakarta}`",
+        )
         client.chat_postMessage(channel=user_id, thread_ts=user_ts, text=general_info)
 
         client.chat_postMessage(
