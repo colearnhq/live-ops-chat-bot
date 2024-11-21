@@ -1585,7 +1585,8 @@ def handle_start_chat(ack, client, body):
         conversation = client.conversations_open(users=f"{user_id},{support_id}")
         channel_id = conversation["channel"]["id"]
         client.chat_postMessage(
-            channel_id=channel_id,
+            channel=channel_id,
+            text="We are starting to chat our beloved user..",
             blocks=[
                 {
                     "type": "section",
