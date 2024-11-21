@@ -1349,14 +1349,14 @@ def send_the_user_input(ack, body, client, say, view):
                                 "text": {"type": "plain_text", "text": "Resolve"},
                                 "style": "primary",
                                 "value": values,
-                                "action_id": "resolve_ticket",
+                                "action_id": "helpdesk_resolve",
                             },
                             {
                                 "type": "button",
                                 "text": {"type": "plain_text", "text": "Reject"},
                                 "style": "danger",
                                 "value": values,
-                                "action_id": "reject_ticket",
+                                "action_id": "helpdesk_reject",
                             },
                             {
                                 "type": "button",
@@ -1578,8 +1578,7 @@ def send_the_user_input(ack, body, client, say, view):
 @app.action("start_chat")
 def handle_start_chat(ack, client, body):
     ack()
-    print(f"check {body}")
-    [ticket_id, user_id] = body["actions"][2]["value"].split("@@")
+    [ticket_id, user_id] = body["actions"][0]["value"].split("@@")
     support_id = "U05LPMNQBBK"
 
     try:
@@ -1614,7 +1613,7 @@ def handle_start_chat(ack, client, body):
         blocks[2]["elements"] = [
             button
             for button in blocks[2]["elements"]
-            if button["action_id"] in ["resolve_ticket", "reject_ticket"]
+            if button["action_id"] in ["helpdesk_resolve", "helpdesk_reject"]
         ]
 
         client.chat_update(
@@ -2536,6 +2535,7 @@ def select_custom_category(ack, body, client, view, logger):
         )
 
 
+@app.action("helpdesk_resolve")
 @app.action("emergency_resolve")
 @app.action("resolve_button")
 def resolve_button(ack, body, client, logger):
@@ -2883,6 +2883,7 @@ def resolve_button(ack, body, client, logger):
         logger.error(f"Error resolve function: {str(e)}")
 
 
+@app.action("helpdesk_reject")
 @app.action("reject_button")
 def reject_button(ack, body, client):
     ack()
