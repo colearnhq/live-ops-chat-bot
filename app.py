@@ -1620,7 +1620,7 @@ def handle_start_chat(ack, client, body):
         blocks[2]["elements"] = [
             button
             for button in blocks[2]["elements"]
-            if button["action_id"] in ["helpdesk_resolve", "helpdesk_reject"]
+            if button["action_id"] in ["helpdesk_resolve"]
         ]
 
         blocks[2]["elements"][0]["action_id"] = "helpdesk_resolve_post_chatting"
