@@ -22,6 +22,7 @@ class SheetManager:
             self.piket_sheet = client.open_by_key(sheet_key).worksheet("piket")
             self.slot_data = client.open_by_key(sheet_key).worksheet("slot_data")
             self.emergency = client.open_by_key(sheet_key).worksheet("emergency")
+            self.it_helpdesk = client.open_by_key(sheet_key).worksheet("it_helpdesk")
         except Exception as e:
             logging.error(f"Failed to initialize SheetManager: {str(e)}")
 
@@ -91,6 +92,33 @@ class SheetManager:
             self.emergency.append_row(data)
         except Exception as e:
             logging.error(f"Failed to initialize emergency row: {str(e)}")
+
+    def init_it_helpdesk(
+        self,
+        it_helpdesk_id,
+        user_reported,
+        issue_type,
+        issue_description,
+        urgency_level,
+        incident_date_time,
+        attachment_files,
+        timestamp_utc,
+    ):
+        try:
+            timestamp_local = self.convert_to_local_time(timestamp_utc)
+            data = [
+                it_helpdesk_id,
+                timestamp_local,
+                user_reported,
+                issue_type,
+                issue_description,
+                urgency_level,
+                incident_date_time,
+                attachment_files,
+            ]
+            self.it_helpdesk.append_row(data)
+        except Exception as e:
+            logging.error(f"Failed to populate the data on it_helpdesk: {str(e)}")
 
     def init_piket_row(
         self,
