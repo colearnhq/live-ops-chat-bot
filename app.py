@@ -2558,7 +2558,7 @@ def resolve_button_post_conv(ack, body, client, logger):
     ].split("@@")
     timestamp_utc = datetime.utcnow()
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
-    general_info = f"We will close this conversation of {ticket_id}, you can still check the history chat."
+    general_info = f"We will close the conversation of `{ticket_id}`, you can still check the history chat."
     try:
         blocks = body["message"]["blocks"]
         blocks[1]["fields"][7]["text"] = "*Status:*\n:white_check_mark: Resolved"
@@ -2580,7 +2580,7 @@ def resolve_button_post_conv(ack, body, client, logger):
             channel=helpdesk_cn, thread_ts=helpdesk_ts, text=general_info
         )
         print(f"cek channel conv id {conv_id}")
-        client.conversations_archive(channel=conv_id)
+        client.conversations_close(channel=conv_id)
     except Exception as e:
         logging.error(f"Error in closing the conversation: {str(e)}")
 
