@@ -1404,6 +1404,7 @@ def send_the_user_input(ack, body, client, say, view):
                         urgency_level,
                         incident_date_time,
                         compiled_files_str,
+                        timestamp_utc,
                     )
                 else:
                     say("Failed to post the message")
