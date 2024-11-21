@@ -1396,20 +1396,21 @@ def send_the_user_input(ack, body, client, say, view):
                         inserting_imgs_thread(
                             client, helpdesk_cn, response_ts, helpdesk_files
                         )
-                    sheet_manager.init_it_helpdesk(
-                        ticket_id,
-                        get_real_name(client, user_id),
-                        issue_type,
-                        helpdesk_issue_description,
-                        urgency_level,
-                        incident_date_time,
-                        compiled_files_str,
-                        timestamp_utc,
-                    )
                 else:
                     say("Failed to post the message")
             else:
                 say("Failed to post message to the user")
+
+            sheet_manager.init_it_helpdesk(
+                ticket_id,
+                get_real_name(client, user_id),
+                issue_type,
+                helpdesk_issue_description,
+                urgency_level,
+                incident_date_time,
+                compiled_files_str,
+                timestamp_utc,
+            )
         except Exception as e:
             logging.error(f"An error occured on helpdesk {str(e)}")
 
