@@ -2897,7 +2897,6 @@ def reject_button(ack, body, client):
     conditional_index = conditional_indexing(blocks)
     elements = blocks[conditional_index[0]]["elements"]
     reject_button_value = elements[conditional_index[1]]["value"]
-    print(f"we check reject value {reject_button_value}")
     timestamp_utc = datetime.utcnow()
     sheet_manager.update_ticket(
         f"live-ops.{message_ts}",
@@ -2939,7 +2938,7 @@ def show_reject_modal(ack, body, client, view, logger):
     ack()
     try:
         user_id = body["user"]["id"]
-        [channel_id, message_ts, reject_button_value] = view["private_metadata"].split(
+        [channel_id, message_ts, *reject_button_value] = view["private_metadata"].split(
             "@@"
         )
         reflected_ts = ticket_manager.get_reflected_ts(message_ts)
