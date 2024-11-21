@@ -1400,7 +1400,7 @@ def send_the_user_input(ack, body, client, say, view):
                         ticket_id,
                         get_real_name(client, user_id),
                         issue_type,
-                        issue_description,
+                        helpdesk_issue_description,
                         urgency_level,
                         incident_date_time,
                         compiled_files_str,
