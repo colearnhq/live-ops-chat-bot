@@ -1247,6 +1247,8 @@ def send_the_user_input(ack, body, client, say, view):
                 for file in helpdesk_files
             ]
         }
+        print(f"we got files {helpdesk_files}")
+        print(f"we got body {body}")
         compiled_files_str = json.dumps(compiled_files_json, indent=4)
         sheet_manager.init_it_helpdesk(
             ticket_id,
