@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from slack_sdk.errors import SlackApiError
 from database import SheetManager
 import pytz
+import json
 
 load_dotenv(".env.dev")
 
@@ -1225,16 +1226,29 @@ def send_the_user_input(ack, body, client, say, view):
         urgency_level = view_state["urgency_id"]["handle_urgency_level"][
             "selected_option"
         ]["value"]
+        incident_date_time = view_state["datetime_id"]["datetimepicker_action"][
+            "selected_date_time"
+        ]
         date_time = convert_utc_to_jakarta(
-            datetime.utcfromtimestamp(
-                view_state["datetime_id"]["datetimepicker_action"]["selected_date_time"]
-            )
+            datetime.utcfromtimestamp(incident_date_time)
         )
         helpdesk_files = (
             view_state.get("file_upload_id", {})
             .get("file_input_action", {})
             .get("files", [])
         )
+        compiled_files_json = {
+            "files": [
+                {
+                    "id": file.get("id"),
+                    "name": file.get("name"),
+                    "url": file.get("url_private"),
+                }
+                for file in helpdesk_files
+            ]
+        }
+        compiled_files_str = json.dumps(compiled_files_json, indent=4)
+
         try:
             if helpdesk_files:
                 ticket_manager.store_files(initial_ts, helpdesk_files)
@@ -1382,6 +1396,15 @@ def send_the_user_input(ack, body, client, say, view):
                         inserting_imgs_thread(
                             client, helpdesk_cn, response_ts, helpdesk_files
                         )
+                    sheet_manager.init_it_helpdesk(
+                        ticket_id,
+                        get_real_name(client, user_id),
+                        issue_type,
+                        issue_description,
+                        urgency_level,
+                        incident_date_time,
+                        compiled_files_str,
+                    )
                 else:
                     say("Failed to post the message")
             else:
