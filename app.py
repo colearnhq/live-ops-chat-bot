@@ -2562,7 +2562,7 @@ def resolve_button_post_conv(ack, body, client, logger):
     try:
         blocks = body["message"]["blocks"]
         blocks[1]["fields"][7]["text"] = "*Status:*\n:white_check_mark: Resolved"
-        blocks[1]["fields"].push(
+        blocks[1]["fields"].append(
             {"type": "mrkdwn", "text": f"*Resolved At:*\n{timestamp_jakarta}"}
         )
         blocks.pop(2)
@@ -2792,7 +2792,7 @@ def resolve_button(ack, body, client, logger):
             [ticket_id, user_reported, user_ts] = resolve_button_value[0:3]
             blocks = body["message"]["blocks"]
             blocks[1]["fields"][7]["text"] = "*Status:*\n:white_check_mark: Resolved"
-            blocks[1]["fields"].push(
+            blocks[1]["fields"].append(
                 {"type": "mrkdwn", "text": f"*Resolved At:*\n{timestamp_jakarta}"}
             )
             blocks.pop(2)
