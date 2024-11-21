@@ -1304,7 +1304,7 @@ def send_the_user_input(ack, body, client, say, view):
             )
             if user_msg["ok"]:
                 user_ts = user_msg["ts"]
-                values = f"{ticket_id}@@{user_id}@@{user_ts}@@{category}"
+                values = f"{ticket_id}@@{user_id}@@{user_ts}@@{full_name}@@{timestamp_jakarta}@@{issue_type}@@{helpdesk_issue_description}@@{urgency_level}@@{date_time}@@{category}"
                 helpdesk_ticket_blocks = [
                     {
                         "type": "header",
@@ -2740,7 +2740,7 @@ def resolve_button(ack, body, client, logger):
                 )
 
         elif category_ticket == "IT Helpdesk":
-            [ticket_id, user_reported, user_ts] = resolve_button_value[:-1]
+            [ticket_id, user_reported, user_ts] = resolve_button_value[0:3]
             blocks = body["message"]["blocks"]
             blocks[1]["fields"][7]["text"] = "*Status:*\n:white_check_mark: Resolved"
             blocks.pop(2)
@@ -2934,7 +2934,7 @@ def reject_button(ack, body, client):
 
 
 @app.view("modal_reject")
-def show_reject_modal(ack, body, client, view, logger):
+def show_reject_modal(ack, body, client, view, logger, say):
     ack()
     try:
         user_id = body["user"]["id"]
@@ -2947,7 +2947,6 @@ def show_reject_modal(ack, body, client, view, logger):
         timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
         ticket_category = reject_button_value[-1]
         ticket_manager.update_ticket_status(message_ts, "assigned")
-        print(f"check reject value {reject_button_value}")
 
         if ticket_category == "Others":
             [
@@ -3052,8 +3051,76 @@ def show_reject_modal(ack, body, client, view, logger):
             else:
                 logger.error("No value information available for this channel.")
         elif ticket_category == "IT Helpdesk":
-            [ticket_id, helpdesk_reporter, reporter_ts] = reject_button_value[:-1]
-            print(f"check body through reject modal: {body}")
+            helpdesk_rejection_text = f"<@{user_id}> has rejected the helpdesk request at `{timestamp_jakarta}` due to: `{reason}`."
+            [
+                ticket_id,
+                helpdesk_reporter,
+                reporter_ts,
+                full_name,
+                timestamp_jakarta,
+                issue_type,
+                issue_desc,
+                urgency_level,
+                incident_time,
+            ] = reject_button_value[:-1]
+            helpdesk_user_response = client.chat_postMessage(
+                channel=channel_id, thread_ts=message_ts, text=helpdesk_rejection_text
+            )
+            if helpdesk_user_response["ok"]:
+                helpdesk_ticket_blocks = [
+                    {
+                        "type": "header",
+                        "text": {
+                            "type": "plain_text",
+                            "text": f"New Helpdesk Ticket: {ticket_id}",
+                        },
+                    },
+                    {
+                        "type": "section",
+                        "fields": [
+                            {"type": "mrkdwn", "text": f"*User Name:*\n{full_name}"},
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Requested by:*\n<@{user_id}>",
+                            },
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Requested at:*\n`{timestamp_jakarta}`",
+                            },
+                            {"type": "mrkdwn", "text": f"*Issue Type:*\n{issue_type}"},
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Issue Description:*\n```{issue_desc}```",
+                            },
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Urgency Level:*\n{urgency_level}",
+                            },
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Incident Date and Time:*\n`{incident_time}`",
+                            },
+                            {"type": "mrkdwn", "text": f"*Status:*\n:x: Rejected"},
+                        ],
+                    },
+                ]
+
+                client.chat_update(
+                    channel=channel_id,
+                    ts=message_ts,
+                    text="Sorry, We reject this helpdesk request.",
+                    blocks=helpdesk_ticket_blocks,
+                )
+
+                client.chat_postMessage(
+                    channel=helpdesk_reporter,
+                    thread_ts=reporter_ts,
+                    text=f":smiling_face_with_tear: Your request got the boot due to `{reason}` at `{timestamp_jakarta}`. But hey, no worries! You can always throw another helpdesk request our way soon!",
+                )
+            else:
+                say(
+                    "Failed to send message to thread after reject the helpdesk request"
+                )
 
         elif ticket_category == "Piket":
             [
