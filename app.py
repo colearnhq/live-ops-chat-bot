@@ -2743,6 +2743,7 @@ def resolve_button(ack, body, client, logger):
             [ticket_id, user_reported, user_ts] = resolve_button_value[:-1]
             blocks = body["message"]["blocks"]
             blocks[1]["fields"][7]["text"] = "*Status:*\n:white_check_mark: Resolved"
+            blocks.pop(2)
 
             client.chat_update(channel=channel_id, ts=thread_ts, blocks=blocks)
 
