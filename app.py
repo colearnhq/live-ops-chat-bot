@@ -2947,6 +2947,7 @@ def show_reject_modal(ack, body, client, view, logger):
         timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
         ticket_category = reject_button_value[-1]
         ticket_manager.update_ticket_status(message_ts, "assigned")
+        print(f"check reject value {reject_button_value}")
 
         if ticket_category == "Others":
             [
