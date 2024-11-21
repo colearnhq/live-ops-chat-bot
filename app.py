@@ -2563,7 +2563,7 @@ def resolve_button_post_conv(ack, body, client, logger):
         blocks = body["message"]["blocks"]
         blocks[1]["fields"][7]["text"] = "*Status:*\n:white_check_mark: Resolved"
         blocks[1]["fields"].append(
-            {"type": "mrkdwn", "text": f"*Resolved At:*\n{timestamp_jakarta}"}
+            {"type": "mrkdwn", "text": f"*Resolved At:*\n`{timestamp_jakarta}`"}
         )
         blocks.pop(2)
 
@@ -2579,7 +2579,7 @@ def resolve_button_post_conv(ack, body, client, logger):
         client.chat_postMessage(
             channel=helpdesk_cn, thread_ts=helpdesk_ts, text=general_info
         )
-
+        print(f"cek channel conv id {conv_id}")
         client.conversations_archive(channel=conv_id)
     except Exception as e:
         logging.error(f"Error in closing the conversation: {str(e)}")
@@ -2793,7 +2793,7 @@ def resolve_button(ack, body, client, logger):
             blocks = body["message"]["blocks"]
             blocks[1]["fields"][7]["text"] = "*Status:*\n:white_check_mark: Resolved"
             blocks[1]["fields"].append(
-                {"type": "mrkdwn", "text": f"*Resolved At:*\n{timestamp_jakarta}"}
+                {"type": "mrkdwn", "text": f"*Resolved At:*\n`{timestamp_jakarta}`"}
             )
             blocks.pop(2)
 
