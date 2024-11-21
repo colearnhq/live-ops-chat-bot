@@ -1248,6 +1248,16 @@ def send_the_user_input(ack, body, client, say, view):
             ]
         }
         compiled_files_str = json.dumps(compiled_files_json, indent=4)
+        sheet_manager.init_it_helpdesk(
+            ticket_id,
+            get_real_name(client, user_id),
+            issue_type,
+            helpdesk_issue_description,
+            urgency_level,
+            incident_date_time,
+            compiled_files_str,
+            timestamp_utc,
+        )
 
         try:
             if helpdesk_files:
@@ -1400,17 +1410,6 @@ def send_the_user_input(ack, body, client, say, view):
                     say("Failed to post the message")
             else:
                 say("Failed to post message to the user")
-
-            sheet_manager.init_it_helpdesk(
-                ticket_id,
-                get_real_name(client, user_id),
-                issue_type,
-                helpdesk_issue_description,
-                urgency_level,
-                incident_date_time,
-                compiled_files_str,
-                timestamp_utc,
-            )
         except Exception as e:
             logging.error(f"An error occured on helpdesk {str(e)}")
 
