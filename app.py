@@ -1578,8 +1578,9 @@ def send_the_user_input(ack, body, client, say, view):
 @app.action("start_chat")
 def handle_start_chat(ack, client, body):
     ack()
+    print(f"check {body['actions'][2]['value']}")
     [ticket_id, user_id] = body["actions"][2]["value"].split("@@")
-    support_id = body["user"]["id"]
+    support_id = "U05LPMNQBBK"
 
     try:
         conversation = client.conversations_open(users=f"{user_id},{support_id}")
