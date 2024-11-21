@@ -1364,7 +1364,7 @@ def send_the_user_input(ack, body, client, say, view):
                                     "type": "plain_text",
                                     "text": "Start Chatting",
                                 },
-                                "value": f"{ticket_id}@@{user_id}",
+                                "value": f"{ticket_id}@@{user_id}@@{user_ts}",
                                 "action_id": "start_chat",
                             },
                         ],
@@ -1578,12 +1578,18 @@ def send_the_user_input(ack, body, client, say, view):
 @app.action("start_chat")
 def handle_start_chat(ack, client, body):
     ack()
-    [ticket_id, user_id] = body["actions"][0]["value"].split("@@")
+    [ticket_id, user_id, user_ts] = body["actions"][0]["value"].split("@@")
+    staff_ts = body["message"]["ts"]
     support_id = "U05LPMNQBBK"
 
     try:
         conversation = client.conversations_open(users=f"{user_id},{support_id}")
         channel_id = conversation["channel"]["id"]
+        client.chat_postMessage(
+            channel=user_id,
+            thread_ts=user_ts,
+            text=f"Hi <@{user_id}>!\n<@{support_id}> will be reaching out to assist you shortly.\nWe’re here to help and will facilitate this conversation for a smooth resolution. Please hang tight! :wave:",
+        )
         client.chat_postMessage(
             channel=channel_id,
             text="We are starting to chat our beloved user..",
@@ -1617,8 +1623,17 @@ def handle_start_chat(ack, client, body):
             if button["action_id"] in ["helpdesk_resolve", "helpdesk_reject"]
         ]
 
+        blocks[2]["elements"][0][
+            "value"
+        ] = f"{ticket_id}@@{user_id}@@{user_ts}@@{channel_id}@@{staff_ts}"
+
+        blocks[2]["elements"][0]["action_id"] = "helpdesk_resolve_post_conversation"
+
         client.chat_update(
-            channel=body["channel"]["id"], ts=message["ts"], blocks=blocks
+            channel=body["channel"]["id"],
+            ts=message["ts"],
+            text="We are updating this block.",
+            blocks=blocks,
         )
     except Exception as e:
         logging.error(f"Any error when starting chat with error: {str(e)}")
@@ -2536,6 +2551,25 @@ def select_custom_category(ack, body, client, view, logger):
         )
 
 
+@app.action("helpdesk_resolve_post_conversation")
+def resolve_button_post_conv(ack, body, client, logger):
+    ack()
+    [ticket_id, user_id, user_ts, conv_id, helpdesk_ts] = body["actions"][0][
+        "value"
+    ].split("@@")
+    general_info = f"We will close this conversation of {ticket_id}, you can still check the history chat."
+    try:
+        client.chat_postMessage(channel=user_id, thread_ts=user_ts, text=general_info)
+
+        client.chat_postMessage(
+            channel=helpdesk_cn, thread_ts=helpdesk_ts, text=general_info
+        )
+
+        client.conversations_archive(channel=conv_id)
+    except Exception as e:
+        logging.error(f"Error in closing the conversation: {str(e)}")
+
+
 @app.action("helpdesk_resolve")
 @app.action("emergency_resolve")
 @app.action("resolve_button")
@@ -2743,6 +2777,9 @@ def resolve_button(ack, body, client, logger):
             [ticket_id, user_reported, user_ts] = resolve_button_value[0:3]
             blocks = body["message"]["blocks"]
             blocks[1]["fields"][7]["text"] = "*Status:*\n:white_check_mark: Resolved"
+            blocks[1]["fields"].push(
+                {"type": "mrkdwn", "text": f"*Resolved At:*\n{timestamp_jakarta}"}
+            )
             blocks.pop(2)
 
             client.chat_update(channel=channel_id, ts=thread_ts, blocks=blocks)
@@ -2750,7 +2787,7 @@ def resolve_button(ack, body, client, logger):
             client.chat_postMessage(
                 channel=user_reported,
                 thread_ts=user_ts,
-                text=f"Your helpdesk ticket: *{ticket_id}* has been resolved by <@{user_id}>.",
+                text=f"Your helpdesk ticket: *{ticket_id}* has been resolved by <@{user_id}> at `{timestamp_jakarta}`",
             )
         elif category_ticket == "Others":
             user_who_requested_ticket_id = resolve_button_value[0]
