@@ -2897,6 +2897,7 @@ def reject_button(ack, body, client):
     conditional_index = conditional_indexing(blocks)
     elements = blocks[conditional_index[0]]["elements"]
     reject_button_value = elements[conditional_index[1]]["value"]
+    print(f"we check reject value {reject_button_value}")
     timestamp_utc = datetime.utcnow()
     sheet_manager.update_ticket(
         f"live-ops.{message_ts}",
