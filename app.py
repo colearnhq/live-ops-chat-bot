@@ -188,7 +188,7 @@ def save_chat_to_file(messages, file_name="chat_history.txt"):
 
 def upload_file_to_slack(client, file_path, channels):
     try:
-        response = client.files_upload(
+        response = client.files_upload_v2(
             channels=channels,
             file=file_path,
             title="Chat History",
