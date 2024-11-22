@@ -172,7 +172,7 @@ def get_chat_history(client, channel_id, start_ts):
             user_id = message.get("user", "Unknown User")
             real_name = get_real_name(client, user_id)
             text = message.get("text", "")
-            timestamp = convert_utc_to_jakarta(message["ts"])
+            timestamp = convert_utc_to_jakarta(datetime.utcfromtimestamp(message["ts"]))
             procceed_message.append(f"[{timestamp}] {real_name}: {text}")
 
         return procceed_message
