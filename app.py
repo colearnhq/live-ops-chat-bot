@@ -175,7 +175,7 @@ def get_chat_history(client, channel_id, start_ts):
             timestamp = convert_utc_to_jakarta(
                 datetime.utcfromtimestamp(float(message["ts"]))
             )
-            print(f"cek the original message {message["text"]}")
+            print(f"cek the original message {message['text']}")
             procceed_message.append(f"[{timestamp}] {real_name}: {text}")
 
         return procceed_message
