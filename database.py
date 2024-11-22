@@ -284,3 +284,39 @@ class SheetManager:
             "resolved_by": 4,
             "resolved_at": 5,
         }
+
+    def update_helpdesk(self, it_helpdesk_id, updates):
+        try:
+            row = self.find_it_helpdesk_id(it_helpdesk_id)
+            if row:
+                for key, value in updates.items():
+                    col = self.helpdesk_col_mapping[key]
+                    if "at" in key and isinstance(value, datetime):
+                        value = self.convert_to_local_time(value)
+                    self.it_helpdesk.update_cell(row, col, value)
+        except Exception as e:
+            logging.error(f"Failed to update row: {str(e)}")
+
+    def find_it_helpdesk_id(self, it_helpdesk_id):
+        it_helpdesk_id_col = 1
+        col_values = self.it_helpdesk.col_values(it_helpdesk_id_col)
+        for i, val in enumerate(col_values):
+            if val == it_helpdesk_id:
+                return i + 1
+        return None
+
+    @property
+    def helpdesk_col_mapping(self):
+        return {
+            "it_helpdesk_id": 1,
+            "timestamp": 2,
+            "user_reported": 3,
+            "issue_type": 4,
+            "issue_description": 5,
+            "urgency_level": 6,
+            "incident_date_time": 7,
+            "attachment_files": 8,
+            "resolved_by": 9,
+            "resolved_at": 10,
+            "history_chat": 11,
+        }
