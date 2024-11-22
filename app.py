@@ -160,6 +160,46 @@ def truncate_value(value, max_length=25):
     )
 
 
+def get_chat_history(client, channel_id):
+    try:
+        response = client.conversations_history(channel=channel_id)
+        messages = response["messages"]
+        return messages
+    except SlackApiError as e:
+        logging.error(f"Error fetching chat history: {str(e)}")
+        return None
+
+
+def save_chat_to_file(messages, file_name="chat_history.txt"):
+    try:
+        with open(file_name, "w") as file:
+            for message in messages:
+                user = message.get("user", "Unknown User")
+                text = message.get("text", "No message text")
+                ts = datetime.fromtimestamp(float(message["ts"])).strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                )
+                file.write(f"[{ts}] {user}: {text}\n")
+        return file_name
+    except Exception as e:
+        logging.error(f"Error saving chat to file: {str(e)}")
+        return None
+
+
+def upload_file_to_slack(client, file_path, channels):
+    try:
+        response = client.files_upload(
+            channels=channels,
+            file=file_path,
+            title="Chat History",
+            initial_comment="Here is the chat history.",
+        )
+        return response["file"]["url_private"]
+    except SlackApiError as e:
+        logging.error(f"Error uploading file to Slack: {str(e)}")
+        return None
+
+
 def inserting_imgs_thread(client, channel_id, ts, files):
     blocks = []
 
@@ -1247,8 +1287,7 @@ def send_the_user_input(ack, body, client, say, view):
                 for file in helpdesk_files
             ]
         }
-        print(f"we got files {helpdesk_files}")
-        print(f"we got body {body}")
+
         compiled_files_str = json.dumps(compiled_files_json, indent=4)
         sheet_manager.init_it_helpdesk(
             ticket_id,
@@ -2585,7 +2624,26 @@ def resolve_button_post_chatting(ack, body, client, logger):
     ][0]["value"].split("@@")
     timestamp_utc = datetime.utcnow()
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
+
     try:
+        messages = get_chat_history(client, conv_id)
+        file_url = None
+
+        if messages:
+            file_name = save_chat_to_file(messages, f"chat_history_{ticket_id}.txt")
+            if file_name:
+                file_url = upload_file_to_slack(client, file_name, conv_id)
+
+        updates = {
+            "resolved_by": get_real_name(client, support_id),
+            "resolved_at": timestamp_jakarta,
+        }
+        if file_url:
+            updates["history_chat"] = file_url
+
+        sheet_manager.update_helpdesk(ticket_id, updates)
+
+        # Update helpdesk blocks to show resolved status
         blocks = body["message"]["blocks"]
         blocks[1]["fields"][7]["text"] = "*Status:*\n:white_check_mark: Resolved"
         blocks[1]["fields"].append(
@@ -2595,17 +2653,60 @@ def resolve_button_post_chatting(ack, body, client, logger):
 
         client.chat_update(channel=helpdesk_cn, ts=staff_ts, blocks=blocks)
 
+        # Notify the user about the resolution
         client.chat_postMessage(
             channel=user_reported,
             thread_ts=user_ts,
             text=f"Your helpdesk ticket: *{ticket_id}* has been resolved by <@{support_id}> at `{timestamp_jakarta}`",
         )
+
+        # Send final message in conversation
         client.chat_postMessage(
             channel=conv_id,
             text=f"Thanks so much for chatting with us! 🎉 We’re happy we could help. This conversation is all wrapped up now, but don’t hesitate to reach out again if you need anything else.\n\nHave an awesome day, <@{user_reported}>! 🌟",
         )
+
+        logger.info(f"Ticket {ticket_id} resolved successfully.")
     except Exception as e:
-        logging.error(f"Any error on resolving post chatting: {str(e)}")
+        logging.error(f"Error resolving post chatting: {str(e)}")
+
+
+# @app.action("helpdesk_resolve_post_chatting")
+# def resolve_button_post_chatting(ack, body, client, logger):
+#     ack()
+#     [ticket_id, user_reported, user_ts, conv_id, support_id, staff_ts] = body[
+#         "actions"
+#     ][0]["value"].split("@@")
+#     timestamp_utc = datetime.utcnow()
+#     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
+#     sheet_manager.update_helpdesk(
+#         ticket_id,
+#         {
+#             "resolved_by": get_real_name(client, support_id),
+#             "resolved_at": timestamp_jakarta,
+#         },
+#     )
+#     try:
+#         blocks = body["message"]["blocks"]
+#         blocks[1]["fields"][7]["text"] = "*Status:*\n:white_check_mark: Resolved"
+#         blocks[1]["fields"].append(
+#             {"type": "mrkdwn", "text": f"*Resolved At:*\n`{timestamp_jakarta}`"}
+#         )
+#         blocks.pop(2)
+
+#         client.chat_update(channel=helpdesk_cn, ts=staff_ts, blocks=blocks)
+
+#         client.chat_postMessage(
+#             channel=user_reported,
+#             thread_ts=user_ts,
+#             text=f"Your helpdesk ticket: *{ticket_id}* has been resolved by <@{support_id}> at `{timestamp_jakarta}`",
+#         )
+#         client.chat_postMessage(
+#             channel=conv_id,
+#             text=f"Thanks so much for chatting with us! 🎉 We’re happy we could help. This conversation is all wrapped up now, but don’t hesitate to reach out again if you need anything else.\n\nHave an awesome day, <@{user_reported}>! 🌟",
+#         )
+#     except Exception as e:
+#         logging.error(f"Any error on resolving post chatting: {str(e)}")
 
 
 @app.action("helpdesk_resolve")
@@ -2827,6 +2928,15 @@ def resolve_button(ack, body, client, logger):
                 thread_ts=user_ts,
                 text=f"Your helpdesk ticket: *{ticket_id}* has been resolved by <@{user_id}> at `{timestamp_jakarta}`",
             )
+
+            sheet_manager.update_helpdesk(
+                ticket_id,
+                {
+                    "resolved_by": get_real_name(client, user_id),
+                    "resolved_at": timestamp_jakarta,
+                },
+            )
+
         elif category_ticket == "Others":
             user_who_requested_ticket_id = resolve_button_value[0]
             user_message_ts = resolve_button_value[1]
