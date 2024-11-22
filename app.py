@@ -175,6 +175,7 @@ def get_chat_history(client, channel_id, start_ts):
             timestamp = convert_utc_to_jakarta(
                 datetime.utcfromtimestamp(float(message["ts"]))
             )
+            print(f"cek the original message {message["text"]}")
             procceed_message.append(f"[{timestamp}] {real_name}: {text}")
 
         return procceed_message
@@ -2675,44 +2676,6 @@ def resolve_button_post_chatting(ack, body, client, logger):
         logger.info(f"Ticket {ticket_id} resolved successfully.")
     except Exception as e:
         logging.error(f"Error resolving post chatting: {str(e)}")
-
-
-# @app.action("helpdesk_resolve_post_chatting")
-# def resolve_button_post_chatting(ack, body, client, logger):
-#     ack()
-#     [ticket_id, user_reported, user_ts, conv_id, support_id, staff_ts] = body[
-#         "actions"
-#     ][0]["value"].split("@@")
-#     timestamp_utc = datetime.utcnow()
-#     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
-#     sheet_manager.update_helpdesk(
-#         ticket_id,
-#         {
-#             "resolved_by": get_real_name(client, support_id),
-#             "resolved_at": timestamp_jakarta,
-#         },
-#     )
-#     try:
-#         blocks = body["message"]["blocks"]
-#         blocks[1]["fields"][7]["text"] = "*Status:*\n:white_check_mark: Resolved"
-#         blocks[1]["fields"].append(
-#             {"type": "mrkdwn", "text": f"*Resolved At:*\n`{timestamp_jakarta}`"}
-#         )
-#         blocks.pop(2)
-
-#         client.chat_update(channel=helpdesk_cn, ts=staff_ts, blocks=blocks)
-
-#         client.chat_postMessage(
-#             channel=user_reported,
-#             thread_ts=user_ts,
-#             text=f"Your helpdesk ticket: *{ticket_id}* has been resolved by <@{support_id}> at `{timestamp_jakarta}`",
-#         )
-#         client.chat_postMessage(
-#             channel=conv_id,
-#             text=f"Thanks so much for chatting with us! 🎉 We’re happy we could help. This conversation is all wrapped up now, but don’t hesitate to reach out again if you need anything else.\n\nHave an awesome day, <@{user_reported}>! 🌟",
-#         )
-#     except Exception as e:
-#         logging.error(f"Any error on resolving post chatting: {str(e)}")
 
 
 @app.action("helpdesk_resolve")
