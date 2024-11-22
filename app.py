@@ -166,7 +166,16 @@ def get_chat_history(client, channel_id, start_ts):
             channel=channel_id, oldest=start_ts, inclusive=True
         )
         messages = response["messages"]
-        return messages
+        procceed_message = []
+
+        for message in messages:
+            user_id = message.get("user", "Unknown User")
+            real_name = get_real_name(user_id)
+            text = message.get("text", "")
+            timestamp = convert_utc_to_jakarta(message["ts"])
+            procceed_message.append(f"[{timestamp}] {real_name}: {text}")
+
+        return procceed_message
     except SlackApiError as e:
         logging.error(f"Error fetching chat history: {str(e)}")
         return None
@@ -175,13 +184,8 @@ def get_chat_history(client, channel_id, start_ts):
 def save_chat_to_file(messages, file_name="chat_history.txt"):
     try:
         with open(file_name, "w") as file:
-            for message in messages:
-                user = message.get("user", "Unknown User")
-                text = message.get("text", "No message text")
-                ts = datetime.fromtimestamp(float(message["ts"])).strftime(
-                    "%Y-%m-%d %H:%M:%S"
-                )
-                file.write(f"[{ts}] {user}: {text}\n")
+            for line in messages:
+                file.write(line + "\n")
         return file_name
     except Exception as e:
         logging.error(f"Error saving chat to file: {str(e)}")
