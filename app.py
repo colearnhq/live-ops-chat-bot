@@ -160,9 +160,11 @@ def truncate_value(value, max_length=25):
     )
 
 
-def get_chat_history(client, channel_id):
+def get_chat_history(client, channel_id, start_ts):
     try:
-        response = client.conversations_history(channel=channel_id)
+        response = client.conversations_history(
+            channel=channel_id, oldest=start_ts, inclusive=True
+        )
         messages = response["messages"]
         return messages
     except SlackApiError as e:
@@ -1655,7 +1657,7 @@ def handle_start_chat(ack, client, body):
             thread_ts=user_ts,
             text=f"Hi <@{user_id}>!\n<@{support_id}> will be reaching out to assist you shortly.\nWe’re here to help and will facilitate this conversation for a smooth resolution. Please hang tight! :wave:",
         )
-        client.chat_postMessage(
+        greeting = client.chat_postMessage(
             channel=channel_id,
             text="We are starting to chat our beloved user..",
             blocks=[
@@ -1677,6 +1679,7 @@ def handle_start_chat(ack, client, body):
                 },
             ],
         )
+        start_ts = greeting["ts"]
         message = body["message"]
         blocks = message["blocks"]
 
@@ -1692,7 +1695,7 @@ def handle_start_chat(ack, client, body):
 
         blocks[2]["elements"][0][
             "value"
-        ] = f"{ticket_id}@@{user_id}@@{user_ts}@@{channel_id}@@{support_id}@@{staff_ts}"
+        ] = f"{ticket_id}@@{user_id}@@{user_ts}@@{channel_id}@@{support_id}@@{staff_ts}@@{start_ts}"
 
         client.chat_update(
             channel=body["channel"]["id"],
@@ -2619,14 +2622,14 @@ def select_custom_category(ack, body, client, view, logger):
 @app.action("helpdesk_resolve_post_chatting")
 def resolve_button_post_chatting(ack, body, client, logger):
     ack()
-    [ticket_id, user_reported, user_ts, conv_id, support_id, staff_ts] = body[
+    [ticket_id, user_reported, user_ts, conv_id, support_id, staff_ts, start_ts] = body[
         "actions"
     ][0]["value"].split("@@")
     timestamp_utc = datetime.utcnow()
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
 
     try:
-        messages = get_chat_history(client, conv_id)
+        messages = get_chat_history(client, conv_id, start_ts)
         file_url = None
 
         if messages:
@@ -2643,7 +2646,6 @@ def resolve_button_post_chatting(ack, body, client, logger):
 
         sheet_manager.update_helpdesk(ticket_id, updates)
 
-        # Update helpdesk blocks to show resolved status
         blocks = body["message"]["blocks"]
         blocks[1]["fields"][7]["text"] = "*Status:*\n:white_check_mark: Resolved"
         blocks[1]["fields"].append(
@@ -2653,14 +2655,12 @@ def resolve_button_post_chatting(ack, body, client, logger):
 
         client.chat_update(channel=helpdesk_cn, ts=staff_ts, blocks=blocks)
 
-        # Notify the user about the resolution
         client.chat_postMessage(
             channel=user_reported,
             thread_ts=user_ts,
             text=f"Your helpdesk ticket: *{ticket_id}* has been resolved by <@{support_id}> at `{timestamp_jakarta}`",
         )
 
-        # Send final message in conversation
         client.chat_postMessage(
             channel=conv_id,
             text=f"Thanks so much for chatting with us! 🎉 We’re happy we could help. This conversation is all wrapped up now, but don’t hesitate to reach out again if you need anything else.\n\nHave an awesome day, <@{user_reported}>! 🌟",
