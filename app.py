@@ -172,7 +172,9 @@ def get_chat_history(client, channel_id, start_ts):
             user_id = message.get("user", "Unknown User")
             real_name = get_real_name(client, user_id)
             text = message.get("text", "")
-            timestamp = convert_utc_to_jakarta(datetime.utcfromtimestamp(message["ts"]))
+            timestamp = convert_utc_to_jakarta(
+                datetime.utcfromtimestamp(float(message["ts"]))
+            )
             procceed_message.append(f"[{timestamp}] {real_name}: {text}")
 
         return procceed_message
@@ -1301,7 +1303,7 @@ def send_the_user_input(ack, body, client, say, view):
             issue_type,
             helpdesk_issue_description,
             urgency_level,
-            incident_date_time,
+            date_time,
             compiled_files_str,
             timestamp_utc,
         )
@@ -2633,13 +2635,13 @@ def resolve_button_post_chatting(ack, body, client, logger):
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
 
     try:
-        messages = get_chat_history(client, conv_id, start_ts)
+        messages = get_chat_history(client, conv_id, float(start_ts))
         file_url = None
 
         if messages:
             file_name = save_chat_to_file(messages, f"chat_history_{ticket_id}.txt")
             if file_name:
-                file_url = upload_file_to_slack(client, file_name, conv_id)
+                file_url = upload_file_to_slack(client, file_name, [conv_id])
 
         updates = {
             "resolved_by": get_real_name(client, support_id),
