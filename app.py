@@ -179,7 +179,7 @@ def get_chat_history(client, channel_id, start_ts):
                 for file in message["files"]:
                     if file.get("mimetype", "").startswith("image/"):
                         image_url = file.get("url_private", "the url is not available")
-                        text += f"[image: {image_url}]"
+                        text += f"[shared image: {image_url}]"
             if not text and "files" in message:
                 text += "[File shared]"
 
