@@ -285,10 +285,8 @@ def inserting_chat_history_to_thread(client, channel_id, ts, file_path, file_nam
             initial_comment="Here is the chat history for the support conversation.",
         )
 
-        # Get the file's URL (it should be accessible within the Slack workspace)
         file_url = response["file"]["url_private"]
 
-        # Add the file URL to the message blocks
         blocks.append(
             {
                 "type": "section",
@@ -299,7 +297,6 @@ def inserting_chat_history_to_thread(client, channel_id, ts, file_path, file_nam
             }
         )
 
-        # Send the file in the thread
         client.chat_postMessage(
             channel=channel_id,
             thread_ts=ts,
@@ -2758,7 +2755,7 @@ def resolve_button_post_chatting(ack, body, client, logger):
             if file_name:
                 file_path = file_name
                 inserting_chat_history_to_thread(
-                    client, conv_id, staff_ts, file_path, file_name
+                    client, helpdesk_cn, staff_ts, file_path, file_name
                 )
 
         updates = {
