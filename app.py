@@ -258,7 +258,7 @@ def inserting_chat_history_to_thread(client, channel_id, ts, messages):
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": text,
+                    "text": f"```{text}```",
                 },
             }
         )
@@ -2682,11 +2682,7 @@ def resolve_button_post_chatting(ack, body, client, logger):
         file_url = None
 
         if messages:
-            file_name = save_chat_to_file(messages, f"chat_history_{ticket_id}.txt")
-            if file_name:
-                inserting_chat_history_to_thread(
-                    client, helpdesk_cn, staff_ts, messages
-                )
+            inserting_chat_history_to_thread(client, helpdesk_cn, staff_ts, messages)
 
         updates = {
             "resolved_by": get_real_name(client, support_id),
