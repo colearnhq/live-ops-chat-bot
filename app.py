@@ -193,10 +193,11 @@ def get_chat_history(client, channel_id, start_ts):
 
 def save_chat_to_file(messages, file_name="chat_history.txt"):
     try:
-        with open(file_name, "w") as file:
+        file_path = f"/Users/imamfachrudin/Desktop/chat_history/{file_name}"
+        with open(file_path, "w") as file:
             for line in messages:
                 file.write(line + "\n")
-        return file_name
+        return file_path
     except Exception as e:
         logging.error(f"Error saving chat to file: {str(e)}")
         return None
