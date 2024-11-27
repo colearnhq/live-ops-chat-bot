@@ -202,19 +202,19 @@ def save_chat_to_file(messages, file_name="chat_history.txt"):
         return None
 
 
-def upload_chat_history_to_slack(client, messages, channels):
-    try:
-        file_content = "\n".join(messages)
-        response = client.files_upload_v2(
-            channels=channels,
-            file=file_content.encode("utf-8"),  # Encode the string content
-            title="Chat History",
-            initial_comment="Here is the chat history.",
-        )
-        return response["file"]["url_private"]
-    except SlackApiError as e:
-        logging.error(f"Error uploading file to Slack: {str(e)}")
-        return None
+# def upload_chat_history_to_slack(client, messages, channels):
+#     try:
+#         file_content = "\n".join(messages)
+#         response = client.files_upload_v2(
+#             channels=channels,
+#             file=file_content.encode("utf-8"),  # Encode the string content
+#             title="Chat History",
+#             initial_comment="Here is the chat history.",
+#         )
+#         return response["file"]["url_private"]
+#     except SlackApiError as e:
+#         logging.error(f"Error uploading file to Slack: {str(e)}")
+#         return None
 
 
 # def upload_file_to_slack(client, file_path, channels):
@@ -277,14 +277,13 @@ def inserting_chat_history_to_thread(client, channel_id, ts, file_path, file_nam
     )
 
     try:
-        # Upload the chat history file to Slack
         response = client.files_upload_v2(
             channels=channel_id,
             file=file_path,
             title=file_name,
             initial_comment="Here is the chat history for the support conversation.",
         )
-
+        print(f"check the response {response}")
         file_url = response["file"]["url_private"]
 
         blocks.append(
@@ -295,13 +294,6 @@ def inserting_chat_history_to_thread(client, channel_id, ts, file_path, file_nam
                     "text": f"Download the chat history file here: {file_url}",
                 },
             }
-        )
-
-        client.chat_postMessage(
-            channel=channel_id,
-            thread_ts=ts,
-            blocks=blocks,
-            text="Here is the chat history file",
         )
     except SlackApiError as e:
         logging.error(f"Error uploading and sharing the chat history file: {str(e)}")
