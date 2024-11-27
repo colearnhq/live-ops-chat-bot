@@ -191,42 +191,12 @@ def get_chat_history(client, channel_id, start_ts):
         return None
 
 
-def save_chat_to_file(messages, file_name="chat_history.txt"):
-    try:
-        # Define the directory path
-        file_path = f"~/Downloads/{file_name}"
-
-        # Write the chat history to the file
-        with open(file_path, "w") as file:
-            for line in messages:
-                file.write(line + "\n")
-
-        return file_path
-    except Exception as e:
-        logging.error(f"Error saving chat to file: {str(e)}")
-        return None
-
-
 # def upload_chat_history_to_slack(client, messages, channels):
 #     try:
 #         file_content = "\n".join(messages)
 #         response = client.files_upload_v2(
 #             channels=channels,
 #             file=file_content.encode("utf-8"),  # Encode the string content
-#             title="Chat History",
-#             initial_comment="Here is the chat history.",
-#         )
-#         return response["file"]["url_private"]
-#     except SlackApiError as e:
-#         logging.error(f"Error uploading file to Slack: {str(e)}")
-#         return None
-
-
-# def upload_file_to_slack(client, file_path, channels):
-#     try:
-#         response = client.files_upload_v2(
-#             channels=channels,
-#             file=file_path,
 #             title="Chat History",
 #             initial_comment="Here is the chat history.",
 #         )
@@ -268,7 +238,7 @@ def inserting_imgs_thread(client, channel_id, ts, files):
         )
 
 
-def inserting_chat_history_to_thread(client, channel_id, ts, file_path, file_name):
+def inserting_chat_history_to_thread(client, channel_id, ts, messages):
     blocks = []
 
     blocks.append(
@@ -276,66 +246,30 @@ def inserting_chat_history_to_thread(client, channel_id, ts, file_path, file_nam
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": "Here is the chat history file from the support conversation:",
+                "text": "Here are the chat history:",
             },
         }
     )
 
-    try:
-        response = client.files_upload_v2(
-            channels=channel_id,
-            file=file_path,
-            title=file_name,
-            initial_comment="Here is the chat history for the support conversation.",
-        )
-        print(f"check the response {response}")
-        file_url = response["file"]["url_private"]
-
+    for message in messages:
+        text = message
         blocks.append(
             {
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"Download the chat history file here: {file_url}",
+                    "text": text,
                 },
             }
         )
-    except SlackApiError as e:
-        logging.error(f"Error uploading and sharing the chat history file: {str(e)}")
 
-
-# def inserting_chat_history_to_thread(client, channel_id, ts, messages):
-#     blocks = []
-
-#     blocks.append(
-#         {
-#             "type": "section",
-#             "text": {
-#                 "type": "mrkdwn",
-#                 "text": "Here are the chat history and uploaded files from user:",
-#             },
-#         }
-#     )
-
-#     for message in messages:
-#         text = message
-#         blocks.append(
-#             {
-#                 "type": "section",
-#                 "text": {
-#                     "type": "mrkdwn",
-#                     "text": text,
-#                 },
-#             }
-#         )
-
-#     if blocks:
-#         client.chat_postMessage(
-#             channel=channel_id,
-#             thread_ts=ts,
-#             blocks=blocks,
-#             text="Here are the chat history and attachments",
-#         )
+    if blocks:
+        client.chat_postMessage(
+            channel=channel_id,
+            thread_ts=ts,
+            blocks=blocks,
+            text="Here are the chat history and attachments",
+        )
 
 
 def get_real_name(client, user_id):
@@ -2750,9 +2684,8 @@ def resolve_button_post_chatting(ack, body, client, logger):
         if messages:
             file_name = save_chat_to_file(messages, f"chat_history_{ticket_id}.txt")
             if file_name:
-                file_path = file_name
                 inserting_chat_history_to_thread(
-                    client, helpdesk_cn, staff_ts, file_path, file_name
+                    client, helpdesk_cn, staff_ts, messages
                 )
 
         updates = {
