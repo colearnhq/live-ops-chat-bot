@@ -248,6 +248,40 @@ def inserting_imgs_thread(client, channel_id, ts, files):
         )
 
 
+def inserting_chat_history_to_thread(client, channel_id, ts, messages):
+    blocks = []
+
+    blocks.append(
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": "Here are the chat history and uploaded files from user:",
+            },
+        }
+    )
+
+    for message in messages:
+        text = message
+        blocks.append(
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": text,
+                },
+            }
+        )
+
+    if blocks:
+        client.chat_postMessage(
+            channel=channel_id,
+            thread_ts=ts,
+            blocks=blocks,
+            text="Here are the chat history and attachments",
+        )
+
+
 def get_real_name(client, user_id):
     try:
         user_info = client.users_info(user=user_id)
@@ -1368,12 +1402,23 @@ def send_the_user_input(ack, body, client, say, view):
                             "text": {
                                 "type": "plain_text",
                                 "emoji": True,
-                                "text": "Download Here",
+                                "text": "Download for Windows",
                             },
                             "style": "primary",
                             "value": "click_me",
-                            "url": "https://anydesk.com/en",
-                        }
+                            "url": "https://download.teamviewer.com/download/TeamViewerQS_x64.exe?coupon=CMP-PR-BF24",
+                        },
+                        {
+                            "type": "button",
+                            "text": {
+                                "type": "plain_text",
+                                "emoji": True,
+                                "text": "Download for Mac",
+                            },
+                            "style": "primary",
+                            "value": "click_me",
+                            "url": "https://download.teamviewer.com/download/TeamViewerQS.dmg?coupon=CMP-PR-BF24",
+                        },
                     ],
                 },
             ]
@@ -2679,6 +2724,8 @@ def resolve_button_post_chatting(ack, body, client, logger):
             channel=conv_id,
             text=f"Thanks so much for chatting with us! 🎉 We’re happy we could help. This conversation is all wrapped up now, but don’t hesitate to reach out again if you need anything else.\n\nHave an awesome day, <@{user_reported}>! 🌟",
         )
+
+        inserting_chat_history_to_thread(client, helpdesk_cn, staff_ts, messages)
 
         logger.info(f"Ticket {ticket_id} resolved successfully.")
     except Exception as e:
