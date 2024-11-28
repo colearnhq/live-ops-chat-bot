@@ -1367,7 +1367,7 @@ def send_the_user_input(ack, body, client, say, view):
                     "elements": [
                         {
                             "type": "mrkdwn",
-                            "text": f"Please ensure you have installed AnyDesk. If have not, click below.",
+                            "text": f"Please ensure you have installed Teamviewer. If have not, click below.",
                         }
                     ],
                 },
