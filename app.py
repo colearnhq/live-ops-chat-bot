@@ -3338,6 +3338,13 @@ def show_reject_modal(ack, body, client, view, logger, say):
                     thread_ts=reporter_ts,
                     text=f":smiling_face_with_tear: Your request got the boot due to `{reason}` at `{timestamp_jakarta}`. But hey, no worries! You can always throw another helpdesk request our way soon!",
                 )
+                updates = {
+                    "rejected_by": get_real_name(client, user_id),
+                    "rejected_at": timestamp_jakarta,
+                    "rejection_reason": reason,
+                }
+
+                sheet_manager.update_helpdesk(ticket_id, updates)
             else:
                 say(
                     "Failed to send message to thread after reject the helpdesk request"
