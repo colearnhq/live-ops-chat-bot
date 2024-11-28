@@ -2664,39 +2664,40 @@ def resolve_button_post_chatting(ack, body, client, logger):
 
     try:
         messages = get_chat_history(client, conv_id, float(start_ts))
-        chat_history_json = None
+        compiled_chat_history = []
 
-        chat_history = []
-        for message in messages:
-            chat_message = {
-                "user": get_real_name(client, message.get("user", "Unknown User")),
-                "timestamp": convert_utc_to_jakarta(
-                    datetime.utcfromtimestamp(float(message["ts"]))
-                ),
-                "text": message.get("text", ""),
-                "attachments": [],
-            }
-            if "files" in message:
-                for file in message["files"]:
-                    file_info = {
-                        "mimetype": file.get("mimetype", ""),
-                        "file_url": file.get("url_private", "No URL available"),
-                        "file_name": file.get("name", "No name available"),
-                    }
-                    chat_message["attachments"].append(file_info)
+        # Log the structure of messages for debugging
+        logger.info(f"Messages structure: {messages}")
 
-            chat_history.append(chat_message)
+        if messages and isinstance(messages, list):
+            # Compile the chat history into the desired format
+            for message in messages:
+                if isinstance(message, dict):  # Ensure it's a dictionary
+                    user_name = get_real_name(
+                        client, message.get("user", "Unknown User")
+                    )
+                    message_text = message.get("text", "")
+                    message_timestamp = datetime.utcfromtimestamp(float(message["ts"]))
+                    formatted_timestamp = message_timestamp.strftime(
+                        "%Y-%m-%d %H:%M:%S WIB+0700"
+                    )
 
-        # Convert chat history to a JSON string
-        chat_history_json = json.dumps(chat_history, indent=4)
+                    chat_entry = f"[{formatted_timestamp}] {user_name}: {message_text}"
+                    compiled_chat_history.append(chat_entry)
+                else:
+                    # If the message is not a dictionary, log and skip it
+                    logger.warning(f"Skipping invalid message format: {message}")
+
+            # Convert the compiled chat history into a single string
+            compiled_chat_history_str = json.dumps(compiled_chat_history, indent=4)
         inserting_chat_history_to_thread(client, helpdesk_cn, staff_ts, messages)
 
         updates = {
             "resolved_by": get_real_name(client, support_id),
             "resolved_at": timestamp_jakarta,
         }
-        if chat_history_json:
-            updates["history_chat"] = chat_history_json
+        if compiled_chat_history_str:
+            updates["history_chat"] = compiled_chat_history_str
 
         sheet_manager.update_helpdesk(ticket_id, updates)
 
