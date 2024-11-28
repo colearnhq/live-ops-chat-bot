@@ -2667,12 +2667,13 @@ def resolve_button_post_chatting(ack, body, client, logger):
 
         if messages:
             inserting_chat_history_to_thread(client, helpdesk_cn, staff_ts, messages)
-            updates["history_chat"] = messages
 
         updates = {
             "resolved_by": get_real_name(client, support_id),
             "resolved_at": timestamp_jakarta,
         }
+
+        updates["history_chat"] = messages
 
         sheet_manager.update_helpdesk(ticket_id, updates)
 
