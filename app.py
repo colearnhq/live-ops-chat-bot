@@ -2667,29 +2667,40 @@ def resolve_button_post_chatting(ack, body, client, logger):
         compiled_chat_history = []
 
         # Log the structure of messages for debugging
-        logger.info(f"Messages structure: {messages}")
+        print(f"Messages structure: {messages}")
 
         if messages and isinstance(messages, list):
             # Compile the chat history into the desired format
             for message in messages:
                 if isinstance(message, dict):  # Ensure it's a dictionary
-                    user_name = get_real_name(
-                        client, message.get("user", "Unknown User")
-                    )
-                    message_text = message.get("text", "")
-                    message_timestamp = datetime.utcfromtimestamp(float(message["ts"]))
-                    formatted_timestamp = message_timestamp.strftime(
-                        "%Y-%m-%d %H:%M:%S WIB+0700"
-                    )
+                    try:
+                        # Check if the expected keys are present
+                        user_name = get_real_name(
+                            client, message.get("user", "Unknown User")
+                        )
+                        message_text = message.get("text", "")
+                        message_timestamp = datetime.utcfromtimestamp(
+                            float(message["ts"])
+                        )
+                        formatted_timestamp = message_timestamp.strftime(
+                            "%Y-%m-%d %H:%M:%S WIB+0700"
+                        )
 
-                    chat_entry = f"[{formatted_timestamp}] {user_name}: {message_text}"
-                    compiled_chat_history.append(chat_entry)
+                        # Format the chat entry
+                        chat_entry = (
+                            f"[{formatted_timestamp}] {user_name}: {message_text}"
+                        )
+                        compiled_chat_history.append(chat_entry)
+                    except KeyError as e:
+                        logger.error(f"Missing key in message: {e}")
                 else:
-                    # If the message is not a dictionary, log and skip it
-                    logger.warning(f"Skipping invalid message format: {message}")
+                    logger.warning(
+                        f"Skipping invalid message format (not a dictionary): {message}"
+                    )
 
             # Convert the compiled chat history into a single string
             compiled_chat_history_str = json.dumps(compiled_chat_history, indent=4)
+
         inserting_chat_history_to_thread(client, helpdesk_cn, staff_ts, messages)
 
         updates = {
