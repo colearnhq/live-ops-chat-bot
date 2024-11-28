@@ -191,21 +191,6 @@ def get_chat_history(client, channel_id, start_ts):
         return None
 
 
-# def upload_chat_history_to_slack(client, messages, channels):
-#     try:
-#         file_content = "\n".join(messages)
-#         response = client.files_upload_v2(
-#             channels=channels,
-#             file=file_content.encode("utf-8"),  # Encode the string content
-#             title="Chat History",
-#             initial_comment="Here is the chat history.",
-#         )
-#         return response["file"]["url_private"]
-#     except SlackApiError as e:
-#         logging.error(f"Error uploading file to Slack: {str(e)}")
-#         return None
-
-
 def inserting_imgs_thread(client, channel_id, ts, files):
     blocks = []
 
@@ -2682,21 +2667,41 @@ def resolve_button_post_chatting(ack, body, client, logger):
         chat_compilation = []
 
         if messages:
-            chat_compilation = [message for message in messages]
+            for message in messages:
+                message_obj = {
+                    "user": get_real_name(client, message.get("user", "Unknown User")),
+                    "timestamp": convert_utc_to_jakarta(
+                        datetime.utcfromtimestamp(float(message["ts"]))
+                    ),
+                    "text": message.get("text", ""),
+                    "attachments": [],
+                }
 
-            inserting_chat_history_to_thread(
-                client, helpdesk_cn, staff_ts, chat_compilation
-            )
+                if "files" in message:
+                    for file in message["files"]:
+                        file_obj = {
+                            "mimetype": file.get("mimetype", ""),
+                            "file_url": file.get("url_private", "No URL available"),
+                            "file_name": file.get("name", "No name available"),
+                        }
+                        message_obj["attachments"].append(file_obj)
+
+                chat_compilation.append(message_obj)
+
+            chat_json = json.dumps(chat_compilation, indent=4)
+
+            inserting_chat_history_to_thread(client, helpdesk_cn, staff_ts, chat_json)
 
         updates = {
             "resolved_by": get_real_name(client, support_id),
             "resolved_at": timestamp_jakarta,
         }
         if chat_compilation:
-            updates["history_chat"] = chat_compilation
+            updates["history_chat"] = chat_json  # Store the compiled chat JSON
 
         sheet_manager.update_helpdesk(ticket_id, updates)
 
+        # Update the status in the helpdesk channel
         blocks = body["message"]["blocks"]
         blocks[1]["fields"][7]["text"] = "*Status:*\n:white_check_mark: Resolved"
         blocks[1]["fields"].append(
@@ -2711,6 +2716,7 @@ def resolve_button_post_chatting(ack, body, client, logger):
             thread_ts=user_ts,
             text=f"Your helpdesk ticket: *{ticket_id}* has been resolved by <@{support_id}> at `{timestamp_jakarta}`",
         )
+
         client.chat_postMessage(
             channel=conv_id,
             text=f"Thanks so much for chatting with us! 🎉 We’re happy we could help. This conversation is all wrapped up now, but don’t hesitate to reach out again if you need anything else.\n\nHave an awesome day, <@{user_reported}>! 🌟",
