@@ -1468,6 +1468,15 @@ def send_the_user_input(ack, body, client, say, view):
                                 "value": f"{ticket_id}@@{user_id}@@{user_ts}",
                                 "action_id": "start_chat",
                             },
+                            {
+                                "type": "button",
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": "Queue",
+                                },
+                                "value": f"{ticket_id}@@{user_id}@@{user_ts}",
+                                "action_id": "set_queue",
+                            },
                         ],
                     },
                 ]
@@ -1674,6 +1683,41 @@ def send_the_user_input(ack, body, client, say, view):
             schedule_reminder(client, channel_id, ts, reminder_time, result["ts"])
         except Exception as e:
             logging.error(f"An error occurred: {str(e)}")
+
+
+@app.action("set_queue")
+def handle_queue_ticket(ack, client, body):
+    ack()
+    [ticket_id, user_id, user_ts] = body["actions"][0]["value"].split("@@")
+    staff_ts = body["message"]["ts"]
+    support_id = "U05LPMNQBBK"
+
+    try:
+        client.chat_postMessage(
+            channel=user_id,
+            thread_ts=user_ts,
+            text=f"please wait, your issue is being on hold because <@{support_id}> is handling another issue at this moment :pray:",
+        )
+        message = body["message"]
+        blocks = message["blocks"]
+
+        blocks[1]["fields"][7]["text"] = "*Status:*\nOn Hold :pray:"
+
+        blocks[2]["elements"] = [
+            button
+            for button in blocks[2]["elements"]
+            if button["action_id"]
+            in ["helpdesk_resolve", "helpdesk_reject", "start_chat"]
+        ]
+
+        client.chat_update(
+            channel=body["channel"]["id"],
+            ts=message["ts"],
+            text="We are updating this block.",
+            blocks=blocks,
+        )
+    except Exception as e:
+        logging.error(f"Any error when starting chat with error: {str(e)}")
 
 
 @app.action("start_chat")
@@ -2688,7 +2732,7 @@ def resolve_button_post_chatting(ack, body, client, logger):
         client.chat_postMessage(
             channel=user_reported,
             thread_ts=user_ts,
-            text=f"Your helpdesk ticket: *{ticket_id}* has been resolved by <@{support_id}> at `{timestamp_jakarta}`",
+            text=f":white_check_mark: Your ticket: *{ticket_id}* has been resolved by <@{support_id}> at `{timestamp_jakarta}`",
         )
 
         client.chat_postMessage(
