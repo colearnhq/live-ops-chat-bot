@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from slack_sdk.errors import SlackApiError
 from database import SheetManager
 import pytz
+import json
 
 load_dotenv(".env")
 
@@ -29,9 +30,12 @@ creds_dict = {
 app = App(token=os.getenv("SLACK_BOT_TOKEN"))
 sheet_manager = SheetManager(creds_dict, "1dPXiGBN2dDyyQ9TnO6Hi8cQtmbkFBU4O7sI5ztbXT90")
 
+emergency_reflected_cn = "C056S606NGM"
 ops_cn = "C079J897A49"
 reflected_cn = "C032B89UK36"
 piket_reflected_cn = "C056S606NGM"
+helpdesk_cn = "C081NA747D0"
+helpdesk_support_id = "U05LPMNQBBK"
 
 greetings_response = {
     "morning": "Good Morning",
@@ -159,6 +163,37 @@ def truncate_value(value, max_length=25):
     )
 
 
+def get_chat_history(client, channel_id, start_ts):
+    try:
+        response = client.conversations_history(
+            channel=channel_id, oldest=start_ts, inclusive=True
+        )
+        messages = response["messages"]
+        procceed_message = []
+
+        for message in messages:
+            user_id = message.get("user", "Unknown User")
+            real_name = get_real_name(client, user_id)
+            text = message.get("text", "")
+            timestamp = convert_utc_to_jakarta(
+                datetime.utcfromtimestamp(float(message["ts"]))
+            )
+            if "files" in message:
+                for file in message["files"]:
+                    if file.get("mimetype", "").startswith("image/"):
+                        image_url = file.get("url_private", "the url is not available")
+                        text += f"[shared image: {image_url}]"
+            if not text and "files" in message:
+                text += "[File shared]"
+
+            procceed_message.append(f"[{timestamp}] {real_name}: {text}")
+
+        return procceed_message
+    except SlackApiError as e:
+        logging.error(f"Error fetching chat history: {str(e)}")
+        return None
+
+
 def inserting_imgs_thread(client, channel_id, ts, files):
     blocks = []
 
@@ -191,12 +226,64 @@ def inserting_imgs_thread(client, channel_id, ts, files):
         )
 
 
+def inserting_chat_history_to_thread(client, channel_id, ts, messages):
+    combined_messages = "\n".join(messages)
+
+    blocks = []
+
+    blocks.append(
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": "Here are the chat history:",
+            },
+        }
+    )
+
+    blocks.append(
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"```{combined_messages}```",
+            },
+        }
+    )
+
+    if blocks:
+        client.chat_postMessage(
+            channel=channel_id,
+            thread_ts=ts,
+            blocks=blocks,
+            text="Here are the chat history and attachments",
+        )
+
+
 def get_real_name(client, user_id):
     try:
         user_info = client.users_info(user=user_id)
         return user_info["user"]["real_name"]
     except Exception as e:
         return user_id
+
+
+def coloring_the_button(issue_type):
+    if issue_type == "Emergency":
+        return "danger"
+    elif issue_type == "Piket":
+        return "primary"
+    else:
+        return None
+
+
+def conditional_indexing(blocks):
+    if len(blocks) > 5:
+        return [6, 0]
+    elif len(blocks) <= 3:
+        return [2, 1]
+    else:
+        return [4, 1]
 
 
 @app.event("message")
@@ -249,10 +336,7 @@ def handle_message_events(body, say, client):
 @app.command("/hiops")
 def slash_input(ack, body, client):
     ack()
-    categories = [
-        "Piket",
-        "Others",
-    ]
+    categories = ["Piket", "Emergency", "IT Helpdesk", "Others"]
     user_input = body.get("text", "No message provided.")
     category_options = [
         {
@@ -293,10 +377,10 @@ def slash_input(ack, body, client):
                         },
                         "value": category["value"],
                         "action_id": f"button_{category['value']}",
-                        "style": (
-                            "primary"
-                            if category["text"]["text"] == "Piket"
-                            else "danger"
+                        **(
+                            {"style": coloring_the_button(category["value"])}
+                            if coloring_the_button(category["value"])
+                            else {}
                         ),
                     }
                     for category in category_options
@@ -383,19 +467,22 @@ def handling_replacement(ack, body, client):
 
 @app.action("handle_category_selection")
 @app.action("button_Others")
+@app.action("button_IT Helpdesk")
 def handle_category_selection(ack, body, client):
     ack()
     [channel_id, user_input] = body["view"]["private_metadata"].split("@@")
-    selected_category = (
-        body["view"]["state"]["values"]["category_block"]["handle_category_selection"][
-            "selected_option"
-        ]["value"]
-        if user_input == "Piket"
-        else body["actions"][0]["value"]
+    piket_category = (
+        body.get("view", {})
+        .get("state", {})
+        .get("values", {})
+        .get("category_block", {})
+        .get("handle_category_selection", {})
+        .get("selected_option", {})
+        .get("value", {})
     )
+    selected_category = body["actions"][0].get("value", user_input)
     trigger_id = body["trigger_id"]
-
-    if user_input == "Piket":
+    if selected_category == "Piket":
         modal_blocks = [
             {
                 "type": "input",
@@ -428,23 +515,22 @@ def handle_category_selection(ack, body, client):
                     "action_id": "teacher_replace_action",
                     "type": (
                         "users_select"
-                        if selected_category == "I have had a replacement"
+                        if piket_category == "I have had a replacement"
                         else "plain_text_input"
                     ),
                     **(
                         {
                             "initial_value": (
                                 "I need help finding a replacement"
-                                if selected_category
-                                == "I need help finding a replacement"
+                                if piket_category == "I need help finding a replacement"
                                 else (
                                     "No Mentor"
-                                    if selected_category == "No Mentor"
+                                    if piket_category == "No Mentor"
                                     else None
                                 )
                             )
                         }
-                        if selected_category != "I have had a replacement"
+                        if piket_category != "I have had a replacement"
                         else {}
                     ),
                     "placeholder": {
@@ -554,18 +640,130 @@ def handle_category_selection(ack, body, client):
                 },
             },
         ]
+    elif selected_category == "IT Helpdesk":
+        issue_types = ["laptop issue", "network issue", "software issue", "others"]
+        urgency_levels = ["low", "medium", "high"]
 
+        issue_type_options = [
+            {"text": {"type": "plain_text", "text": type}, "value": type}
+            for type in issue_types
+        ]
+
+        urgency_level_options = [
+            {"text": {"type": "plain_text", "text": level}, "value": level}
+            for level in urgency_levels
+        ]
+
+        modal_blocks = [
+            {
+                "type": "input",
+                "block_id": "full_name_block",
+                "label": {"type": "plain_text", "text": "Full Name"},
+                "element": {
+                    "type": "plain_text_input",
+                    "action_id": "full_name_action",
+                    "placeholder": {"type": "plain_text", "text": "Your Full Name"},
+                },
+            },
+            {
+                "type": "input",
+                "block_id": "issue_type_id",
+                "label": {"type": "plain_text", "text": "Issue Type"},
+                "element": {
+                    "type": "static_select",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Your Issue Type",
+                    },
+                    "action_id": "handle_issue_type",
+                    "options": [
+                        {
+                            "text": {
+                                "type": "plain_text",
+                                "text": issue_type_option["text"]["text"],
+                            },
+                            "value": issue_type_option["value"],
+                        }
+                        for issue_type_option in issue_type_options
+                    ],
+                },
+            },
+            {
+                "type": "input",
+                "block_id": "issue_description",
+                "label": {"type": "plain_text", "text": "Description"},
+                "element": {
+                    "type": "plain_text_input",
+                    "multiline": True,
+                    "action_id": "issue_description_action",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Describe Your Issue",
+                    },
+                },
+            },
+            {
+                "type": "input",
+                "block_id": "urgency_id",
+                "label": {"type": "plain_text", "text": "Urgency Level"},
+                "element": {
+                    "type": "static_select",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Determine Your Issue Level",
+                    },
+                    "action_id": "handle_urgency_level",
+                    "options": [
+                        {
+                            "text": {
+                                "type": "plain_text",
+                                "text": urgency_level_option["text"]["text"],
+                            },
+                            "value": urgency_level_option["value"],
+                        }
+                        for urgency_level_option in urgency_level_options
+                    ],
+                },
+            },
+            {
+                "type": "input",
+                "block_id": "datetime_id",
+                "label": {"type": "plain_text", "text": "Incident Date and Time"},
+                "element": {
+                    "type": "datetimepicker",
+                    "action_id": "datetimepicker_action",
+                },
+            },
+            {
+                "type": "input",
+                "optional": True,
+                "block_id": "file_upload_id",
+                "label": {"type": "plain_text", "text": "File Upload"},
+                "element": {
+                    "type": "file_input",
+                    "action_id": "file_input_action",
+                    "filetypes": ["jpg", "png"],
+                    "max_files": 5,
+                },
+            },
+        ]
+
+    modal_title = (
+        "Submit a Helpdesk Ticket"
+        if selected_category == "IT Helpdesk"
+        else "Think Wisely!"
+    )
     updated_modal = {
         "type": "modal",
         "callback_id": "slash_input",
         "title": {
             "type": "plain_text",
-            "text": "Think Wisely!",
+            "text": modal_title,
         },
         "submit": {"type": "plain_text", "text": "Submit"},
         "close": {"type": "plain_text", "text": "Cancel"},
         "blocks": modal_blocks,
-        "private_metadata": f"{channel_id}@@{'Piket' if selected_category != 'Others' else 'Others'}",
+        "private_metadata": f"{channel_id}@@{selected_category}",
     }
 
     try:
@@ -737,6 +935,140 @@ def handle_generate_slot_list(ack, body, client):
     )
 
 
+@app.action("button_Emergency")
+def handle_emergency_button(ack, body, client, logger):
+    ack()
+    user_id = body["user"]["id"]
+    user_name = get_real_name(client, user_id)
+    timestamp_utc = datetime.utcnow()
+    timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
+    feedback_block = [
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f":mailbox_with_mail: *We've Received Your Alert!* :mailbox_with_mail:",
+            },
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"Hi <@{user_id}>, thank you for reporting the emergency in your class at `{timestamp_jakarta}`. The Ops team has been notified and is reviewing the situation.",
+            },
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": "We'll keep you updated as soon as there’s progress.",
+            },
+        },
+    ]
+
+    info_channel_block = [
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f":rotating_light: *Emergency Reported!* :rotating_light:",
+            },
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"An emergency has been reported by <@{user_id}> in their class at `{timestamp_jakarta}`. The Ops team has been notified and is taking action.",
+            },
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": "This message is for your information. If you have any relevant details to assist the Ops team, please contact them directly.",
+            },
+        },
+    ]
+
+    try:
+        response = client.chat_postMessage(
+            channel=user_id,
+            text="Your emergency alert has been received.",
+            blocks=feedback_block,
+        )
+        if response["ok"]:
+            user_ts = response["ts"]
+            value_key = f"{user_id}@@{user_ts}@@Emergency"
+            emergency_block = [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": ":rotating_light: Emergency Alert! :rotating_light:",
+                    },
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"Hi Ops team @tim_ajar!\nA critical situation has been reported at `{timestamp_jakarta}` in <@{user_id}>'s class.\nPlease check it immediately and provide assistance as soon as possible.",
+                    },
+                },
+                {
+                    "type": "actions",
+                    "elements": [
+                        {
+                            "type": "button",
+                            "text": {
+                                "type": "plain_text",
+                                "emoji": True,
+                                "text": "Resolve",
+                            },
+                            "style": "primary",
+                            "value": value_key,
+                            "action_id": "emergency_resolve",
+                        },
+                    ],
+                },
+            ]
+            client.chat_postMessage(
+                channel=ops_cn,
+                text="Emergency Alert! A critical situation has been reported. Please check immediately.",
+                blocks=emergency_block,
+            )
+            reflected_response = client.chat_postMessage(
+                channel=emergency_reflected_cn,
+                text="Emergency Alert reported. Please refer to the main alert.",
+                blocks=info_channel_block,
+            )
+            if reflected_response["ok"]:
+                reflected_ts = reflected_response["ts"]
+                ticket_manager.store_reflected_ts(user_ts, reflected_ts)
+                sheet_manager.init_emergency(
+                    f"emergency-{user_ts}", user_name, timestamp_utc
+                )
+
+            client.views_update(
+                view_id=body["view"]["id"],
+                view={
+                    "type": "modal",
+                    "title": {"type": "plain_text", "text": "Processing..."},
+                    "blocks": [
+                        {
+                            "type": "section",
+                            "text": {
+                                "type": "mrkdwn",
+                                "text": "Thank you! Your emergency alert has been submitted.",
+                            },
+                        },
+                    ],
+                    "close": {"type": "plain_text", "text": "Close"},
+                },
+            )
+    except Exception as e:
+        logger.error(f"An error occurred: {str(e)}")
+
+
 @app.view("slash_input")
 def send_the_user_input(ack, body, client, say, view):
     ack()
@@ -748,12 +1080,12 @@ def send_the_user_input(ack, body, client, say, view):
     reporter_name = body["user"]["username"]
     timestamp_utc = datetime.utcnow()
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
-    init_result = client.chat_postMessage(
-        channel=channel_id, text="Initializing ticket..."
-    )
-    initial_ts = init_result["ts"]
 
     if category == "Piket":
+        init_result = client.chat_postMessage(
+            channel=channel_id, text="Initializing ticket..."
+        )
+        initial_ts = init_result["ts"]
         date = view["state"]["values"]["date_block"]["date_picker_action"][
             "selected_date"
         ]
@@ -946,8 +1278,235 @@ def send_the_user_input(ack, body, client, say, view):
             stem_lead_name,
             timestamp_utc,
         )
+    elif category == "IT Helpdesk":
+        init_result = client.chat_postMessage(
+            channel=helpdesk_cn, text="Initializing ticket..."
+        )
+        initial_ts = init_result["ts"]
+        ticket_id = f"it-helpdesk.{initial_ts}"
+        full_name = view_state["full_name_block"]["full_name_action"]["value"]
+        issue_type = view_state["issue_type_id"]["handle_issue_type"][
+            "selected_option"
+        ]["value"]
+        helpdesk_issue_description = view_state["issue_description"][
+            "issue_description_action"
+        ]["value"]
+        urgency_level = view_state["urgency_id"]["handle_urgency_level"][
+            "selected_option"
+        ]["value"]
+        incident_date_time = view_state["datetime_id"]["datetimepicker_action"][
+            "selected_date_time"
+        ]
+        date_time = convert_utc_to_jakarta(
+            datetime.utcfromtimestamp(incident_date_time)
+        )
+        helpdesk_files = (
+            view_state.get("file_upload_id", {})
+            .get("file_input_action", {})
+            .get("files", [])
+        )
+        compiled_files_json = {
+            "files": [
+                {
+                    "id": file.get("id"),
+                    "name": file.get("name"),
+                    "url": file.get("url_private"),
+                }
+                for file in helpdesk_files
+            ]
+        }
+
+        compiled_files_str = json.dumps(compiled_files_json, indent=4)
+        sheet_manager.init_it_helpdesk(
+            ticket_id,
+            get_real_name(client, user_id),
+            issue_type,
+            helpdesk_issue_description,
+            urgency_level,
+            date_time,
+            compiled_files_str,
+            timestamp_utc,
+        )
+
+        try:
+            if helpdesk_files:
+                ticket_manager.store_files(initial_ts, helpdesk_files)
+            user_response = [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"Hi <@{user_id}> :wave:!\nYour helpdesk ticket has been submitted successfully :rocket:",
+                    },
+                },
+                {
+                    "type": "section",
+                    "fields": [
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Your Ticket Number:*\n`{ticket_id}`",
+                        },
+                        {"type": "mrkdwn", "text": f"*Your Name:*\n{full_name}"},
+                        {"type": "mrkdwn", "text": f"*Issue Type:*\n{issue_type}"},
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Issue Description:*\n```{helpdesk_issue_description}```",
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Urgency Level:*\n{urgency_level}",
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Incident Date and Time:*\n`{date_time}`",
+                        },
+                    ],
+                },
+                {"type": "divider"},
+                {
+                    "type": "context",
+                    "elements": [
+                        {
+                            "type": "mrkdwn",
+                            "text": f"Please ensure you have installed Teamviewer. If have not, click below.",
+                        }
+                    ],
+                },
+                {
+                    "type": "actions",
+                    "elements": [
+                        {
+                            "type": "button",
+                            "text": {
+                                "type": "plain_text",
+                                "emoji": True,
+                                "text": "Download for Windows",
+                            },
+                            "style": "primary",
+                            "value": "click_me",
+                            "url": "https://download.teamviewer.com/download/TeamViewerQS_x64.exe?coupon=CMP-PR-BF24",
+                        },
+                        {
+                            "type": "button",
+                            "text": {
+                                "type": "plain_text",
+                                "emoji": True,
+                                "text": "Download for Mac",
+                            },
+                            "style": "primary",
+                            "value": "click_me",
+                            "url": "https://download.teamviewer.com/download/TeamViewerQS.dmg?coupon=CMP-PR-BF24",
+                        },
+                    ],
+                },
+            ]
+
+            user_msg = client.chat_postMessage(
+                channel=user_id,
+                text="Your request has been sent. We will send a ticket soon.",
+                blocks=user_response,
+            )
+            if user_msg["ok"]:
+                user_ts = user_msg["ts"]
+                values = f"{ticket_id}@@{user_id}@@{user_ts}@@{full_name}@@{timestamp_jakarta}@@{issue_type}@@{helpdesk_issue_description}@@{urgency_level}@@{date_time}@@{category}"
+                helpdesk_ticket_blocks = [
+                    {
+                        "type": "header",
+                        "text": {
+                            "type": "plain_text",
+                            "text": f"New Helpdesk Ticket: {ticket_id}",
+                        },
+                    },
+                    {
+                        "type": "section",
+                        "fields": [
+                            {"type": "mrkdwn", "text": f"*User Name:*\n{full_name}"},
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Requested by:*\n<@{user_id}>",
+                            },
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Requested at:*\n`{timestamp_jakarta}`",
+                            },
+                            {"type": "mrkdwn", "text": f"*Issue Type:*\n{issue_type}"},
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Issue Description:*\n```{helpdesk_issue_description}```",
+                            },
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Urgency Level:*\n{urgency_level}",
+                            },
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Incident Date and Time:*\n`{date_time}`",
+                            },
+                            {"type": "mrkdwn", "text": f"*Status:*\nPending"},
+                        ],
+                    },
+                    {
+                        "type": "actions",
+                        "elements": [
+                            {
+                                "type": "button",
+                                "text": {"type": "plain_text", "text": "Resolve"},
+                                "style": "primary",
+                                "value": values,
+                                "action_id": "helpdesk_resolve",
+                            },
+                            {
+                                "type": "button",
+                                "text": {"type": "plain_text", "text": "Reject"},
+                                "style": "danger",
+                                "value": values,
+                                "action_id": "helpdesk_reject",
+                            },
+                            {
+                                "type": "button",
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": "Start Chatting",
+                                },
+                                "value": f"{ticket_id}@@{user_id}@@{user_ts}",
+                                "action_id": "start_chat",
+                            },
+                            {
+                                "type": "button",
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": "Queue",
+                                },
+                                "value": f"{ticket_id}@@{user_id}@@{user_ts}",
+                                "action_id": "set_queue",
+                            },
+                        ],
+                    },
+                ]
+                response_for_staff = client.chat_update(
+                    channel=helpdesk_cn,
+                    ts=initial_ts,
+                    text=f"We just received a helpdesk request from {full_name}",
+                    blocks=helpdesk_ticket_blocks,
+                )
+                if response_for_staff["ok"]:
+                    response_ts = response_for_staff["ts"]
+                    if helpdesk_files:
+                        inserting_imgs_thread(
+                            client, helpdesk_cn, response_ts, helpdesk_files
+                        )
+                else:
+                    say("Failed to post the message")
+            else:
+                say("Failed to post message to the user")
+        except Exception as e:
+            logging.error(f"An error occured on helpdesk {str(e)}")
 
     elif category == "Others":
+        init_result = client.chat_postMessage(
+            channel=channel_id, text="Initializing ticket..."
+        )
+        initial_ts = init_result["ts"]
         issue_description = view_state["issue_name"]["user_issue"]["value"]
         files = (
             view_state.get("file_upload_block", {})
@@ -1127,6 +1686,105 @@ def send_the_user_input(ack, body, client, say, view):
             schedule_reminder(client, channel_id, ts, reminder_time, result["ts"])
         except Exception as e:
             logging.error(f"An error occurred: {str(e)}")
+
+
+@app.action("set_queue")
+def handle_queue_ticket(ack, client, body):
+    ack()
+    [ticket_id, user_id, user_ts] = body["actions"][0]["value"].split("@@")
+
+    try:
+        client.chat_postMessage(
+            channel=user_id,
+            thread_ts=user_ts,
+            text=f"please wait, your issue is being on hold because <@{helpdesk_support_id}> is handling another issue at this moment :pray:",
+        )
+        message = body["message"]
+        blocks = message["blocks"]
+
+        blocks[1]["fields"][7]["text"] = "*Status:*\nOn Hold :pray:"
+
+        blocks[2]["elements"] = [
+            button
+            for button in blocks[2]["elements"]
+            if button["action_id"]
+            in ["helpdesk_resolve", "helpdesk_reject", "start_chat"]
+        ]
+
+        client.chat_update(
+            channel=body["channel"]["id"],
+            ts=message["ts"],
+            text="We are updating this block.",
+            blocks=blocks,
+        )
+    except Exception as e:
+        logging.error(f"Any error when starting chat with error: {str(e)}")
+
+
+@app.action("start_chat")
+def handle_start_chat(ack, client, body):
+    ack()
+    [ticket_id, user_id, user_ts] = body["actions"][0]["value"].split("@@")
+    staff_ts = body["message"]["ts"]
+
+    try:
+        conversation = client.conversations_open(
+            users=f"{user_id},{helpdesk_support_id}"
+        )
+        channel_id = conversation["channel"]["id"]
+        client.chat_postMessage(
+            channel=user_id,
+            thread_ts=user_ts,
+            text=f"Hi <@{user_id}>!\n<@{helpdesk_support_id}> will be reaching out to assist you shortly.\nWe’re here to help and will facilitate this conversation for a smooth resolution. Please hang tight! :wave:",
+        )
+        greeting = client.chat_postMessage(
+            channel=channel_id,
+            text="We are starting to chat our beloved user..",
+            blocks=[
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"🎫 *IT Support Chat for Ticket: {ticket_id}*\n\nHi <@{user_id}>, <@{helpdesk_support_id}> will assist you with your ticket.",
+                    },
+                },
+                {
+                    "type": "context",
+                    "elements": [
+                        {
+                            "type": "mrkdwn",
+                            "text": "This is a direct communication channel for your IT support ticket. Please describe your issue in detail.",
+                        }
+                    ],
+                },
+            ],
+        )
+        start_ts = greeting["ts"]
+        message = body["message"]
+        blocks = message["blocks"]
+
+        blocks[1]["fields"][7]["text"] = "*Status:*\nIn Progress 💬"
+
+        blocks[2]["elements"] = [
+            button
+            for button in blocks[2]["elements"]
+            if button["action_id"] in ["helpdesk_resolve"]
+        ]
+
+        blocks[2]["elements"][0]["action_id"] = "helpdesk_resolve_post_chatting"
+
+        blocks[2]["elements"][0][
+            "value"
+        ] = f"{ticket_id}@@{user_id}@@{user_ts}@@{channel_id}@@{helpdesk_support_id}@@{staff_ts}@@{start_ts}"
+
+        client.chat_update(
+            channel=body["channel"]["id"],
+            ts=message["ts"],
+            text="We are updating this block.",
+            blocks=blocks,
+        )
+    except Exception as e:
+        logging.error(f"Any error when starting chat with error: {str(e)}")
 
 
 @app.action("edit_piket_msg")
@@ -2041,6 +2699,57 @@ def handle_custom_category_modal_submission(ack, body, client, view, logger):
         )
 
 
+@app.action("helpdesk_resolve_post_chatting")
+def resolve_button_post_chatting(ack, body, client, logger):
+    ack()
+    user_id = body["user"]["id"]
+    [ticket_id, user_reported, user_ts, conv_id, support_id, staff_ts, start_ts] = body[
+        "actions"
+    ][0]["value"].split("@@")
+    timestamp_utc = datetime.utcnow()
+    timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
+
+    try:
+        messages = get_chat_history(client, conv_id, float(start_ts))
+
+        updates = {
+            "resolved_by": get_real_name(client, user_id),
+            "resolved_at": timestamp_jakarta,
+            "history_chat": "\n".join(messages),
+        }
+
+        sheet_manager.update_helpdesk(ticket_id, updates)
+
+        blocks = body["message"]["blocks"]
+        blocks[1]["fields"][7]["text"] = "*Status:*\n:white_check_mark: Resolved"
+        blocks[1]["fields"].append(
+            {"type": "mrkdwn", "text": f"*Resolved At:*\n`{timestamp_jakarta}`"}
+        )
+        blocks.pop(2)
+
+        client.chat_update(channel=helpdesk_cn, ts=staff_ts, blocks=blocks)
+
+        client.chat_postMessage(
+            channel=user_reported,
+            thread_ts=user_ts,
+            text=f":white_check_mark: Your ticket: *{ticket_id}* has been resolved by <@{support_id}> at `{timestamp_jakarta}`",
+        )
+
+        client.chat_postMessage(
+            channel=conv_id,
+            text=f"Thanks so much for chatting with us! 🎉 We’re happy we could help. This conversation is all wrapped up now, but don’t hesitate to reach out again if you need anything else.\n\nHave an awesome day, <@{user_reported}>! 🌟",
+        )
+
+        if messages:
+            inserting_chat_history_to_thread(client, helpdesk_cn, staff_ts, messages)
+
+        logger.info(f"Ticket {ticket_id} resolved successfully.")
+    except Exception as e:
+        logging.error(f"Error resolving post chatting: {str(e)}")
+
+
+@app.action("helpdesk_resolve")
+@app.action("emergency_resolve")
 @app.action("resolve_button")
 def resolve_button(ack, body, client, logger):
     ack()
@@ -2051,7 +2760,8 @@ def resolve_button(ack, body, client, logger):
         channel_id = body["channel"]["id"]
         thread_ts = body["container"]["message_ts"]
         reflected_ts = ticket_manager.get_reflected_ts(thread_ts)
-        elements = body["message"]["blocks"][4]["elements"]
+        conditional_index = 2 if len(body["message"]["blocks"]) <= 3 else 4
+        elements = body["message"]["blocks"][conditional_index]["elements"]
         resolve_button_value = elements[0]["value"].split("@@")
         category_ticket = resolve_button_value[-1]
         timestamp_utc = datetime.utcnow()
@@ -2162,6 +2872,110 @@ def resolve_button(ack, body, client, logger):
                     "approved_at": timestamp_utc,
                 },
             )
+        elif category_ticket == "Emergency":
+            reflected_ts = ticket_manager.get_reflected_ts(thread_ts)
+            user_who_requested_ticket_id = resolve_button_value[0]
+            user_message_ts = resolve_button_value[1]
+            emergency_reflected_ts = ticket_manager.get_reflected_ts(user_message_ts)
+            resolved_emergency_block = [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": ":rotating_light: *Emergency Update* :rotating_light:\n\nHi Ops team @tim_ajar, here’s an update regarding the critical situation reported earlier.",
+                    },
+                },
+                {
+                    "type": "section",
+                    "fields": [
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Reported By:*\n<@{user_who_requested_ticket_id}>",
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": f"*Timestamp:*\n`{timestamp_jakarta}`",
+                        },
+                    ],
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f":white_check_mark: *Status:* The issue has been successfully resolved by <@{user_id}>!",
+                    },
+                },
+                {"type": "divider"},
+                {
+                    "type": "context",
+                    "elements": [
+                        {
+                            "type": "mrkdwn",
+                            "text": "_Great teamwork, everyone! Let's continue to stay vigilant._",
+                        }
+                    ],
+                },
+            ]
+
+            resolved_response = client.chat_update(
+                channel=channel_id,
+                ts=thread_ts,
+                text="Emergency resolved. Details updated in the thread.",
+                blocks=resolved_emergency_block,
+            )
+
+            if resolved_response["ok"]:
+                client.reactions_add(
+                    channel=emergency_reflected_cn,
+                    timestamp=emergency_reflected_ts,
+                    name="white_check_mark",
+                )
+
+                client.chat_postMessage(
+                    channel=emergency_reflected_cn,
+                    thread_ts=emergency_reflected_ts,
+                    text=f"The emergency issue has been resolved by <@{user_id}> at `{timestamp_jakarta}`",
+                )
+
+                client.chat_postMessage(
+                    channel=user_who_requested_ticket_id,
+                    thread_ts=user_message_ts,
+                    text=f"Your emergency issue has been resolved by <@{user_id}> at `{timestamp_jakarta}`",
+                )
+
+                sheet_manager.update_emergency_row(
+                    f"emergency-{user_message_ts}",
+                    {
+                        "resolved_by": get_real_name(client, user_id),
+                        "resolved_at": timestamp_utc,
+                    },
+                )
+
+        elif category_ticket == "IT Helpdesk":
+            [ticket_id, user_reported, user_ts] = resolve_button_value[0:3]
+            blocks = body["message"]["blocks"]
+            blocks[1]["fields"][7]["text"] = "*Status:*\n:white_check_mark: Resolved"
+            blocks[1]["fields"].append(
+                {"type": "mrkdwn", "text": f"*Resolved At:*\n`{timestamp_jakarta}`"}
+            )
+            blocks.pop(2)
+
+            client.chat_update(channel=channel_id, ts=thread_ts, blocks=blocks)
+
+            client.chat_postMessage(
+                channel=user_reported,
+                thread_ts=user_ts,
+                text=f":white_check_mark: Your ticket: *{ticket_id}* has been resolved by <@{helpdesk_support_id}> at `{timestamp_jakarta}`",
+            )
+
+            sheet_manager.update_helpdesk(
+                ticket_id,
+                {
+                    "resolved_by": get_real_name(client, user_id),
+                    "resolved_at": timestamp_jakarta,
+                },
+            )
+
         elif category_ticket == "Others":
             user_who_requested_ticket_id = resolve_button_value[0]
             user_message_ts = resolve_button_value[1]
@@ -2291,9 +3105,10 @@ def resolve_button(ack, body, client, logger):
             else:
                 logging.error(f"Failed to post message: {response['error']}")
     except Exception as e:
-        logger.error(f"Error handling modal submission: {str(e)}")
+        logger.error(f"Error resolve function: {str(e)}")
 
 
+@app.action("helpdesk_reject")
 @app.action("reject_button")
 def handle_reject_button(ack, body, client):
     ack()
@@ -2302,10 +3117,10 @@ def handle_reject_button(ack, body, client):
     channel_id = body["channel"]["id"]
     user_info = client.users_info(user=body["user"]["id"])
     user_name = user_info["user"]["real_name"]
-    conditional_index = [6, 0] if len(body["message"]["blocks"]) > 5 else [4, 1]
-    elements = body["message"]["blocks"][conditional_index[0]]["elements"]
+    blocks = body["message"]["blocks"]
+    conditional_index = conditional_indexing(blocks)
+    elements = blocks[conditional_index[0]]["elements"]
     reject_button_value = elements[conditional_index[1]]["value"]
-    ticket_category = "Piket" if conditional_index[0] == 4 else "Others"
     timestamp_utc = datetime.utcnow()
     sheet_manager.update_ticket(
         f"live-ops.{message_ts}",
@@ -2333,7 +3148,7 @@ def handle_reject_button(ack, body, client):
                 },
             },
         ],
-        "private_metadata": f"{channel_id}@@{message_ts}@@{reject_button_value}@@{ticket_category}",
+        "private_metadata": f"{channel_id}@@{message_ts}@@{reject_button_value}",
     }
 
     try:
@@ -2343,7 +3158,7 @@ def handle_reject_button(ack, body, client):
 
 
 @app.view("modal_reject")
-def handle_modal_submission(ack, body, client, view, logger):
+def show_reject_modal(ack, body, client, view, logger, say):
     ack()
     try:
         user_id = body["user"]["id"]
@@ -2459,6 +3274,85 @@ def handle_modal_submission(ack, body, client, view, logger):
 
             else:
                 logger.error("No value information available for this channel.")
+        elif ticket_category == "IT Helpdesk":
+            helpdesk_rejection_text = f"<@{user_id}> has rejected the helpdesk request at `{timestamp_jakarta}` due to: `{reason}`."
+            [
+                ticket_id,
+                helpdesk_reporter,
+                reporter_ts,
+                full_name,
+                timestamp_jakarta,
+                issue_type,
+                issue_desc,
+                urgency_level,
+                incident_time,
+            ] = reject_button_value[:-1]
+            helpdesk_user_response = client.chat_postMessage(
+                channel=channel_id, thread_ts=message_ts, text=helpdesk_rejection_text
+            )
+            if helpdesk_user_response["ok"]:
+                helpdesk_ticket_blocks = [
+                    {
+                        "type": "header",
+                        "text": {
+                            "type": "plain_text",
+                            "text": f"New Helpdesk Ticket: {ticket_id}",
+                        },
+                    },
+                    {
+                        "type": "section",
+                        "fields": [
+                            {"type": "mrkdwn", "text": f"*User Name:*\n{full_name}"},
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Requested by:*\n<@{user_id}>",
+                            },
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Requested at:*\n`{timestamp_jakarta}`",
+                            },
+                            {"type": "mrkdwn", "text": f"*Issue Type:*\n{issue_type}"},
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Issue Description:*\n```{issue_desc}```",
+                            },
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Urgency Level:*\n{urgency_level}",
+                            },
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Incident Date and Time:*\n`{incident_time}`",
+                            },
+                            {"type": "mrkdwn", "text": f"*Status:*\n:x: Rejected"},
+                        ],
+                    },
+                ]
+
+                client.chat_update(
+                    channel=channel_id,
+                    ts=message_ts,
+                    text="Sorry, We reject this helpdesk request.",
+                    blocks=helpdesk_ticket_blocks,
+                )
+
+                client.chat_postMessage(
+                    channel=helpdesk_reporter,
+                    thread_ts=reporter_ts,
+                    text=f":smiling_face_with_tear: Your request got the boot due to `{reason}` at `{timestamp_jakarta}`. But hey, no worries! You can always throw another helpdesk request our way soon!",
+                )
+                updates = {
+                    "rejected_by": get_real_name(client, user_id),
+                    "rejected_at": timestamp_jakarta,
+                    "rejection_reason": reason,
+                }
+
+                sheet_manager.update_helpdesk(ticket_id, updates)
+            else:
+                say(
+                    "Failed to send message to thread after reject the helpdesk request"
+                )
+
         elif ticket_category == "Piket":
             [
                 reporter_piket,
@@ -2473,7 +3367,7 @@ def handle_modal_submission(ack, body, client, view, logger):
                 reason_on_piket_replacement,
                 direct_lead,
                 stem_lead,
-            ] = reject_button_value[:-2]
+            ] = reject_button_value[:-1]
             general_rejection_text = f"<@{user_id}> has rejected the request at `{timestamp_jakarta}` due to: `{reason}`."
             response = client.chat_postMessage(
                 channel=channel_id,
@@ -2572,6 +3466,5 @@ def handle_modal_submission(ack, body, client, view, logger):
         logger.error(f"Error handling modal submission: {str(e)}")
 
 
-# Start your app
 if __name__ == "__main__":
     SocketModeHandler(app, os.environ["SLACK_APP_TOKEN"]).start()

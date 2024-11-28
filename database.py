@@ -21,6 +21,8 @@ class SheetManager:
             self.ticket_sheet = client.open_by_key(sheet_key).worksheet("ticket")
             self.piket_sheet = client.open_by_key(sheet_key).worksheet("piket")
             self.slot_data = client.open_by_key(sheet_key).worksheet("slot_data")
+            self.emergency = client.open_by_key(sheet_key).worksheet("emergency")
+            self.it_helpdesk = client.open_by_key(sheet_key).worksheet("it_helpdesk")
         except Exception as e:
             logging.error(f"Failed to initialize SheetManager: {str(e)}")
 
@@ -83,6 +85,41 @@ class SheetManager:
         except Exception as e:
             logging.error(f"Failed to log chat: {str(e)}")
 
+    def init_emergency(self, emergency_id, user_requested, timestamp_utc):
+        try:
+            timestamp_local = self.convert_to_local_time(timestamp_utc)
+            data = [emergency_id, timestamp_local, user_requested]
+            self.emergency.append_row(data)
+        except Exception as e:
+            logging.error(f"Failed to initialize emergency row: {str(e)}")
+
+    def init_it_helpdesk(
+        self,
+        it_helpdesk_id,
+        user_reported,
+        issue_type,
+        issue_description,
+        urgency_level,
+        incident_date_time,
+        attachment_files,
+        timestamp_utc,
+    ):
+        try:
+            timestamp_local = self.convert_to_local_time(timestamp_utc)
+            data = [
+                it_helpdesk_id,
+                timestamp_local,
+                user_reported,
+                issue_type,
+                issue_description,
+                urgency_level,
+                incident_date_time,
+                attachment_files,
+            ]
+            self.it_helpdesk.append_row(data)
+        except Exception as e:
+            logging.error(f"Failed to populate the data on it_helpdesk: {str(e)}")
+
     def init_piket_row(
         self,
         piket_id,
@@ -114,7 +151,7 @@ class SheetManager:
             ]
             self.piket_sheet.append_row(data)
         except Exception as e:
-            logging.error(f"Failed to initialize ticket row: {str(e)}")
+            logging.error(f"Failed to initialize piket row: {str(e)}")
 
     def init_ticket_row(self, ticket_id, user_id, user_name, user_input, timestamp_utc):
         try:
@@ -216,4 +253,73 @@ class SheetManager:
             "rejected_by": 15,
             "rejected_at": 16,
             "edited_at": 17,
+        }
+
+    def update_emergency_row(self, emergency_id, updates):
+        try:
+            row = self.find_emergency_id(emergency_id)
+            if row:
+                for key, value in updates.items():
+                    col = self.emergency_col_mapping[key]
+                    if "at" in key and isinstance(value, datetime):
+                        value = self.convert_to_local_time(value)
+                    self.emergency.update_cell(row, col, value)
+        except Exception as e:
+            logging.error(f"Failed to update row: {str(e)}")
+
+    def find_emergency_id(self, emergency_id):
+        emergency_id_col = 1
+        col_values = self.emergency.col_values(emergency_id_col)
+        for i, val in enumerate(col_values):
+            if val == emergency_id:
+                return i + 1
+        return None
+
+    @property
+    def emergency_col_mapping(self):
+        return {
+            "emergency_id": 1,
+            "timestamp": 2,
+            "user_reported": 3,
+            "resolved_by": 4,
+            "resolved_at": 5,
+        }
+
+    def update_helpdesk(self, it_helpdesk_id, updates):
+        try:
+            row = self.find_it_helpdesk_id(it_helpdesk_id)
+            if row:
+                for key, value in updates.items():
+                    col = self.helpdesk_col_mapping[key]
+                    if "at" in key and isinstance(value, datetime):
+                        value = self.convert_to_local_time(value)
+                    self.it_helpdesk.update_cell(row, col, value)
+        except Exception as e:
+            logging.error(f"Failed to update row: {str(e)}")
+
+    def find_it_helpdesk_id(self, it_helpdesk_id):
+        it_helpdesk_id_col = 1
+        col_values = self.it_helpdesk.col_values(it_helpdesk_id_col)
+        for i, val in enumerate(col_values):
+            if val == it_helpdesk_id:
+                return i + 1
+        return None
+
+    @property
+    def helpdesk_col_mapping(self):
+        return {
+            "it_helpdesk_id": 1,
+            "timestamp": 2,
+            "user_reported": 3,
+            "issue_type": 4,
+            "issue_description": 5,
+            "urgency_level": 6,
+            "incident_date_time": 7,
+            "attachment_files": 8,
+            "resolved_by": 9,
+            "resolved_at": 10,
+            "rejected_by": 11,
+            "rejected_at": 12,
+            "rejection_reason": 13,
+            "history_chat": 14,
         }
