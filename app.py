@@ -2709,9 +2709,6 @@ def resolve_button_post_chatting(ack, body, client, logger):
     try:
         messages = get_chat_history(client, conv_id, float(start_ts))
 
-        if messages:
-            inserting_chat_history_to_thread(client, helpdesk_cn, staff_ts, messages)
-
         updates = {
             "resolved_by": get_real_name(client, support_id),
             "resolved_at": timestamp_jakarta,
@@ -2739,6 +2736,9 @@ def resolve_button_post_chatting(ack, body, client, logger):
             channel=conv_id,
             text=f"Thanks so much for chatting with us! 🎉 We’re happy we could help. This conversation is all wrapped up now, but don’t hesitate to reach out again if you need anything else.\n\nHave an awesome day, <@{user_reported}>! 🌟",
         )
+
+        if messages:
+            inserting_chat_history_to_thread(client, helpdesk_cn, staff_ts, messages)
 
         logger.info(f"Ticket {ticket_id} resolved successfully.")
     except Exception as e:
