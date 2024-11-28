@@ -318,5 +318,8 @@ class SheetManager:
             "attachment_files": 8,
             "resolved_by": 9,
             "resolved_at": 10,
-            "history_chat": 11,
+            "rejected_by": 11,
+            "rejected_at": 12,
+            "rejection_reason": 13,
+            "history_chat": 14,
         }
