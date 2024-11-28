@@ -30,9 +30,11 @@ creds_dict = {
 app = App(token=os.getenv("SLACK_BOT_TOKEN"))
 sheet_manager = SheetManager(creds_dict, "1dPXiGBN2dDyyQ9TnO6Hi8cQtmbkFBU4O7sI5ztbXT90")
 
+emergency_reflected_cn = "C05Q52ZTQ3X"
 reflected_cn = "C05Q52ZTQ3X"
 tiket_channel = "C0719R3NQ91"
 helpdesk_cn = "C081NA747D0"
+helpdesk_support_id = "U05LPMNQBBK"
 
 greetings_response = {
     "morning": "Good Morning",
@@ -1034,7 +1036,7 @@ def handle_emergency_button(ack, body, client, logger):
                 blocks=emergency_block,
             )
             reflected_response = client.chat_postMessage(
-                channel=reflected_cn,
+                channel=emergency_reflected_cn,
                 text="Emergency Alert reported. Please refer to the main alert.",
                 blocks=info_channel_block,
             )
@@ -1689,14 +1691,12 @@ def send_the_user_input(ack, body, client, say, view):
 def handle_queue_ticket(ack, client, body):
     ack()
     [ticket_id, user_id, user_ts] = body["actions"][0]["value"].split("@@")
-    staff_ts = body["message"]["ts"]
-    support_id = "U05LPMNQBBK"
 
     try:
         client.chat_postMessage(
             channel=user_id,
             thread_ts=user_ts,
-            text=f"please wait, your issue is being on hold because <@{support_id}> is handling another issue at this moment :pray:",
+            text=f"please wait, your issue is being on hold because <@{helpdesk_support_id}> is handling another issue at this moment :pray:",
         )
         message = body["message"]
         blocks = message["blocks"]
@@ -1725,15 +1725,16 @@ def handle_start_chat(ack, client, body):
     ack()
     [ticket_id, user_id, user_ts] = body["actions"][0]["value"].split("@@")
     staff_ts = body["message"]["ts"]
-    support_id = "U05LPMNQBBK"
 
     try:
-        conversation = client.conversations_open(users=f"{user_id},{support_id}")
+        conversation = client.conversations_open(
+            users=f"{user_id},{helpdesk_support_id}"
+        )
         channel_id = conversation["channel"]["id"]
         client.chat_postMessage(
             channel=user_id,
             thread_ts=user_ts,
-            text=f"Hi <@{user_id}>!\n<@{support_id}> will be reaching out to assist you shortly.\nWe’re here to help and will facilitate this conversation for a smooth resolution. Please hang tight! :wave:",
+            text=f"Hi <@{user_id}>!\n<@{helpdesk_support_id}> will be reaching out to assist you shortly.\nWe’re here to help and will facilitate this conversation for a smooth resolution. Please hang tight! :wave:",
         )
         greeting = client.chat_postMessage(
             channel=channel_id,
@@ -1743,7 +1744,7 @@ def handle_start_chat(ack, client, body):
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"🎫 *IT Support Chat for Ticket: {ticket_id}*\n\nHi <@{user_id}>, <@{support_id}> will assist you with your ticket.",
+                        "text": f"🎫 *IT Support Chat for Ticket: {ticket_id}*\n\nHi <@{user_id}>, <@{helpdesk_support_id}> will assist you with your ticket.",
                     },
                 },
                 {
@@ -1773,7 +1774,7 @@ def handle_start_chat(ack, client, body):
 
         blocks[2]["elements"][0][
             "value"
-        ] = f"{ticket_id}@@{user_id}@@{user_ts}@@{channel_id}@@{support_id}@@{staff_ts}@@{start_ts}"
+        ] = f"{ticket_id}@@{user_id}@@{user_ts}@@{channel_id}@@{helpdesk_support_id}@@{staff_ts}@@{start_ts}"
 
         client.chat_update(
             channel=body["channel"]["id"],
@@ -2700,6 +2701,7 @@ def select_custom_category(ack, body, client, view, logger):
 @app.action("helpdesk_resolve_post_chatting")
 def resolve_button_post_chatting(ack, body, client, logger):
     ack()
+    user_id = body["user"]["id"]
     [ticket_id, user_reported, user_ts, conv_id, support_id, staff_ts, start_ts] = body[
         "actions"
     ][0]["value"].split("@@")
@@ -2710,7 +2712,7 @@ def resolve_button_post_chatting(ack, body, client, logger):
         messages = get_chat_history(client, conv_id, float(start_ts))
 
         updates = {
-            "resolved_by": get_real_name(client, support_id),
+            "resolved_by": get_real_name(client, user_id),
             "resolved_at": timestamp_jakarta,
             "history_chat": "\n".join(messages),
         }
@@ -2923,13 +2925,13 @@ def resolve_button(ack, body, client, logger):
 
             if resolved_response["ok"]:
                 client.reactions_add(
-                    channel=reflected_cn,
+                    channel=emergency_reflected_cn,
                     timestamp=emergency_reflected_ts,
                     name="white_check_mark",
                 )
 
                 client.chat_postMessage(
-                    channel=reflected_cn,
+                    channel=emergency_reflected_cn,
                     thread_ts=emergency_reflected_ts,
                     text=f"The emergency issue has been resolved by <@{user_id}> at `{timestamp_jakarta}`",
                 )
@@ -2962,7 +2964,7 @@ def resolve_button(ack, body, client, logger):
             client.chat_postMessage(
                 channel=user_reported,
                 thread_ts=user_ts,
-                text=f"Your helpdesk ticket: *{ticket_id}* has been resolved by <@{user_id}> at `{timestamp_jakarta}`",
+                text=f":white_check_mark: Your ticket: *{ticket_id}* has been resolved by <@{helpdesk_support_id}> at `{timestamp_jakarta}`",
             )
 
             sheet_manager.update_helpdesk(
