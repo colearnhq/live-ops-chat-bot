@@ -2671,9 +2671,8 @@ def resolve_button_post_chatting(ack, body, client, logger):
         updates = {
             "resolved_by": get_real_name(client, support_id),
             "resolved_at": timestamp_jakarta,
+            "history_chat": "\n".join(messages),
         }
-
-        updates["history_chat"] = messages
 
         sheet_manager.update_helpdesk(ticket_id, updates)
 
