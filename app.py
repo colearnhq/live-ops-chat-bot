@@ -239,6 +239,8 @@ def inserting_imgs_thread(client, channel_id, ts, files):
 
 
 def inserting_chat_history_to_thread(client, channel_id, ts, messages):
+    combined_messages = "\n".join(messages)
+
     blocks = []
 
     blocks.append(
@@ -251,17 +253,15 @@ def inserting_chat_history_to_thread(client, channel_id, ts, messages):
         }
     )
 
-    for message in messages:
-        text = message
-        blocks.append(
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"```{text}```",
-                },
-            }
-        )
+    blocks.append(
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"```{combined_messages}```",
+            },
+        }
+    )
 
     if blocks:
         client.chat_postMessage(
@@ -2679,17 +2679,21 @@ def resolve_button_post_chatting(ack, body, client, logger):
 
     try:
         messages = get_chat_history(client, conv_id, float(start_ts))
-        file_url = None
+        chat_compilation = []
 
         if messages:
-            inserting_chat_history_to_thread(client, helpdesk_cn, staff_ts, messages)
+            chat_compilation = [message for message in messages]
+
+            inserting_chat_history_to_thread(
+                client, helpdesk_cn, staff_ts, chat_compilation
+            )
 
         updates = {
             "resolved_by": get_real_name(client, support_id),
             "resolved_at": timestamp_jakarta,
         }
-        if file_url:
-            updates["history_chat"] = file_url
+        if chat_compilation:
+            updates["history_chat"] = chat_compilation
 
         sheet_manager.update_helpdesk(ticket_id, updates)
 
@@ -2707,7 +2711,6 @@ def resolve_button_post_chatting(ack, body, client, logger):
             thread_ts=user_ts,
             text=f"Your helpdesk ticket: *{ticket_id}* has been resolved by <@{support_id}> at `{timestamp_jakarta}`",
         )
-
         client.chat_postMessage(
             channel=conv_id,
             text=f"Thanks so much for chatting with us! 🎉 We’re happy we could help. This conversation is all wrapped up now, but don’t hesitate to reach out again if you need anything else.\n\nHave an awesome day, <@{user_reported}>! 🌟",
