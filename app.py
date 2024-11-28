@@ -2652,6 +2652,7 @@ def select_custom_category(ack, body, client, view, logger):
             text="Failed to record the custom category. Please try again.",
         )
 
+
 @app.action("helpdesk_resolve_post_chatting")
 def resolve_button_post_chatting(ack, body, client, logger):
     ack()
@@ -2663,43 +2664,39 @@ def resolve_button_post_chatting(ack, body, client, logger):
 
     try:
         messages = get_chat_history(client, conv_id, float(start_ts))
-        chat_compilation = []  
+        chat_history_json = None
 
-        if messages:
-
-            for message in messages:
-
-                if isinstance(message, dict):
-                    message_obj = {
-                        "user": get_real_name(client, message.get("user", "Unknown User")),
-                        "timestamp": convert_utc_to_jakarta(datetime.utcfromtimestamp(float(message["ts"]))),
-                        "text": message.get("text", ""),
-                        "attachments": []
+        chat_history = []
+        for message in messages:
+            chat_message = {
+                "user": get_real_name(client, message.get("user", "Unknown User")),
+                "timestamp": convert_utc_to_jakarta(
+                    datetime.utcfromtimestamp(float(message["ts"]))
+                ),
+                "text": message.get("text", ""),
+                "attachments": [],
+            }
+            if "files" in message:
+                for file in message["files"]:
+                    file_info = {
+                        "mimetype": file.get("mimetype", ""),
+                        "file_url": file.get("url_private", "No URL available"),
+                        "file_name": file.get("name", "No name available"),
                     }
+                    chat_message["attachments"].append(file_info)
 
-                    if "files" in message:
-                        for file in message["files"]:
-                            file_obj = {
-                                "mimetype": file.get("mimetype", ""),
-                                "file_url": file.get("url_private", "No URL available"),
-                                "file_name": file.get("name", "No name available")
-                            }
-                            message_obj["attachments"].append(file_obj)
+            chat_history.append(chat_message)
 
-                    chat_compilation.append(message_obj)
-                else:
-                    logger.warning(f"Skipping message: Expected dictionary, got {type(message)}")
-
-            chat_json = json.dumps(chat_compilation, indent=4)
-
-            inserting_chat_history_to_thread(client, helpdesk_cn, staff_ts, chat_json)
+        # Convert chat history to a JSON string
+        chat_history_json = json.dumps(chat_history, indent=4)
+        inserting_chat_history_to_thread(client, helpdesk_cn, staff_ts, messages)
 
         updates = {
             "resolved_by": get_real_name(client, support_id),
             "resolved_at": timestamp_jakarta,
         }
-        if chat_compilation:
-            updates["history_chat"] = chat_json 
+        if chat_history_json:
+            updates["history_chat"] = chat_history_json
 
         sheet_manager.update_helpdesk(ticket_id, updates)
 
@@ -2717,7 +2714,7 @@ def resolve_button_post_chatting(ack, body, client, logger):
             thread_ts=user_ts,
             text=f"Your helpdesk ticket: *{ticket_id}* has been resolved by <@{support_id}> at `{timestamp_jakarta}`",
         )
-        
+
         client.chat_postMessage(
             channel=conv_id,
             text=f"Thanks so much for chatting with us! 🎉 We’re happy we could help. This conversation is all wrapped up now, but don’t hesitate to reach out again if you need anything else.\n\nHave an awesome day, <@{user_reported}>! 🌟",
@@ -2726,7 +2723,6 @@ def resolve_button_post_chatting(ack, body, client, logger):
         logger.info(f"Ticket {ticket_id} resolved successfully.")
     except Exception as e:
         logging.error(f"Error resolving post chatting: {str(e)}")
-
 
 
 @app.action("helpdesk_resolve")
