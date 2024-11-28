@@ -2652,7 +2652,6 @@ def select_custom_category(ack, body, client, view, logger):
             text="Failed to record the custom category. Please try again.",
         )
 
-
 @app.action("helpdesk_resolve_post_chatting")
 def resolve_button_post_chatting(ack, body, client, logger):
     ack()
@@ -2664,29 +2663,32 @@ def resolve_button_post_chatting(ack, body, client, logger):
 
     try:
         messages = get_chat_history(client, conv_id, float(start_ts))
-        chat_compilation = []
+        chat_compilation = []  
 
         if messages:
+
             for message in messages:
-                message_obj = {
-                    "user": get_real_name(client, message.get("user", "Unknown User")),
-                    "timestamp": convert_utc_to_jakarta(
-                        datetime.utcfromtimestamp(float(message["ts"]))
-                    ),
-                    "text": message.get("text", ""),
-                    "attachments": [],
-                }
 
-                if "files" in message:
-                    for file in message["files"]:
-                        file_obj = {
-                            "mimetype": file.get("mimetype", ""),
-                            "file_url": file.get("url_private", "No URL available"),
-                            "file_name": file.get("name", "No name available"),
-                        }
-                        message_obj["attachments"].append(file_obj)
+                if isinstance(message, dict):
+                    message_obj = {
+                        "user": get_real_name(client, message.get("user", "Unknown User")),
+                        "timestamp": convert_utc_to_jakarta(datetime.utcfromtimestamp(float(message["ts"]))),
+                        "text": message.get("text", ""),
+                        "attachments": []
+                    }
 
-                chat_compilation.append(message_obj)
+                    if "files" in message:
+                        for file in message["files"]:
+                            file_obj = {
+                                "mimetype": file.get("mimetype", ""),
+                                "file_url": file.get("url_private", "No URL available"),
+                                "file_name": file.get("name", "No name available")
+                            }
+                            message_obj["attachments"].append(file_obj)
+
+                    chat_compilation.append(message_obj)
+                else:
+                    logger.warning(f"Skipping message: Expected dictionary, got {type(message)}")
 
             chat_json = json.dumps(chat_compilation, indent=4)
 
@@ -2697,11 +2699,10 @@ def resolve_button_post_chatting(ack, body, client, logger):
             "resolved_at": timestamp_jakarta,
         }
         if chat_compilation:
-            updates["history_chat"] = chat_json  # Store the compiled chat JSON
+            updates["history_chat"] = chat_json 
 
         sheet_manager.update_helpdesk(ticket_id, updates)
 
-        # Update the status in the helpdesk channel
         blocks = body["message"]["blocks"]
         blocks[1]["fields"][7]["text"] = "*Status:*\n:white_check_mark: Resolved"
         blocks[1]["fields"].append(
@@ -2716,7 +2717,7 @@ def resolve_button_post_chatting(ack, body, client, logger):
             thread_ts=user_ts,
             text=f"Your helpdesk ticket: *{ticket_id}* has been resolved by <@{support_id}> at `{timestamp_jakarta}`",
         )
-
+        
         client.chat_postMessage(
             channel=conv_id,
             text=f"Thanks so much for chatting with us! 🎉 We’re happy we could help. This conversation is all wrapped up now, but don’t hesitate to reach out again if you need anything else.\n\nHave an awesome day, <@{user_reported}>! 🌟",
@@ -2725,6 +2726,7 @@ def resolve_button_post_chatting(ack, body, client, logger):
         logger.info(f"Ticket {ticket_id} resolved successfully.")
     except Exception as e:
         logging.error(f"Error resolving post chatting: {str(e)}")
+
 
 
 @app.action("helpdesk_resolve")
