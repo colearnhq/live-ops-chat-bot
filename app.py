@@ -3305,7 +3305,7 @@ def show_reject_modal(ack, body, client, view, logger, say):
                             {"type": "mrkdwn", "text": f"*User Name:*\n{full_name}"},
                             {
                                 "type": "mrkdwn",
-                                "text": f"*Requested by:*\n<@{user_id}>",
+                                "text": f"*Requested by:*\n<@{helpdesk_reporter}>",
                             },
                             {
                                 "type": "mrkdwn",
