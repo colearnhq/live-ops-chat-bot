@@ -228,6 +228,9 @@ def inserting_imgs_thread(client, channel_id, ts, files):
 def inserting_chat_history_to_thread(client, channel_id, ts, messages):
     combined_messages = "\n".join(messages)
 
+    if len(combined_messages) > 3001:
+        combined_messages = combined_messages[:2500] + "...."
+
     blocks = []
 
     blocks.append(
@@ -250,22 +253,20 @@ def inserting_chat_history_to_thread(client, channel_id, ts, messages):
         }
     )
 
-    if blocks:
-        if len(blocks) <= 3001:
-            blocks[:2950] + "....."
-            client.chat_postMessage(
-                channel=channel_id,
-                thread_ts=ts,
-                blocks=blocks,
-                text="Here’s the chat history (full messages stored in our database).",
-            )
-        else:
-            client.chat_postMessage(
-                channel=channel_id,
-                thread_ts=ts,
-                blocks=blocks,
-                text="Here are the chat history and attachments",
-            )
+    if len(combined_messages) > 3000:
+        client.chat_postMessage(
+            channel=channel_id,
+            thread_ts=ts,
+            blocks=blocks,
+            text="Here’s the chat history (full messages stored in our database).",
+        )
+    else:
+        client.chat_postMessage(
+            channel=channel_id,
+            thread_ts=ts,
+            blocks=blocks,
+            text="Here are the chat history and attachments",
+        )
 
 
 def get_real_name(client, user_id):
