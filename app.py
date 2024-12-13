@@ -34,7 +34,7 @@ emergency_reflected_cn = "C0719R3NQ91"
 reflected_cn = "C0719R3NQ91"
 tiket_channel = "C0719R3NQ91"
 helpdesk_cn = "C0719R3NQ91"
-helpdesk_support_id = "C0719R3NQ91"
+helpdesk_support_id = "U02AFHDU70C"
 
 greetings_response = {
     "morning": "Good Morning",
