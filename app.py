@@ -30,11 +30,11 @@ creds_dict = {
 app = App(token=os.getenv("SLACK_BOT_TOKEN"))
 sheet_manager = SheetManager(creds_dict, "1dPXiGBN2dDyyQ9TnO6Hi8cQtmbkFBU4O7sI5ztbXT90")
 
-emergency_reflected_cn = "C05Q52ZTQ3X"
-reflected_cn = "C05Q52ZTQ3X"
+emergency_reflected_cn = "C0719R3NQ91"
+reflected_cn = "C0719R3NQ91"
 tiket_channel = "C0719R3NQ91"
-helpdesk_cn = "C081NA747D0"
-helpdesk_support_id = "U05LPMNQBBK"
+helpdesk_cn = "C0719R3NQ91"
+helpdesk_support_id = "C0719R3NQ91"
 
 greetings_response = {
     "morning": "Good Morning",
@@ -227,7 +227,7 @@ def inserting_imgs_thread(client, channel_id, ts, files):
 
 def inserting_chat_history_to_thread(client, channel_id, ts, messages):
     combined_messages = "\n".join(messages)
-
+    print(f"we check the length: {len(combined_messages)}")
     blocks = []
 
     blocks.append(
