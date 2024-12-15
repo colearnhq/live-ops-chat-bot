@@ -1165,7 +1165,9 @@ def send_the_user_input(ack, body, client, say, view):
         ]
 
         response_for_user = client.chat_postMessage(
-            channel=user_id, blocks=piket_blocks
+            channel=user_id,
+            blocks=piket_blocks,
+            text=f"We are sending the ticket information to <@{user_id}>",
         )
 
         piket_data = f"{date}@@{teacher_requested}@@{teacher_replace}@@{grade}@@{slot_name}@@{time_class}@@{reason}@@{direct_lead}@@{stem_lead}"
