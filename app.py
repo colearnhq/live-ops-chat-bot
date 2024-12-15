@@ -30,12 +30,12 @@ creds_dict = {
 app = App(token=os.getenv("SLACK_BOT_TOKEN"))
 sheet_manager = SheetManager(creds_dict, "1dPXiGBN2dDyyQ9TnO6Hi8cQtmbkFBU4O7sI5ztbXT90")
 
-emergency_reflected_cn = "C056S606NGM"
-ops_cn = "C079J897A49"
-reflected_cn = "C032B89UK36"
-piket_reflected_cn = "C056S606NGM"
-helpdesk_cn = "C081NA747D0"
-helpdesk_support_id = "U05LPMNQBBK"
+emergency_reflected_cn = "C0719R3NQ91"
+ops_cn = "C0719R3NQ91"
+reflected_cn = "C0719R3NQ91"
+piket_reflected_cn = "C0719R3NQ91"
+helpdesk_cn = "C0719R3NQ91"
+helpdesk_support_id = "U02AFHDU70C"
 
 greetings_response = {
     "morning": "Good Morning",
@@ -229,6 +229,9 @@ def inserting_imgs_thread(client, channel_id, ts, files):
 def inserting_chat_history_to_thread(client, channel_id, ts, messages):
     combined_messages = "\n".join(messages)
 
+    if len(combined_messages) > 3001:
+        combined_messages = combined_messages[:2500] + "...."
+
     blocks = []
 
     blocks.append(
@@ -251,7 +254,14 @@ def inserting_chat_history_to_thread(client, channel_id, ts, messages):
         }
     )
 
-    if blocks:
+    if len(combined_messages) > 3000:
+        client.chat_postMessage(
+            channel=channel_id,
+            thread_ts=ts,
+            blocks=blocks,
+            text="Here’s the chat history (full messages stored in our database).",
+        )
+    else:
         client.chat_postMessage(
             channel=channel_id,
             thread_ts=ts,
@@ -1156,7 +1166,9 @@ def send_the_user_input(ack, body, client, say, view):
         ]
 
         response_for_user = client.chat_postMessage(
-            channel=user_id, blocks=piket_blocks
+            channel=user_id,
+            blocks=piket_blocks,
+            text=f"We are sending the ticket information to <@{user_id}>",
         )
 
         piket_data = f"{date}@@{teacher_requested}@@{teacher_replace}@@{grade}@@{slot_name}@@{time_class}@@{reason}@@{direct_lead}@@{stem_lead}"
@@ -1263,7 +1275,10 @@ def send_the_user_input(ack, body, client, say, view):
                 ]
 
         result = client.chat_update(
-            channel=piket_channel_id, ts=initial_ts, blocks=piket_message
+            channel=piket_channel_id,
+            text=f"please check the piket request from <@{teacher_requested}>",
+            ts=initial_ts,
+            blocks=piket_message,
         )
         sheet_manager.init_piket_row(
             f"piket.{result['ts']}",
@@ -1660,6 +1675,7 @@ def send_the_user_input(ack, body, client, say, view):
             result = client.chat_update(
                 channel=channel_id,
                 ts=ts,
+                text=f"We received the ticket from <@{user_id}>",
                 blocks=blocks,
             )
 
@@ -2047,7 +2063,10 @@ def show_editted_piket_msg(ack, body, client, view, logger):
         ]
 
         response = client.chat_update(
-            channel=channel_id, ts=thread_ts, blocks=piket_message
+            channel=channel_id,
+            ts=thread_ts,
+            text=f"Thank you for choosing <@{teacher_replace} as replacement.",
+            blocks=piket_message,
         )
         if response["ok"]:
             client.chat_postMessage(
@@ -2230,6 +2249,7 @@ def handle_user_selection(ack, body, client):
             client.chat_update(
                 channel=channel_id,
                 ts=thread_ts,
+                text=None,
                 blocks=updated_blocks,
             )
             reflected_post = client.chat_postMessage(
@@ -2390,11 +2410,14 @@ def handle_user_selection(ack, body, client):
             client.chat_update(
                 channel=channel_id,
                 ts=thread_ts,
+                text=f"<@{selected_user}> picked up the issue.",
                 blocks=updated_blocks,
             )
 
             reflected_post = client.chat_postMessage(
-                channel=reflected_cn, blocks=reflected_msg
+                channel=reflected_cn,
+                text="sending the ticket to #guru_kakaksiaga_ops",
+                blocks=reflected_msg,
             )
 
             if reflected_post["ok"]:
@@ -2560,9 +2583,13 @@ def handle_category_selection(ack, body, client):
             },
         ]
 
-        client.chat_update(channel=channel_id, ts=thread_ts, blocks=updated_blocks)
+        client.chat_update(
+            channel=channel_id, ts=thread_ts, text=None, blocks=updated_blocks
+        )
 
-        client.chat_update(channel=reflected_cn, ts=reflected_ts, blocks=reflected_msg)
+        client.chat_update(
+            channel=reflected_cn, ts=reflected_ts, text=None, blocks=reflected_msg
+        )
 
         sheet_manager.update_ticket(
             f"live-ops.{thread_ts}",
@@ -2683,9 +2710,13 @@ def handle_custom_category_modal_submission(ack, body, client, view, logger):
             },
         ]
 
-        client.chat_update(channel=channel_id, ts=thread_ts, blocks=updated_blocks)
+        client.chat_update(
+            channel=channel_id, ts=thread_ts, text=None, blocks=updated_blocks
+        )
 
-        client.chat_update(channel=reflected_cn, ts=reflected_ts, blocks=reflected_msg)
+        client.chat_update(
+            channel=reflected_cn, ts=reflected_ts, text=None, blocks=reflected_msg
+        )
 
         sheet_manager.update_ticket(
             f"live-ops.{thread_ts}",
@@ -2727,7 +2758,7 @@ def resolve_button_post_chatting(ack, body, client, logger):
         )
         blocks.pop(2)
 
-        client.chat_update(channel=helpdesk_cn, ts=staff_ts, blocks=blocks)
+        client.chat_update(channel=helpdesk_cn, ts=staff_ts, text=None, blocks=blocks)
 
         client.chat_postMessage(
             channel=user_reported,
@@ -2960,7 +2991,9 @@ def resolve_button(ack, body, client, logger):
             )
             blocks.pop(2)
 
-            client.chat_update(channel=channel_id, ts=thread_ts, blocks=blocks)
+            client.chat_update(
+                channel=channel_id, ts=thread_ts, text=None, blocks=blocks
+            )
 
             client.chat_postMessage(
                 channel=user_reported,
@@ -3087,7 +3120,10 @@ def resolve_button(ack, body, client, logger):
                 ]
 
                 client.chat_update(
-                    channel=reflected_cn, ts=reflected_ts, blocks=reflected_msg
+                    channel=reflected_cn,
+                    ts=reflected_ts,
+                    text=f"we are resolving this ticket: live-ops.{thread_ts}",
+                    blocks=reflected_msg,
                 )
 
                 client.chat_postMessage(
@@ -3263,7 +3299,10 @@ def show_reject_modal(ack, body, client, view, logger, say):
                 )
 
                 client.chat_update(
-                    channel=reflected_cn, ts=reflected_ts, blocks=reflected_msg
+                    channel=reflected_cn,
+                    ts=reflected_ts,
+                    text=f"ticket: live-ops.{message_ts} just rejected by <@{user_id}",
+                    blocks=reflected_msg,
                 )
 
                 client.chat_postMessage(
