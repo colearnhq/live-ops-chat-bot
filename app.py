@@ -30,12 +30,12 @@ creds_dict = {
 app = App(token=os.getenv("SLACK_BOT_TOKEN"))
 sheet_manager = SheetManager(creds_dict, "1dPXiGBN2dDyyQ9TnO6Hi8cQtmbkFBU4O7sI5ztbXT90")
 
-emergency_reflected_cn = "C0719R3NQ91"
-ops_cn = "C0719R3NQ91"
-reflected_cn = "C0719R3NQ91"
-piket_reflected_cn = "C0719R3NQ91"
-helpdesk_cn = "C0719R3NQ91"
-helpdesk_support_id = "U02AFHDU70C"
+emergency_reflected_cn = "C056S606NGM"
+ops_cn = "C079J897A49"
+reflected_cn = "C032B89UK36"
+piket_reflected_cn = "C056S606NGM"
+helpdesk_cn = "C081NA747D0"
+helpdesk_support_id = "U05LPMNQBBK"
 
 greetings_response = {
     "morning": "Good Morning",
