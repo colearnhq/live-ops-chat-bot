@@ -1123,7 +1123,7 @@ def send_the_user_input(ack, body, client, say, view):
         stem_lead = view["state"]["values"]["stem_lead_block"]["stem_lead_action"][
             "selected_user"
         ]
-
+        print(f"we check slot_name {slot_name}")
         teacher_requested_name = get_real_name(client, teacher_requested)
         teacher_replaces_name = get_real_name(client, teacher_replace)
         direct_lead_name = get_real_name(client, direct_lead)
