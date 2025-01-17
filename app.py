@@ -1826,7 +1826,7 @@ def edit_piket_msg(ack, body, client):
     thread_ts = body["container"]["message_ts"]
     channel_id = body["channel"]["id"]
     trigger_id = body["trigger_id"]
-    unique_id = ticket_manager.get_unique_id(report_ts)
+    unique_id = ticket_manager.get_unique_id(thread_ts)
 
     modal_blocks = [
         {
@@ -2044,7 +2044,7 @@ def show_editted_piket_msg(ack, body, client, view, logger):
                 "elements": [
                     {
                         "type": "mrkdwn",
-                        "text": f"*Piket Ticket Number:* piket.{unique_id} | Editted at ${timestamp_jakarta}",
+                        "text": f"*Piket Ticket Number:* piket.{unique_id} | Editted at {timestamp_jakarta}",
                     }
                 ],
             },
