@@ -10,6 +10,7 @@ from slack_sdk.errors import SlackApiError
 from database import SheetManager
 import pytz
 import json
+import uuid
 
 load_dotenv(".env.dev")
 
@@ -85,6 +86,7 @@ class TicketManager:
         self.user_inputs = {}
         self.ticket_status = {}
         self.files = {}
+        self.unique_id = {}
 
     def store_reflected_ts(self, thread_ts, reflected_ts):
         self.reflected_timestamps[thread_ts] = reflected_ts
@@ -95,6 +97,12 @@ class TicketManager:
     def clear_reflected_ts(self, thread_ts):
         if thread_ts in self.reflected_timestamps:
             del self.reflected_timestamps[thread_ts]
+
+    def store_unique_id(self, thread_ts, id):
+        self.unique_id[thread_ts] = id
+
+    def get_unique_id(self, thread_ts):
+        return self.unique_id.get(thread_ts)
 
     def store_user_input(self, thread_ts, user_input):
         self.user_inputs[thread_ts] = user_input
@@ -1087,15 +1095,16 @@ def send_the_user_input(ack, body, client, say, view):
     view_state = body["view"]["state"]["values"]
     user_id = body["user"]["id"]
     reporter_name = body["user"]["username"]
+    unique_id = str(uuid.uuid4())
     timestamp_utc = datetime.utcnow()
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
 
     if category == "Piket":
-        init_result = client.chat_postMessage(
-            channel=channel_id, text="Initializing ticket..."
-        )
-        initial_ts = init_result["ts"]
-        date = view["state"]["values"]["date_block"]["date_picker_action"][
+        # init_result = client.chat_postMessage(
+        #     channel=channel_id, text="Initializing ticket..."
+        # )
+        # initial_ts = init_result["ts"]
+        class_date = view["state"]["values"]["date_block"]["date_picker_action"][
             "selected_date"
         ]
         teacher_requested = view["state"]["values"]["teacher_request_block"][
@@ -1135,7 +1144,7 @@ def send_the_user_input(ack, body, client, say, view):
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"Hi <@{user_id}> :blob-wave:\nYour piket request have been received with this following number: `piket.{initial_ts}`",
+                    "text": f"Hi <@{user_id}> :blob-wave:\nYour piket request have been received with this following number: `piket.{unique_id}`",
                 },
             },
             {
@@ -1170,9 +1179,9 @@ def send_the_user_input(ack, body, client, say, view):
             text=f"We are sending the ticket information to <@{user_id}>",
         )
 
-        piket_data = f"{date}@@{teacher_requested}@@{teacher_replace}@@{grade}@@{slot_name}@@{time_class}@@{reason}@@{direct_lead}@@{stem_lead}"
+        piket_data = f"{class_date}@@{teacher_requested}@@{teacher_replace}@@{grade}@@{slot_name}@@{time_class}@@{reason}@@{direct_lead}@@{stem_lead}"
         ticket_key_for_user = f"{user_id}@@{response_for_user['ts']}@@{timestamp_jakarta}@@{piket_data}@@{category}"
-        ticket_key_for_request_teacher = f"{user_id}@@{response_for_user['ts']}@@{timestamp_jakarta}@@{date}@@{teacher_requested}@@{grade}@@{slot_name}@@{time_class}@@{reason}@@{direct_lead}@@{stem_lead}"
+        ticket_key_for_request_teacher = f"{user_id}@@{response_for_user['ts']}@@{timestamp_jakarta}@@{class_date}@@{teacher_requested}@@{grade}@@{slot_name}@@{time_class}@@{reason}@@{direct_lead}@@{stem_lead}"
         teacher_replace_state = (
             f"<@{teacher_replace}>"
             if teacher_replace != "No Mentor"
@@ -1191,7 +1200,7 @@ def send_the_user_input(ack, body, client, say, view):
             {
                 "type": "section",
                 "fields": [
-                    {"type": "mrkdwn", "text": f"*Class Date:*\n`{date}`"},
+                    {"type": "mrkdwn", "text": f"*Class Date:*\n`{class_date}`"},
                     {"type": "mrkdwn", "text": f"*Time of Class:*\n`{time_class}`"},
                     {
                         "type": "mrkdwn",
@@ -1213,7 +1222,7 @@ def send_the_user_input(ack, body, client, say, view):
                 "elements": [
                     {
                         "type": "mrkdwn",
-                        "text": f"*Piket Ticket Number:* piket.{initial_ts}",
+                        "text": f"*Piket Ticket Number:* piket.{unique_id}",
                     }
                 ],
             },
@@ -1273,19 +1282,20 @@ def send_the_user_input(ack, body, client, say, view):
                     },
                 ]
 
-        result = client.chat_update(
+        result = client.chat_postMessage(
             channel=piket_channel_id,
             text=f"please check the piket request from <@{teacher_requested}>",
-            ts=initial_ts,
             blocks=piket_message,
         )
+        if result["ok"]:
+            ticket_manager.store_unique_id(result["ts"], unique_id)
         sheet_manager.init_piket_row(
-            f"piket.{result['ts']}",
+            f"piket.{unique_id}",
             teacher_requested_name,
             teacher_replaces_name,
             grade,
             slot_name,
-            date,
+            class_date,
             time_class,
             reason,
             direct_lead_name,
@@ -1293,11 +1303,11 @@ def send_the_user_input(ack, body, client, say, view):
             timestamp_utc,
         )
     elif category == "IT Helpdesk":
-        init_result = client.chat_postMessage(
-            channel=helpdesk_cn, text="Initializing ticket..."
-        )
-        initial_ts = init_result["ts"]
-        ticket_id = f"it-helpdesk.{initial_ts}"
+        # init_result = client.chat_postMessage(
+        #     channel=helpdesk_cn, text="Initializing ticket..."
+        # )
+        # initial_ts = init_result["ts"]
+        ticket_id = f"it-helpdesk.{unique_id}"
         full_name = view_state["full_name_block"]["full_name_action"]["value"]
         issue_type = view_state["issue_type_id"]["handle_issue_type"][
             "selected_option"
@@ -1344,7 +1354,7 @@ def send_the_user_input(ack, body, client, say, view):
 
         try:
             if helpdesk_files:
-                ticket_manager.store_files(initial_ts, helpdesk_files)
+                ticket_manager.store_files(unique_id, helpdesk_files)
             user_response = [
                 {
                     "type": "section",
@@ -1497,9 +1507,8 @@ def send_the_user_input(ack, body, client, say, view):
                         ],
                     },
                 ]
-                response_for_staff = client.chat_update(
+                response_for_staff = client.chat_postMessage(
                     channel=helpdesk_cn,
-                    ts=initial_ts,
                     text=f"We just received a helpdesk request from {full_name}",
                     blocks=helpdesk_ticket_blocks,
                 )
@@ -1517,10 +1526,10 @@ def send_the_user_input(ack, body, client, say, view):
             logging.error(f"An error occured on helpdesk {str(e)}")
 
     elif category == "Others":
-        init_result = client.chat_postMessage(
-            channel=channel_id, text="Initializing ticket..."
-        )
-        initial_ts = init_result["ts"]
+        # init_result = client.chat_postMessage(
+        #     channel=channel_id, text="Initializing ticket..."
+        # )
+        # initial_ts = init_result["ts"]
         issue_description = view_state["issue_name"]["user_issue"]["value"]
         files = (
             view_state.get("file_upload_block", {})
@@ -1528,16 +1537,12 @@ def send_the_user_input(ack, body, client, say, view):
             .get("files", [])
         )
         try:
-            ticket_manager.store_user_input(initial_ts, issue_description)
-            if files:
-                ticket_manager.store_files(initial_ts, files)
-
             ticket = [
                 {
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"Your ticket number: *live-ops.{init_result['ts']}*",
+                        "text": f"Your ticket number: *live-ops.{unique_id}*",
                     },
                 },
                 {
@@ -1596,8 +1601,8 @@ def send_the_user_input(ack, body, client, say, view):
                         text=f"For the problem details: `{issue_description}`",
                     )
 
-            if init_result["ok"]:
-                ts = initial_ts
+            if response_for_user["ok"]:
+                ts = response_for_user["ts"]
                 blocks = [
                     {
                         "type": "section",
@@ -1615,7 +1620,7 @@ def send_the_user_input(ack, body, client, say, view):
                         "fields": [
                             {
                                 "type": "mrkdwn",
-                                "text": f"*Ticket Number:*\nlive-ops.{ts}",
+                                "text": f"*Ticket Number:*\nlive-ops.{unique_id}",
                             },
                             {
                                 "type": "mrkdwn",
@@ -1686,8 +1691,11 @@ def send_the_user_input(ack, body, client, say, view):
                 timestamp_utc,
             )
             if result["ok"]:
+                ticket_manager.store_user_input(result["ts"], issue_description)
+                ticket_manager.store_unique_id(result["ts"], unique_id)
                 if files:
                     inserting_imgs_thread(client, channel_id, ts, files)
+                    ticket_manager.store_files(result["ts"], files)
                 if len(issue_description) > 37:
                     client.chat_postMessage(
                         channel=channel_id,
@@ -1977,7 +1985,7 @@ def show_editted_piket_msg(ack, body, client, view, logger):
         [reporter_id, report_ts, timestamp, thread_ts, channel_id] = view[
             "private_metadata"
         ].split("@@")
-        date = view["state"]["values"]["date_block"]["date_picker_action"][
+        class_date = view["state"]["values"]["date_block"]["date_picker_action"][
             "selected_date"
         ]
         teacher_requested = view["state"]["values"]["teacher_request_block"][
@@ -2014,7 +2022,7 @@ def show_editted_piket_msg(ack, body, client, view, logger):
             {
                 "type": "section",
                 "fields": [
-                    {"type": "mrkdwn", "text": f"*Class Date:*\n`{date}`"},
+                    {"type": "mrkdwn", "text": f"*Class Date:*\n`{class_date}`"},
                     {
                         "type": "mrkdwn",
                         "text": f"*Time of Class:*\n`{time_class}`",
@@ -2071,7 +2079,7 @@ def show_editted_piket_msg(ack, body, client, view, logger):
             client.chat_postMessage(
                 channel=reporter_id,
                 thread_ts=report_ts,
-                text=f"Your request approved. Your class on `{date}` at `{time_class}`, the teacher replacement is <@{teacher_replace}>",
+                text=f"Your request approved. Your class on `{class_date}` at `{time_class}`, the teacher replacement is <@{teacher_replace}>",
             )
 
             client.chat_postMessage(channel=reflected_cn, blocks=piket_message)
@@ -2092,7 +2100,7 @@ def show_editted_piket_msg(ack, body, client, view, logger):
                     "teacher_requested": get_real_name(client, teacher_requested),
                     "grade": str(grade),
                     "slot_name": slot_name,
-                    "class_date": str(date),
+                    "class_date": str(class_date),
                     "class_time": str(time_class),
                     "reason": reason,
                     "direct_lead": get_real_name(client, direct_lead),
@@ -2143,6 +2151,7 @@ def select_user(ack, body, client):
 
     files = ticket_manager.get_files(thread_ts)
     ticket_manager.update_ticket_status(thread_ts, "assigned")
+    unique_id = ticket_manager.get_unique_id(thread_ts)
 
     if selected_user in ["S05RYHJ41C6", "S02R59UL0RH", "U05LPMNQBBK"]:
         user_info = client.users_info(user=body["user"]["id"])
@@ -2163,7 +2172,7 @@ def select_user(ack, body, client):
             text=f"We've officially handed off this hot potato to {other_div_mention}. Now, let's dive back into our awesome work!",
         )
         sheet_manager.update_ticket(
-            f"live-ops.{thread_ts}",
+            f"live-ops.{unique_id}",
             {
                 "handed_over_by": selected_user_name,
                 "handed_over_at": timestamp_utc,
@@ -2188,7 +2197,7 @@ def select_user(ack, body, client):
                     "fields": [
                         {
                             "type": "mrkdwn",
-                            "text": f"*Ticket Number:*\nlive-ops.{thread_ts}",
+                            "text": f"*Ticket Number:*\nlive-ops.{unique_id}",
                         },
                         {
                             "type": "mrkdwn",
@@ -2223,7 +2232,7 @@ def select_user(ack, body, client):
                     "fields": [
                         {
                             "type": "mrkdwn",
-                            "text": f"*Ticket Number:*\nlive-ops.{thread_ts}",
+                            "text": f"*Ticket Number:*\nlive-ops.{unique_id}",
                         },
                         {
                             "type": "mrkdwn",
@@ -2281,7 +2290,7 @@ def select_user(ack, body, client):
         )
 
         sheet_manager.update_ticket(
-            f"live-ops.{thread_ts}",
+            f"live-ops.{unique_id}",
             {
                 "handled_by": selected_user_name,
                 "handled_at": timestamp_utc,
@@ -2307,7 +2316,7 @@ def select_user(ack, body, client):
                     "fields": [
                         {
                             "type": "mrkdwn",
-                            "text": f"*Ticket Number:*\nlive-ops.{thread_ts}",
+                            "text": f"*Ticket Number:*\nlive-ops.{unique_id}",
                         },
                         {
                             "type": "mrkdwn",
@@ -2384,7 +2393,7 @@ def select_user(ack, body, client):
                     "fields": [
                         {
                             "type": "mrkdwn",
-                            "text": f"*Ticket Number:*\nlive-ops.{thread_ts}",
+                            "text": f"*Ticket Number:*\nlive-ops.{unique_id}",
                         },
                         {
                             "type": "mrkdwn",
@@ -2463,6 +2472,7 @@ def select_category(ack, body, client):
     ] = body["actions"][0]["selected_option"]["value"].split("@@")
     thread_ts = body["container"]["message_ts"]
     reflected_ts = ticket_manager.get_reflected_ts(thread_ts)
+    unique_id = ticket_manager.get_unique_id(thread_ts)
     ticket_key_for_user = f"{user_who_requested}@@{response_ts}@@{truncate_value(user_input)}@@{reported_at}@@{selected_user}@@{selected_category_name}@@{ticket_category}"
 
     if selected_category_name.lower() == "others":
@@ -2507,7 +2517,7 @@ def select_category(ack, body, client):
                 "fields": [
                     {
                         "type": "mrkdwn",
-                        "text": f"*Ticket Number:*\nlive-ops.{thread_ts}",
+                        "text": f"*Ticket Number:*\nlive-ops.{unique_id}",
                     },
                     {
                         "type": "mrkdwn",
@@ -2556,7 +2566,7 @@ def select_category(ack, body, client):
                 "fields": [
                     {
                         "type": "mrkdwn",
-                        "text": f"*Ticket Number:*\nlive-ops.{thread_ts}",
+                        "text": f"*Ticket Number:*\nlive-ops.{unique_id}",
                     },
                     {
                         "type": "mrkdwn",
@@ -2591,7 +2601,7 @@ def select_category(ack, body, client):
         )
 
         sheet_manager.update_ticket(
-            f"live-ops.{thread_ts}",
+            f"live-ops.{unique_id}",
             {"category_issue": selected_category_name},
         )
 
@@ -2614,6 +2624,7 @@ def select_custom_category(ack, body, client, view, logger):
         ticket_category,
     ] = view["private_metadata"].split("@@")
     reflected_ts = ticket_manager.get_reflected_ts(thread_ts)
+    unique_id = ticket_manager.get_unique_id(thread_ts)
     ticket_key_for_user = f"{user_who_requested}@@{response_ts}@@{truncate_value(user_input)}@@{reported_at}@@{selected_user}@@{custom_category}@@{ticket_category}"
 
     try:
@@ -2634,7 +2645,7 @@ def select_custom_category(ack, body, client, view, logger):
                 "fields": [
                     {
                         "type": "mrkdwn",
-                        "text": f"*Ticket Number:*\nlive-ops.{thread_ts}",
+                        "text": f"*Ticket Number:*\nlive-ops.{unique_id}",
                     },
                     {
                         "type": "mrkdwn",
@@ -2683,7 +2694,7 @@ def select_custom_category(ack, body, client, view, logger):
                 "fields": [
                     {
                         "type": "mrkdwn",
-                        "text": f"*Ticket Number:*\nlive-ops.{thread_ts}",
+                        "text": f"*Ticket Number:*\nlive-ops.{unique_id}",
                     },
                     {
                         "type": "mrkdwn",
@@ -2718,7 +2729,7 @@ def select_custom_category(ack, body, client, view, logger):
         )
 
         sheet_manager.update_ticket(
-            f"live-ops.{thread_ts}",
+            f"live-ops.{unique_id}",
             {"category_issue": custom_category},
         )
     except Exception as e:
@@ -2813,6 +2824,7 @@ def resolve_button(ack, body, client, logger):
                 stem_lead,
             ] = resolve_button_value[:-1]
             ticket_manager.update_ticket_status(thread_ts, "assigned")
+            unique_id = ticket_manager.get_unique_id(thread_ts)
             teacher_replace_state = (
                 f"<@{teacher_replace}>"
                 if teacher_replace != "No Mentor"
@@ -2861,7 +2873,7 @@ def resolve_button(ack, body, client, logger):
                     "elements": [
                         {
                             "type": "mrkdwn",
-                            "text": f"*Piket Ticket Number:* piket.{thread_ts}",
+                            "text": f"*Piket Ticket Number:* piket.{unique_id}",
                         }
                     ],
                 },
@@ -2895,7 +2907,7 @@ def resolve_button(ack, body, client, logger):
                 )
 
             sheet_manager.update_piket(
-                f"piket.{thread_ts}",
+                f"piket.{unique_id}",
                 {
                     "status": "Approved",
                     "approved_by": user_name,
@@ -3016,6 +3028,7 @@ def resolve_button(ack, body, client, logger):
             selected_user = resolve_button_value[4]
             selected_category = resolve_button_value[5]
             category_ticket = resolve_button_value[6]
+            unique_id = ticket_manager.get_unique_id(thread_ts)
             response = client.chat_update(
                 channel=channel_id,
                 ts=thread_ts,
@@ -3037,7 +3050,7 @@ def resolve_button(ack, body, client, logger):
                         "fields": [
                             {
                                 "type": "mrkdwn",
-                                "text": f"*Ticket Number:*\nlive.ops.{thread_ts}",
+                                "text": f"*Ticket Number:*\nlive.ops.{unique_id}",
                             },
                             {
                                 "type": "mrkdwn",
@@ -3064,7 +3077,7 @@ def resolve_button(ack, body, client, logger):
                 ],
             )
             sheet_manager.update_ticket(
-                f"live-ops.{thread_ts}",
+                f"live-ops.{unique_id}",
                 {"resolved_by": user_name, "resolved_at": timestamp_utc},
             )
 
@@ -3092,7 +3105,7 @@ def resolve_button(ack, body, client, logger):
                         "fields": [
                             {
                                 "type": "mrkdwn",
-                                "text": f"*Ticket Number:*\nlive-ops.{thread_ts}",
+                                "text": f"*Ticket Number:*\nlive-ops.{unique_id}",
                             },
                             {
                                 "type": "mrkdwn",
@@ -3121,7 +3134,7 @@ def resolve_button(ack, body, client, logger):
                 client.chat_update(
                     channel=reflected_cn,
                     ts=reflected_ts,
-                    text=f"we are resolving this ticket: live-ops.{thread_ts}",
+                    text=f"we are resolving this ticket: live-ops.{unique_id}",
                     blocks=reflected_msg,
                 )
 
@@ -3149,6 +3162,7 @@ def reject_button(ack, body, client):
     ack()
     trigger_id = body["trigger_id"]
     message_ts = body["container"]["message_ts"]
+    unique_id = ticket_manager.get_unique_id(message_ts)
     channel_id = body["channel"]["id"]
     user_info = client.users_info(user=body["user"]["id"])
     user_name = user_info["user"]["real_name"]
@@ -3158,11 +3172,11 @@ def reject_button(ack, body, client):
     reject_button_value = elements[conditional_index[1]]["value"]
     timestamp_utc = datetime.utcnow()
     sheet_manager.update_ticket(
-        f"live-ops.{message_ts}",
+        f"live-ops.{unique_id}",
         {"rejected_by": user_name, "rejected_at": timestamp_utc},
     )
     sheet_manager.update_piket(
-        f"piket.{message_ts}",
+        f"piket.{unique_id}",
         {"status": "Rejected", "rejected_by": user_name, "rejected_at": timestamp_utc},
     )
     modal = {
@@ -3201,6 +3215,7 @@ def show_reject_modal(ack, body, client, view, logger, say):
             "@@"
         )
         reflected_ts = ticket_manager.get_reflected_ts(message_ts)
+        unique_id = ticket_manager.get_unique_id(message_ts)
         reason = view["state"]["values"]["reject_reason"]["reason_input"]["value"]
         timestamp_utc = datetime.utcnow()
         timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
@@ -3241,7 +3256,7 @@ def show_reject_modal(ack, body, client, view, logger, say):
                             "fields": [
                                 {
                                     "type": "mrkdwn",
-                                    "text": f"*Ticket Number:*\nlive.ops.{message_ts}",
+                                    "text": f"*Ticket Number:*\nlive.ops.{unique_id}",
                                 },
                                 {
                                     "type": "mrkdwn",
@@ -3277,7 +3292,7 @@ def show_reject_modal(ack, body, client, view, logger, say):
                         "fields": [
                             {
                                 "type": "mrkdwn",
-                                "text": f"*Ticket Number:*\nlive-ops.{message_ts}",
+                                "text": f"*Ticket Number:*\nlive-ops.{unique_id}",
                             },
                             {
                                 "type": "mrkdwn",
@@ -3300,7 +3315,7 @@ def show_reject_modal(ack, body, client, view, logger, say):
                 client.chat_update(
                     channel=reflected_cn,
                     ts=reflected_ts,
-                    text=f"ticket: live-ops.{message_ts} just rejected by <@{user_id}",
+                    text=f"ticket: live-ops.{unique_id} just rejected by <@{user_id}",
                     blocks=reflected_msg,
                 )
 
@@ -3464,7 +3479,7 @@ def show_reject_modal(ack, body, client, view, logger, say):
                         "elements": [
                             {
                                 "type": "mrkdwn",
-                                "text": f"*Piket Ticket Number:* piket.{message_ts}",
+                                "text": f"*Piket Ticket Number:* piket.{unique_id}",
                             }
                         ],
                     },
