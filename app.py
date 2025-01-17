@@ -3303,6 +3303,14 @@ def show_reject_modal(ack, body, client, view, logger, say):
                     text=f"We are sorry :smiling_face_with_tear: your issue was rejected due to ```{reason}``` at `{timestamp_jakarta}`. Let's put another question.",
                 )
 
+                if reflected_cn:
+                    client.chat_update(
+                        channel=reflected_cn,
+                        ts=reflected_ts,
+                        text=f"ticket: live-ops.{unique_id} just rejected by <@{user_id}",
+                        blocks=reflected_msg,
+                    )
+
                 client.chat_postMessage(
                     channel=reflected_cn,
                     thread_ts=reflected_ts,
