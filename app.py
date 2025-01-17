@@ -1681,19 +1681,21 @@ def send_the_user_input(ack, body, client, say, view):
                 ticket_manager.store_user_input(result["ts"], issue_description)
                 ticket_manager.store_unique_id(result["ts"], unique_id)
                 if files:
-                    inserting_imgs_thread(client, channel_id, ts, files)
+                    inserting_imgs_thread(client, channel_id, result["ts"], files)
                     ticket_manager.store_files(result["ts"], files)
                 if len(issue_description) > 37:
                     client.chat_postMessage(
                         channel=channel_id,
-                        thread_ts=ts,
+                        thread_ts=result["ts"],
                         text=f"For the problem details: ```{issue_description}```",
                     )
             else:
                 say("Failed to post message")
 
             reminder_time = timedelta(minutes=3)
-            schedule_reminder(client, channel_id, ts, reminder_time, result["ts"])
+            schedule_reminder(
+                client, channel_id, result["ts"], reminder_time, result["ts"]
+            )
         except Exception as e:
             logging.error(f"An error occurred: {str(e)}")
 
@@ -2260,7 +2262,7 @@ def select_user(ack, body, client):
                 client.chat_postMessage(
                     channel=reflected_cn,
                     thread_ts=ts,
-                    text=f"Hi {other_div_mention},\nCould you lend a hand to <@{user_who_requested}> with the following problem: `{full_user_input}`? \nMuch appreciated!",
+                    text=f"Hi {other_div_mention},\nCould you lend a hand to <@{user_who_requested}> with the following problem: ```{full_user_input}```? \nMuch appreciated!",
                 )
     else:
         user_info = client.users_info(user=selected_user)
@@ -2426,7 +2428,7 @@ def select_user(ack, body, client):
                     client.chat_postMessage(
                         channel=reflected_cn,
                         thread_ts=reflected_ts,
-                        text=f"For the full details: `{full_user_input}`",
+                        text=f"For the full details: ```{full_user_input}```",
                     )
                 client.chat_postMessage(
                     channel=reflected_cn,
