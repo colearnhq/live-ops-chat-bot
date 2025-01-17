@@ -2044,7 +2044,7 @@ def show_editted_piket_msg(ack, body, client, view, logger):
                 "elements": [
                     {
                         "type": "mrkdwn",
-                        "text": f"*Piket Ticket Number:* piket.{unique_id} | Editted at {timestamp_jakarta}",
+                        "text": f"*Piket Ticket Number:* piket.{unique_id}\nEditted at `{timestamp_jakarta}`",
                     }
                 ],
             },
