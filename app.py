@@ -1100,10 +1100,6 @@ def send_the_user_input(ack, body, client, say, view):
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
 
     if category == "Piket":
-        # init_result = client.chat_postMessage(
-        #     channel=channel_id, text="Initializing ticket..."
-        # )
-        # initial_ts = init_result["ts"]
         class_date = view["state"]["values"]["date_block"]["date_picker_action"][
             "selected_date"
         ]
@@ -1303,10 +1299,6 @@ def send_the_user_input(ack, body, client, say, view):
             timestamp_utc,
         )
     elif category == "IT Helpdesk":
-        # init_result = client.chat_postMessage(
-        #     channel=helpdesk_cn, text="Initializing ticket..."
-        # )
-        # initial_ts = init_result["ts"]
         ticket_id = f"it-helpdesk.{unique_id}"
         full_name = view_state["full_name_block"]["full_name_action"]["value"]
         issue_type = view_state["issue_type_id"]["handle_issue_type"][
@@ -1526,10 +1518,6 @@ def send_the_user_input(ack, body, client, say, view):
             logging.error(f"An error occured on helpdesk {str(e)}")
 
     elif category == "Others":
-        # init_result = client.chat_postMessage(
-        #     channel=channel_id, text="Initializing ticket..."
-        # )
-        # initial_ts = init_result["ts"]
         issue_description = view_state["issue_name"]["user_issue"]["value"]
         files = (
             view_state.get("file_upload_block", {})
@@ -1598,7 +1586,7 @@ def send_the_user_input(ack, body, client, say, view):
                     client.chat_postMessage(
                         channel=user_id,
                         thread_ts=ts,
-                        text=f"For the problem details: `{issue_description}`",
+                        text=f"For the problem details: ```{issue_description}```",
                     )
 
             if response_for_user["ok"]:
@@ -1676,15 +1664,14 @@ def send_the_user_input(ack, body, client, say, view):
                     },
                 ]
 
-            result = client.chat_update(
+            result = client.chat_postMessage(
                 channel=channel_id,
-                ts=ts,
                 text=f"We received the ticket from <@{user_id}>",
                 blocks=blocks,
             )
 
             sheet_manager.init_ticket_row(
-                f"live-ops.{result['ts']}",
+                f"live-ops.{unique_id}",
                 user_id,
                 reporter_name,
                 issue_description,
@@ -1700,7 +1687,7 @@ def send_the_user_input(ack, body, client, say, view):
                     client.chat_postMessage(
                         channel=channel_id,
                         thread_ts=ts,
-                        text=f"For the problem details: `{issue_description}`",
+                        text=f"For the problem details: ```{issue_description}```",
                     )
             else:
                 say("Failed to post message")
@@ -1839,6 +1826,7 @@ def edit_piket_msg(ack, body, client):
     thread_ts = body["container"]["message_ts"]
     channel_id = body["channel"]["id"]
     trigger_id = body["trigger_id"]
+    unique_id = ticket_manager.get_unique_id(report_ts)
 
     modal_blocks = [
         {
@@ -1966,7 +1954,7 @@ def edit_piket_msg(ack, body, client):
         "submit": {"type": "plain_text", "text": "Submit"},
         "close": {"type": "plain_text", "text": "Cancel"},
         "blocks": modal_blocks,
-        "private_metadata": f"{reporter_id}@@{report_ts}@@{timestamp}@@{thread_ts}@@{channel_id}",
+        "private_metadata": f"{reporter_id}@@{report_ts}@@{timestamp}@@{thread_ts}@@{channel_id}@@{unique_id}",
     }
 
     try:
@@ -1982,7 +1970,7 @@ def show_editted_piket_msg(ack, body, client, view, logger):
         user_id = body["user"]["id"]
         user_info = client.users_info(user=user_id)
         user_name = user_info["user"]["real_name"]
-        [reporter_id, report_ts, timestamp, thread_ts, channel_id] = view[
+        [reporter_id, report_ts, timestamp, thread_ts, channel_id, unique_id] = view[
             "private_metadata"
         ].split("@@")
         class_date = view["state"]["values"]["date_block"]["date_picker_action"][
@@ -2056,7 +2044,7 @@ def show_editted_piket_msg(ack, body, client, view, logger):
                 "elements": [
                     {
                         "type": "mrkdwn",
-                        "text": f"*Piket Ticket Number:* piket.{report_ts}",
+                        "text": f"*Piket Ticket Number:* piket.{unique_id} | Editted at ${timestamp_jakarta}",
                     }
                 ],
             },
@@ -2091,7 +2079,7 @@ def show_editted_piket_msg(ack, body, client, view, logger):
             )
 
             sheet_manager.update_piket(
-                f"piket.{thread_ts}",
+                f"piket.{unique_id}",
                 {
                     "status": "Approved",
                     "approved_by": user_name,
@@ -2932,7 +2920,7 @@ def resolve_button(ack, body, client, logger):
                     "fields": [
                         {
                             "type": "mrkdwn",
-                            "text": f"*Reported By:*\n<@{user_who_requested_ticket_id}>",
+                            "text": f"*Reported by:*\n<@{user_who_requested_ticket_id}>",
                         },
                         {
                             "type": "mrkdwn",
@@ -3232,7 +3220,7 @@ def show_reject_modal(ack, body, client, view, logger, say):
             response = client.chat_postMessage(
                 channel=channel_id,
                 thread_ts=message_ts,
-                text=f"<@{user_id}> has rejected the issue at `{timestamp_jakarta}` due to: `{reason}`.",
+                text=f"<@{user_id}> has rejected the issue at `{timestamp_jakarta}` due to: ```{reason}```.",
             )
             if response["ok"]:
                 client.chat_update(
@@ -3309,7 +3297,7 @@ def show_reject_modal(ack, body, client, view, logger, say):
                 client.chat_postMessage(
                     channel=user_requested_id,
                     thread_ts=user_message_ts,
-                    text=f"We are sorry :smiling_face_with_tear: your issue was rejected due to `{reason}` at `{timestamp_jakarta}`. Let's put another question.",
+                    text=f"We are sorry :smiling_face_with_tear: your issue was rejected due to ```{reason}``` at `{timestamp_jakarta}`. Let's put another question.",
                 )
 
                 client.chat_update(
@@ -3322,13 +3310,13 @@ def show_reject_modal(ack, body, client, view, logger, say):
                 client.chat_postMessage(
                     channel=reflected_cn,
                     thread_ts=reflected_ts,
-                    text=f"We are sorry, this issue was rejected by <@{user_id}> at `{timestamp_jakarta}` due to `{reason}`.",
+                    text=f"We are sorry, this issue was rejected by <@{user_id}> at `{timestamp_jakarta}` due to ```{reason}```.",
                 )
 
             else:
                 logger.error("No value information available for this channel.")
         elif ticket_category == "IT Helpdesk":
-            helpdesk_rejection_text = f"<@{user_id}> has rejected the helpdesk request at `{timestamp_jakarta}` due to: `{reason}`."
+            helpdesk_rejection_text = f"<@{user_id}> has rejected the helpdesk request at `{timestamp_jakarta}` due to: ```{reason}```."
             [
                 ticket_id,
                 helpdesk_reporter,
@@ -3392,7 +3380,7 @@ def show_reject_modal(ack, body, client, view, logger, say):
                 client.chat_postMessage(
                     channel=helpdesk_reporter,
                     thread_ts=reporter_ts,
-                    text=f":smiling_face_with_tear: Your request got the boot due to `{reason}` at `{timestamp_jakarta}`. But hey, no worries! You can always throw another helpdesk request our way soon!",
+                    text=f":smiling_face_with_tear: Your request got the boot due to ```{reason}``` at `{timestamp_jakarta}`. But hey, no worries! You can always throw another helpdesk request our way soon!",
                 )
                 updates = {
                     "rejected_by": get_real_name(client, user_id),
@@ -3421,7 +3409,7 @@ def show_reject_modal(ack, body, client, view, logger, say):
                 direct_lead,
                 stem_lead,
             ] = reject_button_value[:-1]
-            general_rejection_text = f"<@{user_id}> has rejected the request at `{timestamp_jakarta}` due to: `{reason}`."
+            general_rejection_text = f"<@{user_id}> has rejected the request at `{timestamp_jakarta}` due to: ```{reason}```."
             response = client.chat_postMessage(
                 channel=channel_id,
                 thread_ts=message_ts,
@@ -3498,7 +3486,7 @@ def show_reject_modal(ack, body, client, view, logger, say):
                 client.chat_postMessage(
                     channel=reporter_piket,
                     thread_ts=response_ts,
-                    text=f"Uh-oh! :smiling_face_with_tear: Your request got the boot due to `{reason}` at `{timestamp_jakarta}`. But hey, no worries! You can always throw another piket request our way soon!",
+                    text=f"Uh-oh! :smiling_face_with_tear: Your request got the boot due to ```{reason}``` at `{timestamp_jakarta}`. But hey, no worries! You can always throw another piket request our way soon!",
                 )
 
                 ref_post = client.chat_postMessage(
