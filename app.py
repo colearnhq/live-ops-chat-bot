@@ -31,12 +31,12 @@ creds_dict = {
 app = App(token=os.getenv("SLACK_BOT_TOKEN"))
 sheet_manager = SheetManager(creds_dict, "1dPXiGBN2dDyyQ9TnO6Hi8cQtmbkFBU4O7sI5ztbXT90")
 
-emergency_reflected_cn = "C0719R3NQ91"
-ops_cn = "C047HN4ABD5"
-reflected_cn = "C0719R3NQ91"
-piket_reflected_cn = "C0719R3NQ91"
-helpdesk_cn = "C047HN4ABD5"
-helpdesk_support_id = "U05LPMNQBBK"
+emergency_reflected_cn = "C056S606NGM"  # live_leadsxops
+ops_cn = "C079J897A49"  # ops_issue_notif
+reflected_cn = "C032B89UK36"  # guru_kakaksiaga_ops
+piket_reflected_cn = "C056S606NGM"  # live_leadsxops
+helpdesk_cn = "C081NA747D0"  # it_helpdesk
+helpdesk_support_id = "U05LPMNQBBK"  # IT Ops (Mas Bagas)
 
 greetings_response = {
     "morning": "Good Morning",
@@ -1128,7 +1128,7 @@ def send_the_user_input(ack, body, client, say, view):
         stem_lead = view["state"]["values"]["stem_lead_block"]["stem_lead_action"][
             "selected_user"
         ]
-        print(f"we check slot_name {slot_name}")
+
         teacher_requested_name = get_real_name(client, teacher_requested)
         teacher_replaces_name = get_real_name(client, teacher_replace)
         direct_lead_name = get_real_name(client, direct_lead)
