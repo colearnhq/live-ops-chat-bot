@@ -3222,7 +3222,7 @@ def show_reject_modal(ack, body, client, view, logger, say):
             response = client.chat_postMessage(
                 channel=channel_id,
                 thread_ts=message_ts,
-                text=f"<@{user_id}> has rejected the issue at `{timestamp_jakarta}` due to: ```{reason}```.",
+                text=f"<@{user_id}> has rejected the issue at `{timestamp_jakarta}` due to: ```{reason}```",
             )
             if response["ok"]:
                 client.chat_update(
@@ -3312,13 +3312,13 @@ def show_reject_modal(ack, body, client, view, logger, say):
                 client.chat_postMessage(
                     channel=reflected_cn,
                     thread_ts=reflected_ts,
-                    text=f"We are sorry, this issue was rejected by <@{user_id}> at `{timestamp_jakarta}` due to ```{reason}```.",
+                    text=f"We are sorry, this issue was rejected by <@{user_id}> at `{timestamp_jakarta}` due to ```{reason}```",
                 )
 
             else:
                 logger.error("No value information available for this channel.")
         elif ticket_category == "IT Helpdesk":
-            helpdesk_rejection_text = f"<@{user_id}> has rejected the helpdesk request at `{timestamp_jakarta}` due to: ```{reason}```."
+            helpdesk_rejection_text = f"<@{user_id}> has rejected the helpdesk request at `{timestamp_jakarta}` due to: ```{reason}```"
             [
                 ticket_id,
                 helpdesk_reporter,
@@ -3411,7 +3411,7 @@ def show_reject_modal(ack, body, client, view, logger, say):
                 direct_lead,
                 stem_lead,
             ] = reject_button_value[:-1]
-            general_rejection_text = f"<@{user_id}> has rejected the request at `{timestamp_jakarta}` due to: ```{reason}```."
+            general_rejection_text = f"<@{user_id}> has rejected the request at `{timestamp_jakarta}` due to: ```{reason}```"
             response = client.chat_postMessage(
                 channel=channel_id,
                 thread_ts=message_ts,
