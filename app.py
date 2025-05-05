@@ -31,12 +31,12 @@ creds_dict = {
 app = App(token=os.getenv("SLACK_BOT_TOKEN"))
 sheet_manager = SheetManager(creds_dict, "1dPXiGBN2dDyyQ9TnO6Hi8cQtmbkFBU4O7sI5ztbXT90")
 
-emergency_reflected_cn = "C056S606NGM"  # live_leadsxops
-ops_cn = "C079J897A49"  # ops_issue_notif
-reflected_cn = "C032B89UK36"  # guru_kakaksiaga_ops
-piket_reflected_cn = "C056S606NGM"  # live_leadsxops
-helpdesk_cn = "C081NA747D0"  # it_helpdesk
-helpdesk_support_id = "U05LPMNQBBK"  # IT Ops (Mas Bagas)
+emergency_reflected_cn = "C056S606NGM"
+ops_cn = "C079J897A49"
+reflected_cn = "C032B89UK36"
+piket_reflected_cn = "C056S606NGM"
+helpdesk_cn = "C081NA747D0"
+helpdesk_support_id = "U08NTAUVD2P"
 
 greetings_response = {
     "morning": "Good Morning",
@@ -1562,7 +1562,7 @@ def send_the_user_input(ack, body, client, say, view):
             else:
                 members = []
 
-            group_mentions = ["S05RYHJ41C6", "S02R59UL0RH", "U05LPMNQBBK"]
+            group_mentions = ["S05RYHJ41C6", "S02R59UL0RH", helpdesk_support_id]
             members.extend(group_mentions)
             members.sort()
 
@@ -2144,12 +2144,12 @@ def handle_user_selection(ack, body, client):
     ticket_manager.update_ticket_status(thread_ts, "assigned")
     unique_id = ticket_manager.get_unique_id(thread_ts)
 
-    if selected_user in ["S05RYHJ41C6", "S02R59UL0RH", "U05LPMNQBBK"]:
+    if selected_user in ["S05RYHJ41C6", "S02R59UL0RH", helpdesk_support_id]:
         user_info = client.users_info(user=body["user"]["id"])
         selected_user_name = user_info["user"]["real_name"]
         other_div_mention = (
             f"<@{selected_user}>"
-            if selected_user == "U05LPMNQBBK"
+            if selected_user == helpdesk_support_id
             else f"<!subteam^{selected_user}>"
         )
         client.chat_postMessage(
