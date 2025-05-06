@@ -12,7 +12,7 @@ import pytz
 import json
 import uuid
 
-load_dotenv(".env.dev")
+load_dotenv(".env")
 
 creds_dict = {
     "type": os.getenv("GOOGLE_CREDENTIALS_TYPE"),
@@ -573,7 +573,12 @@ def handle_category_selection(ack, body, client):
                         "type": "button",
                         "text": {"type": "plain_text", "text": "Generate Slots"},
                         "action_id": "generate_slot_list",
-                    }
+                    },
+                    {
+                        "type": "button",
+                        "text": {"type": "plain_text", "text": "Alternatif Buttons"},
+                        "action_id": "generate_slot_list",
+                    },
                 ],
             },
             {
