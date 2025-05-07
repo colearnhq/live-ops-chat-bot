@@ -304,7 +304,7 @@ def conditional_indexing(blocks):
 
 
 @app.event("message")
-def intial_msg(body, say, client):
+def handle_message_events(body, say, client):
     event = body.get("event", {})
     user_id = event.get("user")
     chat_timestamp = event["ts"]
@@ -350,7 +350,7 @@ def intial_msg(body, say, client):
         logging.error(f"Error handling message: {str(e)}")
 
 
-@app.command("/opsdev")
+@app.command("/hiops")
 def slash_input(ack, body, client):
     ack()
     categories = ["Piket", "Emergency", "IT Helpdesk", "Others"]
@@ -363,7 +363,7 @@ def slash_input(ack, body, client):
         for category in categories
     ]
     trigger_id = body["trigger_id"]
-    channel_id = tiket_channel
+    channel_id = ops_cn
 
     modal = {
         "type": "modal",
@@ -433,7 +433,7 @@ def handling_replacement(ack, body, client):
         for category in categories
     ]
 
-    channel_id = tiket_channel
+    channel_id = ops_cn
     view_id = body["view"]["id"]
 
     modal = {
@@ -573,12 +573,7 @@ def handle_category_selection(ack, body, client):
                         "type": "button",
                         "text": {"type": "plain_text", "text": "Generate Slots"},
                         "action_id": "generate_slot_list",
-                    },
-                    {
-                        "type": "button",
-                        "text": {"type": "plain_text", "text": "Alternatif Buttons"},
-                        "action_id": "generate_slot_list",
-                    },
+                    }
                 ],
             },
             {
@@ -1054,7 +1049,7 @@ def handle_emergency_button(ack, body, client, logger):
                 },
             ]
             client.chat_postMessage(
-                channel=tiket_channel,
+                channel=ops_cn,
                 text="Emergency Alert! A critical situation has been reported. Please check immediately.",
                 blocks=emergency_block,
             )
@@ -1566,7 +1561,7 @@ def send_the_user_input(ack, body, client, say, view):
             else:
                 members = []
 
-            group_mentions = ["S05RYHJ41C6", "S02R59UL0RH", "U05LPMNQBBK"]
+            group_mentions = ["S05RYHJ41C6", "S02R59UL0RH", helpdesk_support_id]
             members.extend(group_mentions)
             members.sort()
 
@@ -2077,7 +2072,7 @@ def show_editted_piket_msg(ack, body, client, view, logger):
                 text=f"Your request approved. Your class on `{class_date}` at `{time_class}`, the teacher replacement is <@{teacher_replace}>",
             )
 
-            client.chat_postMessage(channel=reflected_cn, blocks=piket_message)
+            client.chat_postMessage(channel=piket_reflected_cn, blocks=piket_message)
 
             client.chat_postMessage(
                 channel=channel_id,
@@ -2109,7 +2104,7 @@ def show_editted_piket_msg(ack, body, client, view, logger):
 
 
 @app.action("user_select_action")
-def select_user(ack, body, client):
+def handle_user_selection(ack, body, client):
     ack()
     person_who_assigns = body["user"]["id"]
     person_who_assigns_name = get_real_name(client, person_who_assigns)
@@ -2148,12 +2143,12 @@ def select_user(ack, body, client):
     ticket_manager.update_ticket_status(thread_ts, "assigned")
     unique_id = ticket_manager.get_unique_id(thread_ts)
 
-    if selected_user in ["S05RYHJ41C6", "S02R59UL0RH", "U05LPMNQBBK"]:
+    if selected_user in ["S05RYHJ41C6", "S02R59UL0RH", helpdesk_support_id]:
         user_info = client.users_info(user=body["user"]["id"])
         selected_user_name = user_info["user"]["real_name"]
         other_div_mention = (
             f"<@{selected_user}>"
-            if selected_user == "U05LPMNQBBK"
+            if selected_user == helpdesk_support_id
             else f"<!subteam^{selected_user}>"
         )
         client.chat_postMessage(
@@ -2453,7 +2448,7 @@ def select_user(ack, body, client):
 
 
 @app.action("category_select_action")
-def select_category(ack, body, client):
+def handle_category_selection(ack, body, client):
     ack()
     channel_id = body["channel"]["id"]
     [
@@ -2602,7 +2597,7 @@ def select_category(ack, body, client):
 
 
 @app.view("custom_category_modal")
-def select_custom_category(ack, body, client, view, logger):
+def handle_custom_category_modal_submission(ack, body, client, view, logger):
     ack()
     user_id = body["user"]["id"]
     custom_category = view["state"]["values"]["custom_category_block"][
@@ -2891,7 +2886,7 @@ def resolve_button(ack, body, client, logger):
                 )
 
                 client.chat_postMessage(
-                    channel=reflected_cn,
+                    channel=piket_reflected_cn,
                     blocks=piket_message,
                 )
 
@@ -3153,7 +3148,7 @@ def resolve_button(ack, body, client, logger):
 
 @app.action("helpdesk_reject")
 @app.action("reject_button")
-def reject_button(ack, body, client):
+def handle_reject_button(ack, body, client):
     ack()
     trigger_id = body["trigger_id"]
     message_ts = body["container"]["message_ts"]
@@ -3307,12 +3302,13 @@ def show_reject_modal(ack, body, client, view, logger, say):
                     text=f"We are sorry :smiling_face_with_tear: your issue was rejected due to ```{reason}``` at `{timestamp_jakarta}`. Let's put another question.",
                 )
 
-                client.chat_update(
-                    channel=reflected_cn,
-                    ts=reflected_ts,
-                    text=f"ticket: live-ops.{unique_id} just rejected by <@{user_id}",
-                    blocks=reflected_msg,
-                )
+                if reflected_cn:
+                    client.chat_update(
+                        channel=reflected_cn,
+                        ts=reflected_ts,
+                        text=f"ticket: live-ops.{unique_id} just rejected by <@{user_id}",
+                        blocks=reflected_msg,
+                    )
 
                 client.chat_postMessage(
                     channel=reflected_cn,
@@ -3353,7 +3349,7 @@ def show_reject_modal(ack, body, client, view, logger, say):
                             {"type": "mrkdwn", "text": f"*User Name:*\n{full_name}"},
                             {
                                 "type": "mrkdwn",
-                                "text": f"*Requested by:*\n<@{user_id}>",
+                                "text": f"*Requested by:*\n<@{helpdesk_reporter}>",
                             },
                             {
                                 "type": "mrkdwn",
@@ -3497,13 +3493,13 @@ def show_reject_modal(ack, body, client, view, logger, say):
                 )
 
                 ref_post = client.chat_postMessage(
-                    channel=reflected_cn, blocks=piket_message
+                    channel=piket_reflected_cn, blocks=piket_message
                 )
 
                 if ref_post["ok"]:
                     ref_ts = ref_post["ts"]
                     client.chat_postMessage(
-                        channel=reflected_cn,
+                        channel=piket_reflected_cn,
                         thread_ts=ref_ts,
                         text=general_rejection_text,
                     )
@@ -3514,6 +3510,5 @@ def show_reject_modal(ack, body, client, view, logger, say):
         logger.error(f"Error handling modal submission: {str(e)}")
 
 
-# Start your app
 if __name__ == "__main__":
     SocketModeHandler(app, os.environ["SLACK_APP_TOKEN"]).start()
