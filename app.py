@@ -32,8 +32,9 @@ app = App(token=os.getenv("SLACK_BOT_TOKEN"))
 sheet_manager = SheetManager(creds_dict, "1dPXiGBN2dDyyQ9TnO6Hi8cQtmbkFBU4O7sI5ztbXT90")
 
 emergency_reflected_cn = "C0719R3NQ91"
+ops_cn = "C0719R3NQ91"
 reflected_cn = "C0719R3NQ91"
-tiket_channel = "C0719R3NQ91"
+piket_reflected_cn = "C0719R3NQ91"
 helpdesk_cn = "C0719R3NQ91"
 helpdesk_support_id = "U08NTAUVD2P"
 
@@ -325,7 +326,7 @@ def handle_message_events(body, say, client):
                 response = greetings_response[greeting]
                 say(f"{response} <@{event['user']}>, Pepe is ready to help :frog:")
                 say(
-                    f"Please type your issue with the following pattern: `/hiops [write your issue/inquiry]`"
+                    f"Please type your issue with the following pattern: `/opsdev [write your issue/inquiry]`"
                 )
         elif match_thank_you:
             thank_you = match_thank_you.group(1)
@@ -335,7 +336,7 @@ def handle_message_events(body, say, client):
         else:
             say(f"Hi <@{event['user']}>, Pepe is ready to help :frog:")
             say(
-                f"Please type your issue with this following pattern: `/hiops [write your issue/inquiry]`"
+                f"Please type your issue with this following pattern: `/opsdev [write your issue/inquiry]`"
             )
         sheet_manager.log_ticket(
             chat_timestamp,
@@ -350,7 +351,7 @@ def handle_message_events(body, say, client):
         logging.error(f"Error handling message: {str(e)}")
 
 
-@app.command("/hiops")
+@app.command("/opsdev")
 def slash_input(ack, body, client):
     ack()
     categories = ["Piket", "Emergency", "IT Helpdesk", "Others"]
