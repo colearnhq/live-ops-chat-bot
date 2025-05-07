@@ -5,7 +5,7 @@ from slack_bolt.adapter.socket_mode import SocketModeHandler
 from dotenv import load_dotenv
 import logging
 import threading
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from slack_sdk.errors import SlackApiError
 from database import SheetManager
 import pytz
@@ -136,15 +136,6 @@ class TicketManager:
 ticket_manager = TicketManager()
 
 
-def convert_utc_to_jakarta(utc_dt):
-    from pytz import timezone
-
-    fmt = "%Y-%m-%d %H:%M:%S %Z%z"
-    utc_dt = utc_dt.replace(tzinfo=timezone("UTC"))
-    jakarta_time = utc_dt.astimezone(timezone("Asia/Jakarta"))
-    return jakarta_time.strftime(fmt)
-
-
 def schedule_reminder(client, channel_id, thread_ts, reminder_time, ticket_ts):
     def remind():
         if not is_ticket_assigned(ticket_ts):
@@ -184,7 +175,7 @@ def get_chat_history(client, channel_id, start_ts):
             real_name = get_real_name(client, user_id)
             text = message.get("text", "")
             timestamp = convert_utc_to_jakarta(
-                datetime.utcfromtimestamp(float(message["ts"]))
+                datetime.fromtimestamp(float(message["ts"]), timezone.utc)
             )
             if "files" in message:
                 for file in message["files"]:
@@ -309,7 +300,7 @@ def handle_message_events(body, say, client):
     event = body.get("event", {})
     user_id = event.get("user")
     chat_timestamp = event["ts"]
-    timestamp_utc = datetime.utcnow()
+    timestamp_utc = datetime.now(timezone.utc)
 
     try:
         user_info = client.users_info(user=user_id)
@@ -1122,7 +1113,10 @@ def handle_generate_alternative_slots(ack, body, client):
                 {
                     "type": "input",
                     "block_id": "slot_name_block",
-                    "label": {"type": "plain_text", "text": "Alternative Slot Type"},
+                    "label": {
+                        "type": "plain_text",
+                        "text": "Please choose your class",
+                    },
                     "element": {
                         "type": "static_select",
                         "action_id": "slot_name_action",
@@ -1193,7 +1187,7 @@ def handle_emergency_button(ack, body, client, logger):
     ack()
     user_id = body["user"]["id"]
     user_name = get_real_name(client, user_id)
-    timestamp_utc = datetime.utcnow()
+    timestamp_utc = datetime.now(timezone.utc)
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
     feedback_block = [
         {
@@ -1332,7 +1326,7 @@ def send_the_user_input(ack, body, client, say, view):
     user_id = body["user"]["id"]
     reporter_name = body["user"]["username"]
     unique_id = str(uuid.uuid4())
-    timestamp_utc = datetime.utcnow()
+    timestamp_utc = datetime.now(timezone.utc)
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
 
     if category == "Piket":
@@ -1550,7 +1544,7 @@ def send_the_user_input(ack, body, client, say, view):
             "selected_date_time"
         ]
         date_time = convert_utc_to_jakarta(
-            datetime.utcfromtimestamp(incident_date_time)
+            datetime.fromtimestamp(incident_date_time, timezone.utc)
         )
         helpdesk_files = (
             view_state.get("file_upload_id", {})
@@ -2234,7 +2228,7 @@ def show_editted_piket_msg(ack, body, client, view, logger):
         stem_lead = view["state"]["values"]["stem_lead_block"]["stem_lead_action"][
             "selected_user"
         ]
-        timestamp_utc = datetime.utcnow()
+        timestamp_utc = datetime.now(timezone.utc)
         timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
 
         piket_message = [
@@ -2364,7 +2358,7 @@ def handle_user_selection(ack, body, client):
         "Zoom",
         "Others",
     ]
-    timestamp_utc = datetime.utcnow()
+    timestamp_utc = datetime.now(timezone.utc)
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
     ticket_key_for_user = f"{user_who_requested}@@{response_ts}@@{truncate_value(user_input)}@@{reported_at}@@{selected_user}@@{ticket_category}"
     category_options = [
@@ -2973,7 +2967,7 @@ def resolve_button_post_chatting(ack, body, client, logger):
     [ticket_id, user_reported, user_ts, conv_id, support_id, staff_ts, start_ts] = body[
         "actions"
     ][0]["value"].split("@@")
-    timestamp_utc = datetime.utcnow()
+    timestamp_utc = datetime.now(timezone.utc)
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
 
     try:
@@ -3031,7 +3025,7 @@ def resolve_button(ack, body, client, logger):
         elements = body["message"]["blocks"][conditional_index]["elements"]
         resolve_button_value = elements[0]["value"].split("@@")
         category_ticket = resolve_button_value[-1]
-        timestamp_utc = datetime.utcnow()
+        timestamp_utc = datetime.now(timezone.utc)
         timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
 
         if category_ticket == "Piket":
@@ -3396,7 +3390,7 @@ def handle_reject_button(ack, body, client):
     conditional_index = conditional_indexing(blocks)
     elements = blocks[conditional_index[0]]["elements"]
     reject_button_value = elements[conditional_index[1]]["value"]
-    timestamp_utc = datetime.utcnow()
+    timestamp_utc = datetime.now(timezone.utc)
     sheet_manager.update_ticket(
         f"live-ops.{unique_id}",
         {"rejected_by": user_name, "rejected_at": timestamp_utc},
@@ -3443,7 +3437,7 @@ def show_reject_modal(ack, body, client, view, logger, say):
         reflected_ts = ticket_manager.get_reflected_ts(message_ts)
         unique_id = ticket_manager.get_unique_id(message_ts)
         reason = view["state"]["values"]["reject_reason"]["reason_input"]["value"]
-        timestamp_utc = datetime.utcnow()
+        timestamp_utc = datetime.now(timezone.utc)
         timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
         ticket_category = reject_button_value[-1]
         ticket_manager.update_ticket_status(message_ts, "assigned")
