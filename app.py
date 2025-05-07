@@ -5,7 +5,7 @@ from slack_bolt.adapter.socket_mode import SocketModeHandler
 from dotenv import load_dotenv
 import logging
 import threading
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from slack_sdk.errors import SlackApiError
 from database import SheetManager
 import pytz
@@ -136,15 +136,6 @@ class TicketManager:
 ticket_manager = TicketManager()
 
 
-def convert_utc_to_jakarta(utc_dt):
-    from pytz import timezone
-
-    fmt = "%Y-%m-%d %H:%M:%S %Z%z"
-    utc_dt = utc_dt.replace(tzinfo=timezone("UTC"))
-    jakarta_time = utc_dt.astimezone(timezone("Asia/Jakarta"))
-    return jakarta_time.strftime(fmt)
-
-
 def schedule_reminder(client, channel_id, thread_ts, reminder_time, ticket_ts):
     def remind():
         if not is_ticket_assigned(ticket_ts):
@@ -184,7 +175,7 @@ def get_chat_history(client, channel_id, start_ts):
             real_name = get_real_name(client, user_id)
             text = message.get("text", "")
             timestamp = convert_utc_to_jakarta(
-                datetime.utcfromtimestamp(float(message["ts"]))
+                datetime.fromtimestamp(float(message["ts"]), timezone.utc)
             )
             if "files" in message:
                 for file in message["files"]:
@@ -309,7 +300,7 @@ def handle_message_events(body, say, client):
     event = body.get("event", {})
     user_id = event.get("user")
     chat_timestamp = event["ts"]
-    timestamp_utc = datetime.utcnow()
+    timestamp_utc = datetime.now(timezone.utc)
 
     try:
         user_info = client.users_info(user=user_id)
@@ -326,7 +317,7 @@ def handle_message_events(body, say, client):
                 response = greetings_response[greeting]
                 say(f"{response} <@{event['user']}>, Pepe is ready to help :frog:")
                 say(
-                    f"Please type your issue with the following pattern: `/hiops [write your issue/inquiry]`"
+                    f"Please type your issue with the following pattern: `/opsdev [write your issue/inquiry]`"
                 )
         elif match_thank_you:
             thank_you = match_thank_you.group(1)
@@ -336,7 +327,7 @@ def handle_message_events(body, say, client):
         else:
             say(f"Hi <@{event['user']}>, Pepe is ready to help :frog:")
             say(
-                f"Please type your issue with this following pattern: `/hiops [write your issue/inquiry]`"
+                f"Please type your issue with this following pattern: `/opsdev [write your issue/inquiry]`"
             )
         sheet_manager.log_ticket(
             chat_timestamp,
@@ -434,6 +425,7 @@ def handling_replacement(ack, body, client):
         for category in categories
     ]
 
+    channel_id = ops_cn
     channel_id = ops_cn
     view_id = body["view"]["id"]
 
@@ -574,7 +566,12 @@ def handle_category_selection(ack, body, client):
                         "type": "button",
                         "text": {"type": "plain_text", "text": "Generate Slots"},
                         "action_id": "generate_slot_list",
-                    }
+                    },
+                    {
+                        "type": "button",
+                        "text": {"type": "plain_text", "text": "Additional Classes"},
+                        "action_id": "generate_additional_classes",
+                    },
                 ],
             },
             {
@@ -806,10 +803,217 @@ def handle_generate_slot_list(ack, body, client):
         or teacher_who_replaces_val == "I need help finding a replacement"
         else "I have had a replacement"
     )
+
     grade = state["grade_block"]["grade_action"]["value"]
+
     slots = sheet_manager.get_slots_by_grade(grade)
+
+    if slots and len(slots) > 0:
+        dropdown_options = [
+            {"text": {"type": "plain_text", "text": slot}, "value": slot}
+            for slot in slots
+        ]
+    else:
+        dropdown_options = [
+            {
+                "text": {"type": "plain_text", "text": "No slots available"},
+                "value": "no_slots",
+            }
+        ]
+
+    client.views_update(
+        view_id=body["view"]["id"],
+        view={
+            "type": "modal",
+            "callback_id": "slash_input",
+            "title": {"type": "plain_text", "text": "Piket Request"},
+            "submit": {"type": "plain_text", "text": "Submit"},
+            "close": {"type": "plain_text", "text": "Cancel"},
+            "blocks": [
+                {
+                    "type": "input",
+                    "block_id": "date_block",
+                    "label": {"type": "plain_text", "text": "Date"},
+                    "element": {
+                        "type": "datepicker",
+                        "action_id": "date_picker_action",
+                        "placeholder": {"type": "plain_text", "text": "Select a date"},
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "teacher_request_block",
+                    "label": {"type": "plain_text", "text": "Teacher who requested"},
+                    "element": {
+                        "action_id": "teacher_request_action",
+                        "type": "users_select",
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "Select Teacher Who Requested",
+                        },
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "teacher_replace_block",
+                    "label": {"type": "plain_text", "text": "Teacher who replaces"},
+                    "element": {
+                        "action_id": "teacher_replace_action",
+                        "type": (
+                            "users_select"
+                            if selected_cat_on_piket == "I have had a replacement"
+                            else "plain_text_input"
+                        ),
+                        **(
+                            {
+                                "initial_value": (
+                                    "I need help finding a replacement"
+                                    if selected_cat_on_piket
+                                    == "I need help finding a replacement"
+                                    else (
+                                        "No Mentor"
+                                        if selected_cat_on_piket == "No Mentor"
+                                        else None
+                                    )
+                                )
+                            }
+                            if selected_cat_on_piket != "I have had a replacement"
+                            else {}
+                        ),
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "Select Teacher Who Replaces",
+                        },
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "grade_block",
+                    "label": {"type": "plain_text", "text": "Grade"},
+                    "element": {
+                        "type": "number_input",
+                        "action_id": "grade_action",
+                        "is_decimal_allowed": False,
+                        "initial_value": grade,
+                    },
+                },
+                {
+                    "type": "actions",
+                    "elements": [
+                        {
+                            "type": "button",
+                            "text": {"type": "plain_text", "text": "Generate Slots"},
+                            "action_id": "generate_slot_list",
+                            "style": "primary",
+                        },
+                        {
+                            "type": "button",
+                            "text": {
+                                "type": "plain_text",
+                                "text": "Additional Classes",
+                            },
+                            "action_id": "generate_additional_classes",
+                        },
+                    ],
+                },
+                {
+                    "type": "input",
+                    "block_id": "slot_name_block",
+                    "label": {"type": "plain_text", "text": "Slot Name"},
+                    "element": {
+                        "type": "static_select",
+                        "action_id": "slot_name_action",
+                        "placeholder": {"type": "plain_text", "text": "Select a slot"},
+                        "options": dropdown_options,
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "time_class_block",
+                    "label": {"type": "plain_text", "text": "Class Time"},
+                    "element": {
+                        "type": "plain_text_input",
+                        "action_id": "time_class_action",
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "e.g., 19:15",
+                        },
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "reason_block",
+                    "label": {"type": "plain_text", "text": "Reason"},
+                    "element": {
+                        "type": "plain_text_input",
+                        "multiline": True,
+                        "action_id": "reason_action",
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "direct_lead_block",
+                    "label": {"type": "plain_text", "text": "Direct Lead"},
+                    "element": {
+                        "action_id": "direct_lead_action",
+                        "type": "users_select",
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "Select Your Direct Lead",
+                        },
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "stem_lead_block",
+                    "label": {"type": "plain_text", "text": "STEM Lead"},
+                    "element": {
+                        "action_id": "stem_lead_action",
+                        "type": "users_select",
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "Select Your STEM Lead",
+                        },
+                    },
+                },
+            ],
+            "private_metadata": body["view"]["private_metadata"],
+        },
+    )
+
+
+@app.action("generate_additional_classes")
+def handle_generate_additional_classes(ack, body, client):
+    """Handle the Additional Classes button click action"""
+    ack()
+
+    state = body["view"]["state"]["values"]
+
+    teacher_replace_block = state["teacher_replace_block"]["teacher_replace_action"]
+    teacher_who_replaces_val = teacher_replace_block.get(
+        "selected_user"
+    ) or teacher_replace_block.get("value")
+
+    selected_cat_on_piket = (
+        teacher_who_replaces_val
+        if teacher_who_replaces_val == "No Mentor"
+        or teacher_who_replaces_val == "I need help finding a replacement"
+        else "I have had a replacement"
+    )
+
+    grade = state["grade_block"]["grade_action"].get("value", "")
+
+    alternative_slots = [
+        "Math Club",
+        "Kelas Pengganti - Matematika",
+        "Kelas Pengganti - IPA",
+        "Kelas Pengganti - Fisika",
+        "Kelas Pengganti - Kimia",
+    ]
+
     dropdown_options = [
-        {"text": {"type": "plain_text", "text": slot}, "value": slot} for slot in slots
+        {"text": {"type": "plain_text", "text": slot}, "value": slot}
+        for slot in alternative_slots
     ]
 
     client.views_update(
@@ -885,16 +1089,42 @@ def handle_generate_slot_list(ack, body, client):
                         "type": "number_input",
                         "action_id": "grade_action",
                         "is_decimal_allowed": False,
+                        "initial_value": grade,
                     },
+                },
+                {
+                    "type": "actions",
+                    "elements": [
+                        {
+                            "type": "button",
+                            "text": {"type": "plain_text", "text": "Generate Slots"},
+                            "action_id": "generate_slot_list",
+                        },
+                        {
+                            "type": "button",
+                            "text": {
+                                "type": "plain_text",
+                                "text": "Additional Classes",
+                            },
+                            "action_id": "generate_additional_classes",
+                            "style": "primary",
+                        },
+                    ],
                 },
                 {
                     "type": "input",
                     "block_id": "slot_name_block",
-                    "label": {"type": "plain_text", "text": "Slot Name"},
+                    "label": {
+                        "type": "plain_text",
+                        "text": "Please choose your class",
+                    },
                     "element": {
                         "type": "static_select",
                         "action_id": "slot_name_action",
-                        "placeholder": {"type": "plain_text", "text": "Select a slot"},
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "Select a slot type",
+                        },
                         "options": dropdown_options,
                     },
                 },
@@ -958,7 +1188,7 @@ def handle_emergency_button(ack, body, client, logger):
     ack()
     user_id = body["user"]["id"]
     user_name = get_real_name(client, user_id)
-    timestamp_utc = datetime.utcnow()
+    timestamp_utc = datetime.now(timezone.utc)
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
     feedback_block = [
         {
@@ -1097,7 +1327,7 @@ def send_the_user_input(ack, body, client, say, view):
     user_id = body["user"]["id"]
     reporter_name = body["user"]["username"]
     unique_id = str(uuid.uuid4())
-    timestamp_utc = datetime.utcnow()
+    timestamp_utc = datetime.now(timezone.utc)
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
 
     if category == "Piket":
@@ -1315,7 +1545,7 @@ def send_the_user_input(ack, body, client, say, view):
             "selected_date_time"
         ]
         date_time = convert_utc_to_jakarta(
-            datetime.utcfromtimestamp(incident_date_time)
+            datetime.fromtimestamp(incident_date_time, timezone.utc)
         )
         helpdesk_files = (
             view_state.get("file_upload_id", {})
@@ -1999,7 +2229,7 @@ def show_editted_piket_msg(ack, body, client, view, logger):
         stem_lead = view["state"]["values"]["stem_lead_block"]["stem_lead_action"][
             "selected_user"
         ]
-        timestamp_utc = datetime.utcnow()
+        timestamp_utc = datetime.now(timezone.utc)
         timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
 
         piket_message = [
@@ -2129,7 +2359,7 @@ def handle_user_selection(ack, body, client):
         "Zoom",
         "Others",
     ]
-    timestamp_utc = datetime.utcnow()
+    timestamp_utc = datetime.now(timezone.utc)
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
     ticket_key_for_user = f"{user_who_requested}@@{response_ts}@@{truncate_value(user_input)}@@{reported_at}@@{selected_user}@@{ticket_category}"
     category_options = [
@@ -2263,7 +2493,7 @@ def handle_user_selection(ack, body, client):
                 client.chat_postMessage(
                     channel=reflected_cn,
                     thread_ts=ts,
-                    text=f"Hi {other_div_mention},\nCould you lend a hand to <@{user_who_requested}> with the following problem: ```{full_user_input}```? \nMuch appreciated!",
+                    text=f"Hi {other_div_mention},\nCould you lend a hand to <@{user_who_requested}> with the following problem? ```{full_user_input}```\nMuch appreciated!",
                 )
     else:
         user_info = client.users_info(user=selected_user)
@@ -2738,7 +2968,7 @@ def resolve_button_post_chatting(ack, body, client, logger):
     [ticket_id, user_reported, user_ts, conv_id, support_id, staff_ts, start_ts] = body[
         "actions"
     ][0]["value"].split("@@")
-    timestamp_utc = datetime.utcnow()
+    timestamp_utc = datetime.now(timezone.utc)
     timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
 
     try:
@@ -2796,7 +3026,7 @@ def resolve_button(ack, body, client, logger):
         elements = body["message"]["blocks"][conditional_index]["elements"]
         resolve_button_value = elements[0]["value"].split("@@")
         category_ticket = resolve_button_value[-1]
-        timestamp_utc = datetime.utcnow()
+        timestamp_utc = datetime.now(timezone.utc)
         timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
 
         if category_ticket == "Piket":
@@ -3161,7 +3391,7 @@ def handle_reject_button(ack, body, client):
     conditional_index = conditional_indexing(blocks)
     elements = blocks[conditional_index[0]]["elements"]
     reject_button_value = elements[conditional_index[1]]["value"]
-    timestamp_utc = datetime.utcnow()
+    timestamp_utc = datetime.now(timezone.utc)
     sheet_manager.update_ticket(
         f"live-ops.{unique_id}",
         {"rejected_by": user_name, "rejected_at": timestamp_utc},
@@ -3208,7 +3438,7 @@ def show_reject_modal(ack, body, client, view, logger, say):
         reflected_ts = ticket_manager.get_reflected_ts(message_ts)
         unique_id = ticket_manager.get_unique_id(message_ts)
         reason = view["state"]["values"]["reject_reason"]["reason_input"]["value"]
-        timestamp_utc = datetime.utcnow()
+        timestamp_utc = datetime.now(timezone.utc)
         timestamp_jakarta = convert_utc_to_jakarta(timestamp_utc)
         ticket_category = reject_button_value[-1]
         ticket_manager.update_ticket_status(message_ts, "assigned")
@@ -3303,6 +3533,13 @@ def show_reject_modal(ack, body, client, view, logger, say):
                     text=f"We are sorry :smiling_face_with_tear: your issue was rejected due to ```{reason}``` at `{timestamp_jakarta}`. Let's put another question.",
                 )
 
+                if reflected_cn:
+                    client.chat_update(
+                        channel=reflected_cn,
+                        ts=reflected_ts,
+                        text=f"ticket: live-ops.{unique_id} just rejected by <@{user_id}",
+                        blocks=reflected_msg,
+                    )
                 if reflected_cn:
                     client.chat_update(
                         channel=reflected_cn,

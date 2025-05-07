@@ -53,12 +53,11 @@ class SheetManager:
             logging.error(f"Failed to fetch slots for grade {grade}: {str(e)}")
             return []
 
-    def convert_to_local_time(self, timestamp_utc):
-        utc = pytz.utc
-        local_tz = pytz.timezone("Asia/Jakarta")
-        timestamp_utc = utc.localize(timestamp_utc)
-        timestamp_local = timestamp_utc.astimezone(local_tz)
-        return timestamp_local.strftime("%Y-%m-%d %H:%M:%S")
+    def convert_utc_to_jakarta(self, time):
+        utc_time = time.replace(tzinfo=pytz.utc)
+        jakarta_tz = pytz.timezone("Asia/Jakarta")
+        changed_timezone = utc_time.astimezone(jakarta_tz)
+        return changed_timezone.strftime("%Y-%m-%d %H:%M:%S")
 
     def log_ticket(
         self,
@@ -71,7 +70,7 @@ class SheetManager:
         text,
     ):
         try:
-            timestamp_local = self.convert_to_local_time(timestamp_utc)
+            timestamp_local = self.convert_utc_to_jakarta(timestamp_utc)
             data = [
                 chat_timestamp,
                 timestamp_local,
@@ -87,7 +86,7 @@ class SheetManager:
 
     def init_emergency(self, emergency_id, user_requested, timestamp_utc):
         try:
-            timestamp_local = self.convert_to_local_time(timestamp_utc)
+            timestamp_local = self.convert_utc_to_jakarta(timestamp_utc)
             data = [emergency_id, timestamp_local, user_requested]
             self.emergency.append_row(data)
         except Exception as e:
@@ -105,7 +104,7 @@ class SheetManager:
         timestamp_utc,
     ):
         try:
-            timestamp_local = self.convert_to_local_time(timestamp_utc)
+            timestamp_local = self.convert_utc_to_jakarta(timestamp_utc)
             data = [
                 it_helpdesk_id,
                 timestamp_local,
@@ -135,7 +134,7 @@ class SheetManager:
         timestamp_utc,
     ):
         try:
-            timestamp_local = self.convert_to_local_time(timestamp_utc)
+            timestamp_local = self.convert_utc_to_jakarta(timestamp_utc)
             data = [
                 piket_id,
                 timestamp_local,
@@ -155,7 +154,7 @@ class SheetManager:
 
     def init_ticket_row(self, ticket_id, user_id, user_name, user_input, timestamp_utc):
         try:
-            timestamp_local = self.convert_to_local_time(timestamp_utc)
+            timestamp_local = self.convert_utc_to_jakarta(timestamp_utc)
             data = [
                 timestamp_local,
                 ticket_id,
@@ -180,7 +179,7 @@ class SheetManager:
                 for key, value in updates.items():
                     col = self.column_mappings[key]
                     if "at" in key and isinstance(value, datetime):
-                        value = self.convert_to_local_time(value)
+                        value = self.convert_utc_to_jakarta(value)
                     self.ticket_sheet.update_cell(row, col, value)
         except Exception as e:
             logging.error(f"Failed to update ticket: {str(e)}")
@@ -220,7 +219,7 @@ class SheetManager:
                 for key, value in updates.items():
                     col = self.piket_col_mapping[key]
                     if "at" in key and isinstance(value, datetime):
-                        value = self.convert_to_local_time(value)
+                        value = self.convert_utc_to_jakarta(value)
                     self.piket_sheet.update_cell(row, col, value)
         except Exception as e:
             logging.error(f"Failed to update ticket: {str(e)}")
@@ -262,7 +261,7 @@ class SheetManager:
                 for key, value in updates.items():
                     col = self.emergency_col_mapping[key]
                     if "at" in key and isinstance(value, datetime):
-                        value = self.convert_to_local_time(value)
+                        value = self.convert_utc_to_jakarta(value)
                     self.emergency.update_cell(row, col, value)
         except Exception as e:
             logging.error(f"Failed to update row: {str(e)}")
@@ -292,7 +291,7 @@ class SheetManager:
                 for key, value in updates.items():
                     col = self.helpdesk_col_mapping[key]
                     if "at" in key and isinstance(value, datetime):
-                        value = self.convert_to_local_time(value)
+                        value = self.convert_utc_to_jakarta(value)
                     self.it_helpdesk.update_cell(row, col, value)
         except Exception as e:
             logging.error(f"Failed to update row: {str(e)}")
