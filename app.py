@@ -574,7 +574,12 @@ def handle_category_selection(ack, body, client):
                         "type": "button",
                         "text": {"type": "plain_text", "text": "Generate Slots"},
                         "action_id": "generate_slot_list",
-                    }
+                    },
+                    {
+                        "type": "button",
+                        "text": {"type": "plain_text", "text": "Additional Classes"},
+                        "action_id": "generate_additional_classes",
+                    },
                 ],
             },
             {
@@ -806,10 +811,217 @@ def handle_generate_slot_list(ack, body, client):
         or teacher_who_replaces_val == "I need help finding a replacement"
         else "I have had a replacement"
     )
+
     grade = state["grade_block"]["grade_action"]["value"]
+
     slots = sheet_manager.get_slots_by_grade(grade)
+
+    if slots and len(slots) > 0:
+        dropdown_options = [
+            {"text": {"type": "plain_text", "text": slot}, "value": slot}
+            for slot in slots
+        ]
+    else:
+        dropdown_options = [
+            {
+                "text": {"type": "plain_text", "text": "No slots available"},
+                "value": "no_slots",
+            }
+        ]
+
+    client.views_update(
+        view_id=body["view"]["id"],
+        view={
+            "type": "modal",
+            "callback_id": "slash_input",
+            "title": {"type": "plain_text", "text": "Piket Request"},
+            "submit": {"type": "plain_text", "text": "Submit"},
+            "close": {"type": "plain_text", "text": "Cancel"},
+            "blocks": [
+                {
+                    "type": "input",
+                    "block_id": "date_block",
+                    "label": {"type": "plain_text", "text": "Date"},
+                    "element": {
+                        "type": "datepicker",
+                        "action_id": "date_picker_action",
+                        "placeholder": {"type": "plain_text", "text": "Select a date"},
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "teacher_request_block",
+                    "label": {"type": "plain_text", "text": "Teacher who requested"},
+                    "element": {
+                        "action_id": "teacher_request_action",
+                        "type": "users_select",
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "Select Teacher Who Requested",
+                        },
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "teacher_replace_block",
+                    "label": {"type": "plain_text", "text": "Teacher who replaces"},
+                    "element": {
+                        "action_id": "teacher_replace_action",
+                        "type": (
+                            "users_select"
+                            if selected_cat_on_piket == "I have had a replacement"
+                            else "plain_text_input"
+                        ),
+                        **(
+                            {
+                                "initial_value": (
+                                    "I need help finding a replacement"
+                                    if selected_cat_on_piket
+                                    == "I need help finding a replacement"
+                                    else (
+                                        "No Mentor"
+                                        if selected_cat_on_piket == "No Mentor"
+                                        else None
+                                    )
+                                )
+                            }
+                            if selected_cat_on_piket != "I have had a replacement"
+                            else {}
+                        ),
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "Select Teacher Who Replaces",
+                        },
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "grade_block",
+                    "label": {"type": "plain_text", "text": "Grade"},
+                    "element": {
+                        "type": "number_input",
+                        "action_id": "grade_action",
+                        "is_decimal_allowed": False,
+                        "initial_value": grade,
+                    },
+                },
+                {
+                    "type": "actions",
+                    "elements": [
+                        {
+                            "type": "button",
+                            "text": {"type": "plain_text", "text": "Generate Slots"},
+                            "action_id": "generate_slot_list",
+                            "style": "primary",
+                        },
+                        {
+                            "type": "button",
+                            "text": {
+                                "type": "plain_text",
+                                "text": "Additional Classes",
+                            },
+                            "action_id": "generate_additional_classes",
+                        },
+                    ],
+                },
+                {
+                    "type": "input",
+                    "block_id": "slot_name_block",
+                    "label": {"type": "plain_text", "text": "Slot Name"},
+                    "element": {
+                        "type": "static_select",
+                        "action_id": "slot_name_action",
+                        "placeholder": {"type": "plain_text", "text": "Select a slot"},
+                        "options": dropdown_options,
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "time_class_block",
+                    "label": {"type": "plain_text", "text": "Class Time"},
+                    "element": {
+                        "type": "plain_text_input",
+                        "action_id": "time_class_action",
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "e.g., 19:15",
+                        },
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "reason_block",
+                    "label": {"type": "plain_text", "text": "Reason"},
+                    "element": {
+                        "type": "plain_text_input",
+                        "multiline": True,
+                        "action_id": "reason_action",
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "direct_lead_block",
+                    "label": {"type": "plain_text", "text": "Direct Lead"},
+                    "element": {
+                        "action_id": "direct_lead_action",
+                        "type": "users_select",
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "Select Your Direct Lead",
+                        },
+                    },
+                },
+                {
+                    "type": "input",
+                    "block_id": "stem_lead_block",
+                    "label": {"type": "plain_text", "text": "STEM Lead"},
+                    "element": {
+                        "action_id": "stem_lead_action",
+                        "type": "users_select",
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "Select Your STEM Lead",
+                        },
+                    },
+                },
+            ],
+            "private_metadata": body["view"]["private_metadata"],
+        },
+    )
+
+
+@app.action("generate_additional_classes")
+def handle_generate_alternative_slots(ack, body, client):
+    """Handle the Additional Classes button click action"""
+    ack()
+
+    state = body["view"]["state"]["values"]
+
+    teacher_replace_block = state["teacher_replace_block"]["teacher_replace_action"]
+    teacher_who_replaces_val = teacher_replace_block.get(
+        "selected_user"
+    ) or teacher_replace_block.get("value")
+
+    selected_cat_on_piket = (
+        teacher_who_replaces_val
+        if teacher_who_replaces_val == "No Mentor"
+        or teacher_who_replaces_val == "I need help finding a replacement"
+        else "I have had a replacement"
+    )
+
+    grade = state["grade_block"]["grade_action"].get("value", "")
+
+    alternative_slots = [
+        "Math Club",
+        "Kelas Pengganti - Matematika",
+        "Kelas Pengganti - IPA",
+        "Kelas Pengganti - Fisika",
+        "Kelas Pengganti - Kimia",
+    ]
+
     dropdown_options = [
-        {"text": {"type": "plain_text", "text": slot}, "value": slot} for slot in slots
+        {"text": {"type": "plain_text", "text": slot}, "value": slot}
+        for slot in alternative_slots
     ]
 
     client.views_update(
@@ -885,16 +1097,39 @@ def handle_generate_slot_list(ack, body, client):
                         "type": "number_input",
                         "action_id": "grade_action",
                         "is_decimal_allowed": False,
+                        "initial_value": grade,
                     },
+                },
+                {
+                    "type": "actions",
+                    "elements": [
+                        {
+                            "type": "button",
+                            "text": {"type": "plain_text", "text": "Generate Slots"},
+                            "action_id": "generate_slot_list",
+                        },
+                        {
+                            "type": "button",
+                            "text": {
+                                "type": "plain_text",
+                                "text": "Additional Classes",
+                            },
+                            "action_id": "generate_additional_classes",
+                            "style": "primary",
+                        },
+                    ],
                 },
                 {
                     "type": "input",
                     "block_id": "slot_name_block",
-                    "label": {"type": "plain_text", "text": "Slot Name"},
+                    "label": {"type": "plain_text", "text": "Alternative Slot Type"},
                     "element": {
                         "type": "static_select",
                         "action_id": "slot_name_action",
-                        "placeholder": {"type": "plain_text", "text": "Select a slot"},
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "Select a slot type",
+                        },
                         "options": dropdown_options,
                     },
                 },
