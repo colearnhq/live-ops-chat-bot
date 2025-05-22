@@ -1,5 +1,6 @@
 import os
 import re
+from dataops import register_dataops_commands
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from dotenv import load_dotenv
@@ -28,15 +29,28 @@ creds_dict = {
     "universe_domain": os.getenv("GOOGLE_UNIVERSE_DOMAIN"),
 }
 
-app = App(token=os.getenv("SLACK_BOT_TOKEN"))
-sheet_manager = SheetManager(creds_dict, "1dPXiGBN2dDyyQ9TnO6Hi8cQtmbkFBU4O7sI5ztbXT90")
-
 emergency_reflected_cn = "C0719R3NQ91"
 ops_cn = "C0719R3NQ91"
 reflected_cn = "C0719R3NQ91"
 piket_reflected_cn = "C0719R3NQ91"
 helpdesk_cn = "C0719R3NQ91"
 helpdesk_support_id = "U08NTAUVD2P"
+
+app = App(token=os.getenv("SLACK_BOT_TOKEN"))
+sheet_manager = SheetManager(creds_dict, "1dPXiGBN2dDyyQ9TnO6Hi8cQtmbkFBU4O7sI5ztbXT90")
+
+register_dataops_commands(
+    app,
+    sheet_manager,
+    {
+        "emergency_reflected_cn": emergency_reflected_cn,
+        "ops_cn": ops_cn,
+        "reflected_cn": reflected_cn,
+        "piket_reflected_cn": piket_reflected_cn,
+        "helpdesk_cn": helpdesk_cn,
+        "helpdesk_support_id": helpdesk_support_id,
+    },
+)
 
 greetings_response = {
     "morning": "Good Morning",
